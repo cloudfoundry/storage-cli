@@ -1,0 +1,131 @@
+name: Build
+on:
+    push:
+        branches: [main]
+        paths-ignore:
+            - 'README.md'
+            - 'LICENSE'
+            - 'NOTICE'
+    workflow_dispatch: # manual trigger
+        inputs:
+            version_bump:
+                description: 'Version bump type (major, minor, patch)'
+                required: false
+                default: 'patch'
+                type: choice
+                options:
+                    - major
+                    - minor
+                    - patch
+jobs:
+    build-ali-cli:
+        name: Build Only (No Release)
+        runs-on: [ubuntu-latest]
+        steps:
+        - uses: actions/checkout@v4
+        
+        - name: Set up Go
+          uses: actions/setup-go@v5
+          with:
+            go-version-file: 'go.mod'
+        
+        - name: Ali CLI Build for Linux
+          env:
+            GOOS: linux
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Ali CLI for Linux"
+                go build -o "ali-storage-cli-linux-amd64" ./ali
+                sha1sum "ali-storage-cli-linux-amd64"
+        
+        - name: Ali CLI Build for Windows
+          env:
+            GOOS: windows
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Ali CLI for Windows"
+                go build -o "ali-storage-cli-windows-amd64.exe" ./ali
+                sha1sum "ali-storage-cli-windows-amd64.exe"
+
+        - name: Azure CLI Build for Linux
+          env:
+            GOOS: linux
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Azure CLI for Linux"
+                go build -o "azure-storage-cli-linux-amd64" ./azure
+                sha1sum "azure-storage-cli-linux-amd64"
+        
+        - name: Azure CLI Build for Windows
+          env:
+            GOOS: windows
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Azure CLI for Windows"
+                go build -o "azure-storage-cli-windows-amd64.exe" ./azure
+                sha1sum "azure-storage-cli-windows-amd64.exe"
+
+        - name: Dav CLI Build for Linux
+          env:
+            GOOS: linux
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Dav CLI for Linux"
+                go build -o "dav-storage-cli-linux-amd64" ./dav/main
+                sha1sum "dav-storage-cli-linux-amd64"
+        
+        - name: Dav CLI Build for Windows
+          env:
+            GOOS: windows
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Dav CLI for Windows"
+                go build -o "dav-storage-cli-windows-amd64.exe" ./dav/main
+                sha1sum "dav-storage-cli-windows-amd64.exe"
+
+        - name: Gcs CLI Build for Linux
+          env:
+            GOOS: linux
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Gcs CLI for Linux"
+                go build -o "gcs-storage-cli-linux-amd64" ./gcs
+                sha1sum "gcs-storage-cli-linux-amd64"
+        
+        - name: Gcs CLI Build for Windows
+          env:
+            GOOS: windows
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building Gcs CLI for Windows"
+                go build -o "gcs-storage-cli-windows-amd64.exe" ./gcs
+                sha1sum "gcs-storage-cli-windows-amd64.exe"
+
+
+        - name: S3 CLI Build for Linux
+          env:
+            GOOS: linux
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building S3 CLI for Linux"
+                go build -o "s3-storage-cli-linux-amd64" ./s3
+                sha1sum "s3-storage-cli-linux-amd64"
+        
+        - name: S3 CLI Build for Windows
+          env:
+            GOOS: windows
+            GOARCH: amd64
+            CGO_ENABLED: 0
+          run: |
+                echo "Building S3 CLI for Windows"
+                go build -o "s3-storage-cli-windows-amd64.exe" ./s3
+                sha1sum "s3-storage-cli-windows-amd64.exe"
