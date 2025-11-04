@@ -1,0 +1,61 @@
+name : Unit Test
+
+on:
+    push:
+        branches :
+            - main
+    pull_request:
+        paths :
+            - 'azure/**'
+            - '.github/workflows/azure-cli-test.yml'
+
+
+jobs:
+    tests: 
+        name: Run Unit Tests
+        runs-on: [ubuntu-latest]
+        steps:
+            - uses: actions/checkout@v5
+            - name: Set up Go    
+              uses: actions/setup-go@v6
+              with:
+                go-version-file: 'go.mod'
+            # - name: Lint code
+            #   uses: golangci/golangci-lint-action@v8
+            - name: Cache Go modules
+              uses: actions/cache@v4
+              with:
+                path: ~/go/pkg/mod
+                key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+                restore-keys: |
+                    ${{ runner.os }}-go-
+            
+            - name: ali unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./ali/...
+            
+            - name: azure unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./azure/...
+
+            - name: dav unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go test -v ./dav/...
+            
+            - name: gcs unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./gcs/...
+            
+            - name: s3 unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./s3/...
