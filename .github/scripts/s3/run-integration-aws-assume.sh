@@ -4,6 +4,7 @@ set -euo pipefail
 
 # Get the directory where this script is located
 script_dir="$( cd "$(dirname "${0}")" && pwd )"
+repo_root="$(cd "${script_dir}/../../.." && pwd)"
 
 # Source utils from the same directory
 source "${script_dir}/utils.sh"
@@ -28,7 +29,8 @@ export SECRET_ACCESS_KEY=${secret_access_key}
 export REGION=${region_name}
 export S3_HOST=${s3_endpoint_host}
 
-pushd "${release_dir}" > /dev/null
+
+pushd "${repo_root}" > /dev/null
   echo -e "\n running tests with $(go version)..."
-  scripts/ginkgo -r --focus="${focus_regex}" s3/integration/
+  ginkgo -r --focus="${focus_regex}" s3/integration/
 popd > /dev/null

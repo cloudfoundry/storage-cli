@@ -42,6 +42,7 @@ jobs:
           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           export region_name="us-east-1"
           export stack_name="s3cli-iam"
+          export role_arn="${{ secrets.AWS_ROLE_ARN }}"
           export s3_endpoint_host="s3.amazonaws.com"
           
           # Test static credentials
