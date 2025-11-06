@@ -31,10 +31,12 @@ jobs:
           export region_name="us-east-1"
           export stack_name="s3cli-iam"
           export role_arn="${{ secrets.AWS_ROLE_ARN }}"
-          ./.github/scripts/s3/setup-aws-infrastructure.sh
 
-      - name: Run AWS integration tests (parallel)
-        run: |
+
+          ./.github/scripts/s3/setup-aws-infrastructure.sh
+          
+      - name: Test Static Credentials
+        run : |
           set -e
           
           # Export common variables
@@ -42,30 +44,35 @@ jobs:
           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           export region_name="us-east-1"
           export stack_name="s3cli-iam"
-          export role_arn="${{ secrets.AWS_ROLE_ARN }}"
           export s3_endpoint_host="s3.amazonaws.com"
-          export bucket_name="s3cli-pipeline"
-          
-          # Test static credentials
           export focus_regex="GENERAL AWS|AWS V2 REGION|AWS V4 REGION|AWS US-EAST-1"
-          ./.github/scripts/s3/run-integration-aws.sh &
-          PID1=$!
 
-          # Test assume roles
+          ./.github/scripts/s3/run-integration-aws.sh
+
+      - name: Test IAM Roles
+        run : |
+          set -e
+          
+          # Export common variables
+          export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+          export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          export region_name="us-east-1"
+          export stack_name="s3cli-iam"
+
+          ./.github/scripts/s3/run-integration-aws-iam.sh
+        
+      - name: Test Assume Roles
+        run: |
+          set -e
+
+          # Export common variables
+          export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+          export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          export region_name="us-east-1"
           export assume_role_arn="${{ secrets.AWS_ROLE_ARN }}"
           export focus_regex="AWS ASSUME ROLE"
-          ./.github/scripts/s3/run-integration-aws-assume.sh &
-          PID2=$!
 
-          # Test IAM roles
-          export focus_regex=""
-          ./.github/scripts/s3/run-integration-aws-iam.sh &
-          PID3=$!
-          
-          # Wait for all tests to complete
-          wait $PID1 && echo "Static credentials tests passed" || exit 1
-          wait $PID2 && echo "Assume role tests passed" || exit 1
-          wait $PID3 && echo "IAM role tests passed" || exit 1
+          ./.github/scripts/s3/run-integration-aws-assume.sh
 
       - name: Teardown AWS infrastructure
         if: always()
