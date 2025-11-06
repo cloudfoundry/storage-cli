@@ -44,18 +44,19 @@ jobs:
           export stack_name="s3cli-iam"
           export role_arn="${{ secrets.AWS_ROLE_ARN }}"
           export s3_endpoint_host="s3.amazonaws.com"
+          export bucket_name="s3cli-pipeline"
           
           # Test static credentials
           export focus_regex="GENERAL AWS|AWS V2 REGION|AWS V4 REGION|AWS US-EAST-1"
           ./.github/scripts/s3/run-integration-aws.sh &
           PID1=$!
-          
+
           # Test assume roles
-          export assume_role_arn="${{ secrets.ASSUME_ROLE_ARN }}"
+          export assume_role_arn="${{ secrets.AWS_ROLE_ARN }}"
           export focus_regex="AWS ASSUME ROLE"
           ./.github/scripts/s3/run-integration-aws-assume.sh &
           PID2=$!
-          
+
           # Test IAM roles
           export focus_regex=""
           ./.github/scripts/s3/run-integration-aws-iam.sh &
