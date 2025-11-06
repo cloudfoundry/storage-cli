@@ -24,7 +24,8 @@ bucket_name=$(get_stack_info_of "${stack_info}" "BucketName")
 iam_role_arn=$(get_stack_info_of "${stack_info}" "IamRoleArn")
 
 # Create JSON payload and base64 encode it
-lambda_payload="{\"region\": \"${region_name}\", \"bucket_name\": \"${bucket_name}\", \"s3_host\": \"s3.amazonaws.com\"}"
+lambda_payload_json="{\"region\": \"${region_name}\", \"bucket_name\": \"${bucket_name}\", \"s3_host\": \"s3.amazonaws.com\"}"
+lambda_payload_base64=$(echo -n "${lambda_payload_json}" | base64)
 
 lambda_log=$(mktemp -t "XXXXXX-lambda.log")
 trap "cat ${lambda_log}" EXIT
@@ -67,7 +68,7 @@ pushd "${repo_root}" > /dev/null
   --function-name "${lambda_function_name}" \
   --region "${region_name}" \
   --log-type Tail \
-  --payload "${lambda_payload}" \
+  --payload "${lambda_payload_base64}" \
   "${lambda_log}" | tee lambda_output.json
 
   set +e
