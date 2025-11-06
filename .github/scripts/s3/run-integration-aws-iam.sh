@@ -32,9 +32,8 @@ trap "cat ${lambda_log}" EXIT
 pushd "${repo_root}" > /dev/null
 
   echo -e "\n building artifact with $(go version)..."
-# TODO change repo in here later
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o out/s3cli \
-    github.com/cloudfoundry/bosh-s3cli
+# Build the S3 CLI from the current repository
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o out/s3cli ./s3
   CGO_ENABLED=0 ginkgo build s3/integration
 
   zip -j payload.zip s3/integration/integration.test out/s3cli ${script_dir}/assets/lambda_function.py
