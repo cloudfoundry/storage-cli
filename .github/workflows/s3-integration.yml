@@ -84,9 +84,55 @@ jobs:
   #         export role_arn="${{ secrets.AWS_ROLE_ARN }}"
   #         ./.github/scripts/s3/teardown-infrastructure.sh
 
-  # AWS S3 Public Read Integration
-  aws-s3-public-read-integration:
-    name: AWS S3 Public Read Integration
+  # # AWS S3 Public Read Integration
+  # aws-s3-public-read-integration:
+  #   name: AWS S3 Public Read Integration
+  #   runs-on: ubuntu-latest
+  #   environment: aws-integration
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
+
+  #     - name: Set up Go
+  #       uses: actions/setup-go@v6
+  #       with:
+  #         go-version-file: 'go.mod'
+
+  #     - name: Install Ginkgo
+  #       run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+  #     - name: Setup AWS infrastructure
+  #       run: |
+  #         export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+  #         export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+  #         export role_arn="${{ secrets.AWS_ROLE_ARN }}"
+  #         export region_name="us-east-1"
+  #         export stack_name="s3cli-public-bucket"
+  #         ./.github/scripts/s3/setup-aws-infrastructure.sh
+
+  #     - name: Run public read tests
+  #       run: |
+  #         export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+  #         export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+  #         export role_arn="${{ secrets.AWS_ROLE_ARN }}"
+  #         export region_name="us-east-1"
+  #         export stack_name="s3cli-public-bucket"
+  #         export focus_regex="PUBLIC READ ONLY"
+  #         ./.github/scripts/s3/run-integration-aws.sh
+
+  #     - name: Teardown AWS infrastructure
+  #       if: always()
+  #       run: |
+  #         export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+  #         export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+  #         export role_arn=""
+  #         export region_name="us-east-1"
+  #         export stack_name="s3cli-public-bucket"
+  #         ./.github/scripts/s3/teardown-infrastructure.sh
+
+  # AWS S3 Frankfurt Integration
+  aws-s3-frankfurt-integration:
+    name: AWS S3 Frankfurt Integration
     runs-on: ubuntu-latest
     environment: aws-integration
     steps:
@@ -101,23 +147,24 @@ jobs:
       - name: Install Ginkgo
         run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
-      - name: Setup AWS infrastructure
+      - name: Setup AWS infrastructure (Frankfurt)
         run: |
           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          export role_arn="${{ secrets.AWS_ROLE_ARN }}"
-          export region_name="us-east-1"
-          export stack_name="s3cli-public-bucket"
+          export role_arn=""
+          export region_name="eu-central-1"
+          export stack_name="s3cli-private-bucket"
           ./.github/scripts/s3/setup-aws-infrastructure.sh
 
-      - name: Run public read tests
+      - name: Run Frankfurt region tests
         run: |
           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          export role_arn="${{ secrets.AWS_ROLE_ARN }}"
-          export region_name="us-east-1"
-          export stack_name="s3cli-public-bucket"
-          export focus_regex="PUBLIC READ ONLY"
+          export role_arn=""
+          export region_name="eu-central-1"
+          export stack_name="s3cli-private-bucket"
+          export focus_regex="GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION"
+          export s3_endpoint_host="https://s3.amazonaws.com"
           ./.github/scripts/s3/run-integration-aws.sh
 
       - name: Teardown AWS infrastructure
@@ -125,64 +172,9 @@ jobs:
         run: |
           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          export role_arn=""
-          export region_name="us-east-1"
-          export stack_name="s3cli-public-bucket"
+          export region_name="eu-central-1"
+          export stack_name="s3cli-private-bucket"
           ./.github/scripts/s3/teardown-infrastructure.sh
-
-#   # AWS S3 Frankfurt Integration
-#   aws-s3-frankfurt-integration:
-#     name: AWS S3 Frankfurt Integration
-#     runs-on: ubuntu-latest
-#     if: github.event_name == 'push' || (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'integration-test'))
-#     environment: aws-integration
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Go
-#         uses: actions/setup-go@v5
-#         with:
-#           go-version-file: 'go.mod'
-
-#       - name: Install Ginkgo
-#         run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
-
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v4
-#         with:
-#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#           aws-region: eu-central-1
-
-#       - name: Setup AWS infrastructure (Frankfurt)
-#         run: |
-#           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
-#           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-#           export region_name="eu-central-1"
-#           export stack_name="s3cli-iam"
-#           export role_arn="${{ secrets.AWS_ROLE_ARN }}"
-#           ./.github/scripts/s3/setup-aws-infrastructure.sh
-
-#       - name: Run Frankfurt region tests
-#         run: |
-#           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
-#           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-#           export region_name="eu-central-1"
-#           export stack_name="s3cli-iam"
-#           export focus_regex="GENERAL AWS|AWS V4 REGION"
-#           export s3_endpoint_host="s3.amazonaws.com"
-#           ./.github/scripts/s3/run-integration-aws.sh
-
-#       - name: Teardown AWS infrastructure
-#         if: always()
-#         run: |
-#           export access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
-#           export secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-#           export region_name="eu-central-1"
-#           export stack_name="s3cli-iam"
-#           export role_arn="${{ secrets.AWS_ROLE_ARN }}"
-#           ./.github/scripts/s3/teardown-infrastructure.sh
 
 
 #   s3-compatible-integration:
