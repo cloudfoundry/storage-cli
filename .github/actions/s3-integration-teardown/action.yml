@@ -1,0 +1,28 @@
+name: 'Tear down AWS S3 Integration Infrastructure'
+description: 'Tears down AWS S3 Integration Infrastructure used for testing purposes.'
+inputs:
+  access_key_id:
+    description: 'AWS Access Key ID'
+    required: true
+  secret_access_key:
+    description: 'AWS Secret Access Key'
+    required: true
+  region_name:
+    description: 'AWS Region Name'
+    required: true
+  stack_name:
+    description: 'CloudFormation Stack Name'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Teardown AWS Infrastructure
+      shell: bash
+      run: |
+        set -e
+        export access_key_id="${{inputs.access_key_id}}"
+        export secret_access_key="${{inputs.secret_access_key}}"
+        export region_name="${{inputs.region_name}}"
+        export stack_name="${{inputs.stack_name}}"
+        ./.github/scripts/s3/teardown-infrastructure.sh

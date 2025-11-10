@@ -1,0 +1,61 @@
+name: Run AWS S3 Integration Tests
+description: Runs integration tests against to aws infrastructure.
+
+inputs:
+  access_key_id:
+    description: 'AWS Access Key ID'
+    required: true
+  secret_access_key:
+    description: 'AWS Secret Access Key'
+    required: true
+  region_name:
+    description: 'AWS Region Name'
+    required: true
+  stack_name:
+    description: 'CloudFormation Stack Name (required for IAM tests)'
+    required: true
+  test_type:
+    description: 'Type of test to run (e.g.,aws, aws-iam, aws-assume)'
+    required: true
+  focus_regex:
+    description: 'Ginkgo Focus Regex for tests to run'
+    required: false
+  s3_endpoint_host:
+    description: 'Custom S3 Endpoint Host'
+    required: false
+  role_arn:
+    description: 'AWS Role ARN to test assume role functionality'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Run AWS S3 Integration Tests
+    shell: bash
+    run: |
+      set -e
+      export access_key_id="${{inputs.access_key_id}}"
+      export secret_access_key="${{inputs.secret_access_key}}"
+      export region_name="${{inputs.region_name}}"
+      export stack_name="${{inputs.stack_name}}"
+
+      if [[ "${{inputs.test_type}}" == "aws" ]]; then
+        export role_arn="${{inputs.role_arn}}"
+        export s3_endpoint_host="${{inputs.s3_endpoint_host}}"
+        export focus_regex="${{inputs.focus_regex}}"
+        echo "Running standard AWS integration tests..."
+        ./.github/scripts/s3/run-integration-aws.sh
+      elif [[ "${{inputs.test_type}}" == "aws-iam" ]]; then
+        echo "Running AWS IAM role tests..."
+        ./.github/scripts/s3/run-integration-aws-iam.sh
+      elif [[ "${{inputs.test_type}}" == "aws-assume" ]]; then
+        export assume_role_arn="${{inputs.role_arn}}"
+        export focus_regex="${{inputs.focus_regex}}"
+        echo "Running AWS assume role tests..."
+        ./.github/scripts/s3/run-integration-aws-assume.sh
+      else
+        echo "Error: Unknown test_type '${{inputs.test_type}}'"
+        echo "Valid options are: aws, aws-iam, aws-assume"
+        exit 1
+      fi

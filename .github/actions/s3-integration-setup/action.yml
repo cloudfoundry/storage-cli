@@ -1,0 +1,34 @@
+name: Set up AWS S3 Integration Infrastructure
+description: Sets up AWS S3 Integration Infrastructure for testing purposes.
+
+inputs:
+  access_key_id:
+    description: 'AWS Access Key ID'
+    required: true
+  secret_access_key:
+    description: 'AWS Secret Access Key'
+    required: true
+  region_name:
+    description: 'AWS Region Name'
+    required: true
+  stack_name:
+    description: 'CloudFormation Stack Name'
+    required: true
+  role_arn:
+    description: 'AWS Role ARN'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up AWS Infrastructure
+      shell: bash
+      run: |
+        set -e
+        export access_key_id="${{inputs.access_key_id}}"
+        export secret_access_key="${{inputs.secret_access_key}}"
+        export role_arn="${{inputs.role_arn}}"
+        export region_name="${{inputs.region_name}}"
+        export stack_name="${{inputs.stack_name}}"
+        ./.github/scripts/s3/setup-aws-infrastructure.sh
