@@ -5,7 +5,6 @@ on:
     branches:
       - main
 
-
 jobs:
     tests: 
         name: Run Unit Tests
@@ -15,9 +14,9 @@ jobs:
             - name: Set up Go    
               uses: actions/setup-go@v6
               with:
-                go-version-file: 'go.mod'
-            # - name: Lint code
-            #   uses: golangci/golangci-lint-action@v8
+                go-version-file: go.mod
+            - name: Lint code
+              uses: golangci/golangci-lint-action@v8
             - name: Cache Go modules
               uses: actions/cache@v4
               with:
