@@ -196,6 +196,6 @@ jobs:
           export access_key_id="${{ secrets.GCP_ACCESS_KEY_ID }}"
           export secret_access_key="${{ secrets.GCP_SECRET_ACCESS_KEY }}"
           export bucket_name="${{ secrets.GCS_BUCKET_NAME }}"
-          export s3_endpoint_host="storage.googleapis.com"
+          export s3_endpoint_host="https://storage.googleapis.com"
           export s3_endpoint_port="443"
           ./.github/scripts/s3/run-integration-s3-compat.sh
