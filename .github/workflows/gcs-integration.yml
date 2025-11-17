@@ -3,7 +3,7 @@ name: GCS Integration Tests
 on:
   pull_request:
     paths:
-    - ".github/workflows/gcs-integration.yaml"
+    - ".github/workflows/gcs-integration.yml"
     - "gcs/**"
 
 jobs:
