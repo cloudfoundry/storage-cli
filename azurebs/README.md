@@ -57,27 +57,21 @@ Using ginkgo:
 
 ``` bash
 go install github.com/onsi/ginkgo/v2/ginkgo
-ginkgo --skip-package=integration --randomize-all --cover -v -r
+ginkgo --skip-package=integration --randomize-all --cover -v -r ./azurebs/...
 ```
 
 Using go test:
 
 ``` bash
-go test $(go list ./... | grep -v integration)
+go test $(go list ./azurebs/... | grep -v integration)
 ```
 
 ### Integration tests
-
-1. Export the following variables into your environment:
-
-    ``` bash
-    export ACCOUNT_NAME=<your Azure accounnt name>
-    export ACCOUNT_KEY=<your Azure account key>
-    export CONTAINER_NAME=<the target container name>
-    ```
-
-2. Run integration tests
-
-    ```bash
-    go test ./integration/...
-    ```
+1. Create a storage account in your azure subscription.
+1. Get `account name` and `access key` from you storage account.
+1. Export `account name` with command `export azure_storage_account=<account name>`.
+1. Export `access key` with command `export azure_storage_key=<access key>`.
+1. Navigate to project's root folder.
+1. Run environment setup script to create container `/.github/scripts/azurebs/setup.sh`.
+1. Run tests `/.github/scripts/azurebs/run-int.sh`.
+1. Run environment teardown script to delete test resources `/.github/scripts/azurebs/teardown.sh`.
