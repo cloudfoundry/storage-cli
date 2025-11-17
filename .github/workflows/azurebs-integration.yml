@@ -1,0 +1,36 @@
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  azurecloud-environment-integration-tests:
+    name:  AzureCloud Environment Integration Tests
+    runs-on: ubuntu-latest
+    environment: azurebs-integration
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Setup Azurebs Test Environment
+        run: |
+            export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+            export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+            ./.github/scripts/azurebs/setup.sh
+      - name: Run Tests
+        run: |
+            export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+            export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+            ./.github/scripts/azurebs/run-int.sh
+      - name: Teardown Azurebs Test Environment
+        if: always()
+        run: |
+            export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+            export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+            ./.github/scripts/azurebs/teardown.sh
+  
