@@ -1,10 +1,10 @@
 name: S3 Integration Tests
 
 on:
-  push:
-    branches: [ main, feature/aws-integration-tests ]
   pull_request:
-    branches: [ main ]
+    paths:
+    - ".github/workflows/s3-integration.yml"
+    - "s3/**"
 
 jobs:
   # AWS S3 US Integration Tests
@@ -18,10 +18,10 @@ jobs:
       S3_ENDPOINT_HOST: https://s3.amazonaws.com
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -162,7 +162,7 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
           s3_endpoint_host: ${{ env.S3_ENDPOINT_HOST }}
-          focus_regex: 'GENERAL AWS|AWS V4 REGION'
+          focus_regex: 'GENERAL AWS|AWS V4 REGION' # TODO: after aws-sdk-go-v2 migration, AWS V4 ONLY REGION test is failling, Removed temporarily from focus.
           test_type: 'aws'
 
       - name: Teardown AWS infrastructure
@@ -174,7 +174,7 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
 
-
+  # TODO: after aws-sdk-go-v2 migration, not working properly. Disabled for now.
   # s3-compatible-integration:
   #   name: S3 Compatible Integration
   #   runs-on: ubuntu-latest
