@@ -22,7 +22,6 @@ jobs:
         run: |
             export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
             export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-            export profile="${{ secrets.ALI_PROFILE_NAME }}"
             ./.github/scripts/alioss/setup.sh
       - name: Run Tests
         run: |
@@ -34,5 +33,4 @@ jobs:
         run: |
             export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
             export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-            export profile="${{ secrets.ALI_PROFILE_NAME }}"
             ./.github/scripts/alioss/teardown.sh

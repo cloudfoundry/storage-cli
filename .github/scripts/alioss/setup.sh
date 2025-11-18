@@ -8,7 +8,6 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
 
 : "${access_key_id:?}"
 : "${access_key_secret:?}"
-: "${profile:=integration-tests}"
 : "${test_name:=general}"
 : "${region:=cn-hangzhou}"
 
@@ -16,7 +15,6 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
 export ALI_ACCESS_KEY_ID="${access_key_id}"
 export ALI_ACCESS_KEY_SECRET="${secret_access_key}"
 export ALI_REGION="${region}"
-export ALI_PROFILE="${profile}"
 
 
 

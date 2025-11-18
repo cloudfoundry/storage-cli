@@ -71,7 +71,6 @@ ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
   1. Create access key for the user.
   1. Export `AccessKeyId` with command `export access_key_id=<AccessKeyId>`.
   1. Export `AccessKeySecret` with command `export access_key_secret=<AccessKeyId>`.
-  1. Export `Profile` with command `export profile=<Profile>`.
   1. Navigate to project's root folder.
   1. Run environment setup script to create container `/.github/scripts/alioss/setup.sh`.
   1. Run tests `/.github/scripts/alioss/run-int.sh`.
