@@ -31,8 +31,7 @@ function delete_bucket_name_file {
 
 
 function aliyun_configure {
-    aliyun configure set --profile "$ALI_PROFILE" \
-    --access-key-id "$ALI_ACCESS_KEY_ID" \
+    aliyun configure set --access-key-id "$ALI_ACCESS_KEY_ID" \
     --access-key-secret "$ALI_ACCESS_KEY_SECRET" \
     --region "$ALI_REGION"   
 }
