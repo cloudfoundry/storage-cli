@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 TMP_DIR="/tmp/storage-cli-azurebs-${GITHUB_RUN_ID:-${USER}}"
 
 # generate a random container name with "azurebs-" prefix
