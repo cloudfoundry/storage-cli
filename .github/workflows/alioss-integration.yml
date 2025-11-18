@@ -1,3 +1,5 @@
+name: Alioss Integration Tests
+
 on:
   push:
   pull_request:
