@@ -1,7 +1,9 @@
 
 on:
   pull_request:
-  push:
+    paths:
+    - ".github/workflows/azurebs-integration.yml"
+    - "azurebs/**"
 
 jobs:
   azurecloud-environment-integration-tests:
