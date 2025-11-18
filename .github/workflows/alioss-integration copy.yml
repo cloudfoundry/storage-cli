@@ -1,0 +1,36 @@
+on:
+  push:
+  pull_request:
+
+jobs:
+  alioss-general-integration-tests:
+    name:  Alioss Environment Integration Tests
+    runs-on: ubuntu-latest
+    environment: alioss-integration
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Setup Alioss Test Environment
+        run: |
+            export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+            export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+            export profile="${{ secrets.ALI_PROFILE_NAME }}"
+            ./.github/scripts/alioss/setup.sh
+      - name: Run Tests
+        run: |
+            export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+            export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+            ./.github/scripts/alioss/run-int.sh
+      - name: Teardown Alioss Test Environment
+        if: always()
+        run: |
+            export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+            export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+            export profile="${{ secrets.ALI_PROFILE_NAME }}"
+            ./.github/scripts/alioss/teardown.sh
