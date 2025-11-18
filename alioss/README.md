@@ -49,7 +49,7 @@ curl -X GET <signed url>
 ```
 ## Running Tests
 
-### Unite Tests
+### Unit Tests
 ```bash
 go install github.com/onsi/ginkgo/v2/ginkgo
 ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
