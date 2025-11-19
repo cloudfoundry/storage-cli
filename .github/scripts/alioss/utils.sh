@@ -36,15 +36,32 @@ function aliyun_configure {
     --region "$ALI_REGION"   
 }
 
-
+function bucket_exists {
+    local bucket_name="$1"
+    if aliyun oss ls | grep -w "oss://${bucket_name}" > /dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 function create_bucket {
     local bucket_name="$(read_bucket_name_from_file "$1")"
-    aliyun --profile "$ALI_PROFILE" oss mb "oss://$bucket_name"
+        
+    if bucket_exists "${bucket_name}"; then
+        echo "Bucket ${bucket_name} created successfully"
+        return 0
+    else
+        echo "ERROR: Failed to create bucket ${bucket_name}"
+        return 1
+    fi
+
 }
 
 
 function delete_bucket {
     local bucket_name="$(read_bucket_name_from_file "$1")"
-    aliyun --profile "$ALI_PROFILE" oss rb "oss://$bucket_name" --force
+    local exists= bucket_exists "${bucket_name}"
+
+    aliyun oss rm "oss://$bucket_name"
 }
