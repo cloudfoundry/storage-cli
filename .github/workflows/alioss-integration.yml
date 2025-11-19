@@ -1,12 +1,14 @@
 name: Alioss Integration Tests
 
 on:
-  push:
   pull_request:
+    paths:
+    - ".github/workflows/alioss-integration.yml"
+    - "alioss/**"
 
 jobs:
   alioss-general-integration-tests:
-    name:  Alioss Environment Integration Tests
+    name:  Alioss General Integration Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
