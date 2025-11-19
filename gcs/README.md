@@ -48,41 +48,16 @@ The command line tool expects a JSON configuration file. Run `storage-cli-gcs --
   will be used if they exist (either through `gcloud auth application-default login` or a [service account](https://cloud.google.com/iam/docs/understanding-service-accounts)).
   If they don't exist the client will fall back to `none` behavior.
 
-## Running Integration Tests
+## Running Tests
+## Unit Tests
+1. Use the command `make -C .github/scripts/gcs test-unit`
 
-1. Ensure [gcloud](https://cloud.google.com/sdk/downloads) is installed and you have authenticated (`gcloud auth login`).
-   These credentials will be used by the Makefile to create/destroy Google Cloud Storage buckets for testing.
-1. Set the Google Cloud project: `gcloud config set project <your project>`
-1. Generate a service account with the `Storage Admin` role for your project and set the contents as 
-    the environment variable `GOOGLE_APPLICATION_CREDENTIALS`, for example:
-   ```bash
-   export project_id=$(gcloud config get-value project)
-
-   export service_account_name=storage-cli-gcs-integration-tests
-   export service_account_email=${service_account_name}@${project_id}.iam.gserviceaccount.com
-   credentials_file=$(mktemp)
-
-   gcloud config set project ${project_id}
-   gcloud iam service-accounts create ${service_account_name} --display-name "Integration Test Access for storage-cli-gcs "
-   gcloud iam service-accounts keys create ${credentials_file} --iam-account ${service_account_email}
-   gcloud project add-iam-policy-binding ${project_id} --member serviceAccount:${service_account_email} --role roles/storage.admin
-  
-   export GOOGLE_SERVICE_ACCOUNT="$(cat ${credentials_file})"
-   export GOOGLE_APPLICATION_CREDENTIALS="$(cat ${credentials_file})"
-   export LC_ALL=C # fix `tr` complaining about "illegal byte sequence" on OSX
-   ```
-1. Run the unit and fast integration tests: `make test-fast-int`
-1. Clean up buckets: `make clean-gcs`
-
-## Development
-
-* A Makefile is provided that automates integration testing. Try `make help` to get started.
-* [gvt](https://godoc.org/github.com/FiloSottile/gvt) is used for vendoring.
-
-## Contributing
-
-For details on how to contribute to this project - including filing bug reports and contributing code changes - please see [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-## License
-
-This tool is licensed under Apache 2.0. Full license text is available in [LICENSE](LICENSE).
+## Integration Tests
+1. Create a service account with the `Storage Admin` role.
+1. Create a new key for your service account and download credential as JSON file.
+1. Export json content with `export google_json_key_data="$(cat <path-to-json-file.json>)"`.
+1. Export `export SKIP_LONG_TESTS=yes` if you want to run only the fast running tests.
+1. Navigate to project's root folder.
+1. Run environment setup script to create buckets `/.github/scripts/gcs/setup.sh`.
+1. Run tests `/.github/scripts/gcs/run-int.sh`.
+1. Run environment teardown script to delete resources `/.github/scripts/gcs/teardown.sh`.

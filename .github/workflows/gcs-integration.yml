@@ -1,0 +1,70 @@
+name: GCS Integration Tests
+
+on:
+  pull_request:
+    paths:
+    - ".github/workflows/gcs-integration.yml"
+    - "gcs/**"
+
+jobs:
+  gcs-integration-fast-tests:
+    name:  GCS Integation Fast Tests
+    runs-on: ubuntu-latest
+    environment: gcs-integration
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5     
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Setup GCS Test Environment
+        run: |
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+            export google_json_key_data="$(cat /tmp/gcp-key.json)"
+            ./.github/scripts/gcs/setup.sh       
+      - name: Run Fast Tests
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+          export google_json_key_data="$(cat /tmp/gcp-key.json)"
+          export SKIP_LONG_TESTS=yes
+          ./.github/scripts/gcs/run-int.sh
+      - name: Teardown GCS Test Environment
+        if: always()
+        run: |
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+            export google_json_key_data="$(cat /tmp/gcp-key.json)"
+            ./.github/scripts/gcs/teardown.sh
+
+  gcs-integration-all-tests:
+    name:  GCS Integation All Tests
+    runs-on: ubuntu-latest
+    environment: gcs-integration
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5      
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+      - name: Setup GCS Test Environment
+        run: |
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+            export google_json_key_data="$(cat /tmp/gcp-key.json)"
+            ./.github/scripts/gcs/setup.sh  
+      - name: Run All Tests
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+          export google_json_key_data="$(cat /tmp/gcp-key.json)"
+          ./.github/scripts/gcs/run-int.sh
+      - name: Teardown GCS Test Environment
+        if: always()
+        run: |
+            echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+            export google_json_key_data="$(cat /tmp/gcp-key.json)"
+            ./.github/scripts/gcs/teardown.sh
+
