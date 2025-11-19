@@ -20,7 +20,7 @@ export ALI_REGION="${region}"
 
 pushd "${script_dir}"
     source utils.sh
-    # generate_bucket_name "${test_name}"
-    # aliyun_configure
+    generate_bucket_name "${test_name}"
+    aliyun_configure
     create_bucket "${test_name}"
 popd

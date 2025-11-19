@@ -52,7 +52,7 @@ function create_bucket {
         echo "Bucket ${bucket_name} created successfully"
         return 0
     else
-        echo "ERROR: Failed to create bucket ${bucket_name}"
+        echo "Failed to create bucket ${bucket_name}"
         return 1
     fi
 
@@ -61,7 +61,11 @@ function create_bucket {
 
 function delete_bucket {
     local bucket_name="$(read_bucket_name_from_file "$1")"
-    local exists= bucket_exists "${bucket_name}"
+    aliyun oss rm "oss://${bucket_name}" -b -r -f
 
-    aliyun oss rm "oss://$bucket_name"
+    if bucket_exists "${bucket_name}"; then
+        return 1
+    else
+        return 0
+    fi
 }

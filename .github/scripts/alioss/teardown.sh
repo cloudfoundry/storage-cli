@@ -19,6 +19,9 @@ export ALI_REGION="${region}"
 pushd "${script_dir}"
     source utils.sh
     aliyun_configure
-    delete_bucket "${test_name}"
-    delete_bucket_name_file "${test_name}"
+    if delete_bucket "${test_name}" ; then
+        echo "Failed to delete bucket"
+    else
+        delete_bucket_name_file "${test_name}"
+    fi
 popd
