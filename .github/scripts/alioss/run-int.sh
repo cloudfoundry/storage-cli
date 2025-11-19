@@ -7,7 +7,7 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
 : "${access_key_id:?}"
 : "${access_key_secret:?}"
 : "${test_name:=general}"
-: "${region:=cn-hangzhou}"
+: "${region:=eu-central-1}"
 
 export ACCESS_KEY_ID="${access_key_id}"
 export ACCESS_KEY_SECRET="${secret_access_key}"
