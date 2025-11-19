@@ -10,7 +10,8 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
 : "${region:=eu-central-1}"
 
 export ACCESS_KEY_ID="${access_key_id}"
-export ACCESS_KEY_SECRET="${secret_access_key}"
+export ACCESS_KEY_SECRET="${access_key_secret}"
+export ENDPOINT="oss-"${region}".aliyuncs.com"
 
 pushd "${script_dir}" > /dev/null
     source utils.sh
@@ -18,8 +19,6 @@ pushd "${script_dir}" > /dev/null
     : "${bucket_name:?}"
     export BUCKET_NAME="${bucket_name}"
 popd > /dev/null
-
-export ENDPOINT="https://${BUCKET_NAME}.${region}.aliyuncs.com"
 
 pushd "${repo_root}" > /dev/null
   echo -e "\n running tests with $(go version)..."

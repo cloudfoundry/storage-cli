@@ -47,13 +47,17 @@ function bucket_exists {
 
 function create_bucket {
     local bucket_name="$(read_bucket_name_from_file "$1")"
-        
-    if bucket_exists "${bucket_name}"; then
+    
+    if aliyun oss mb "oss://$bucket_name" 2>/dev/null; then
         echo "Bucket ${bucket_name} created successfully"
-        return 0
     else
-        echo "Failed to create bucket ${bucket_name}"
-        return 1
+        if bucket_exists "${bucket_name}"; then
+            echo "Bucket ${bucket_name} already exists"
+            return 0
+        else
+            echo "Failed to create bucket ${bucket_name}"
+            return 1
+        fi
     fi
 
 }
@@ -61,11 +65,16 @@ function create_bucket {
 
 function delete_bucket {
     local bucket_name="$(read_bucket_name_from_file "$1")"
-    aliyun oss rm "oss://${bucket_name}" -b -r -f
-
-    if bucket_exists "${bucket_name}"; then
-        return 1
+    
+    if aliyun oss rm "oss://${bucket_name}" -b -r -f 2>/dev/null; then
+        echo "Bucket ${bucket_name} deleted successfully"
     else
-        return 0
+        if bucket_exists "${bucket_name}"; then
+            echo "ERROR: Failed to delete bucket ${bucket_name}"
+            return 1
+        else
+            echo "Bucket ${bucket_name} already deleted or doesn't exist"
+        fi
     fi
+    return 0
 }

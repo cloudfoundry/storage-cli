@@ -20,8 +20,8 @@ pushd "${script_dir}"
     source utils.sh
     aliyun_configure
     if delete_bucket "${test_name}" ; then
-        echo "Failed to delete bucket"
+        delete_bucket_name_file "${test_name}"    
     else
-        delete_bucket_name_file "${test_name}"
+        exit 1
     fi
 popd
