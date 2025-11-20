@@ -11,7 +11,6 @@ jobs:
   aws-s3-us-integration:
     name: AWS S3 US Integration
     runs-on: ubuntu-latest
-    environment: s3-integration
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-iam
@@ -79,7 +78,6 @@ jobs:
   aws-s3-public-read-integration:
     name: AWS S3 Public Read Integration
     runs-on: ubuntu-latest
-    environment: s3-integration
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-public-bucket
@@ -128,7 +126,6 @@ jobs:
   aws-s3-frankfurt-integration:
     name: AWS S3 Frankfurt Integration
     runs-on: ubuntu-latest
-    environment: s3-integration
     env:
       REGION_NAME: eu-central-1
       STACK_NAME: s3cli-private-bucket
@@ -178,7 +175,6 @@ jobs:
   # s3-compatible-integration:
   #   name: S3 Compatible Integration
   #   runs-on: ubuntu-latest
-  #   environment: s3-integration
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v5
