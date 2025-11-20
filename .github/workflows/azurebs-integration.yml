@@ -10,7 +10,6 @@ jobs:
   azurecloud-environment-integration-tests:
     name:  AzureCloud Environment Integration Tests
     runs-on: ubuntu-latest
-    environment: azurebs-integration
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
