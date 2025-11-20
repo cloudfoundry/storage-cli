@@ -1,10 +1,14 @@
 name: GCS Integration Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
     - ".github/workflows/gcs-integration.yml"
     - "gcs/**"
+  push: 
+    branches:
+    - "main"
 
 jobs:
   gcs-integration-fast-tests:
