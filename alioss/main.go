@@ -45,10 +45,9 @@ func main() {
 	}
 
 	nonFlagArgs := flag.Args()
-	if len(nonFlagArgs) < 2 {
-		log.Fatalf("Expected at least two arguments got %d\n", len(nonFlagArgs))
+	if len(nonFlagArgs) == 0 {
+		log.Fatalf("Expected at least one argument (command), got %d\n", len(nonFlagArgs))
 	}
-
 	cmd := nonFlagArgs[0]
 
 	switch cmd {
@@ -75,6 +74,16 @@ func main() {
 		err = blobstoreClient.Get(source, destinationFilePath)
 		fatalLog(cmd, err)
 
+	case "copy":
+		if len(nonFlagArgs) != 3 {
+			log.Fatalf("Get method expected 3 arguments got %d\n", len(nonFlagArgs))
+		}
+
+		srcBlob, dstBlob := nonFlagArgs[1], nonFlagArgs[2]
+
+		err = blobstoreClient.Copy(srcBlob, dstBlob)
+		fatalLog(cmd, err)
+
 	case "delete":
 		if len(nonFlagArgs) != 2 {
 			log.Fatalf("Delete method expected 2 arguments got %d\n", len(nonFlagArgs))
@@ -82,6 +91,18 @@ func main() {
 
 		err = blobstoreClient.Delete(nonFlagArgs[1])
 		fatalLog(cmd, err)
+
+	case "delete-recursive":
+		var prefix string
+		if len(nonFlagArgs) > 2 {
+			log.Fatalf("delete-recursive takes at most one argument (prefix) got %d\n", len(nonFlagArgs)-1)
+		} else if len(nonFlagArgs) == 2 {
+			prefix = nonFlagArgs[1]
+		} else {
+			prefix = ""
+		}
+		err = blobstoreClient.DeleteRecursive(prefix)
+		fatalLog("delete-recursive", err)
 
 	case "exists":
 		if len(nonFlagArgs) != 2 {
@@ -122,6 +143,43 @@ func main() {
 
 		fmt.Println(signedURL)
 		os.Exit(0)
+
+	case "list":
+		var prefix string
+
+		if len(nonFlagArgs) == 1 {
+			prefix = ""
+		} else if len(nonFlagArgs) == 2 {
+			prefix = nonFlagArgs[1]
+		} else {
+			log.Fatalf("List method expected 1 or 2 arguments, got %d\n", len(nonFlagArgs)-1)
+		}
+
+		var objects []string
+		objects, err = blobstoreClient.List(prefix)
+		if err != nil {
+			log.Fatalf("Failed to list objects: %s", err)
+		}
+
+		for _, object := range objects {
+			fmt.Println(object)
+		}
+
+	case "properties":
+		if len(nonFlagArgs) != 2 {
+			log.Fatalf("Properties method expected 2 arguments got %d\n", len(nonFlagArgs))
+		}
+
+		err = blobstoreClient.Properties(nonFlagArgs[1])
+		fatalLog("properties", err)
+
+	case "ensure-bucket-exists":
+		if len(nonFlagArgs) != 1 {
+			log.Fatalf("EnsureBucketExists method expected 1 arguments got %d\n", len(nonFlagArgs))
+		}
+
+		err = blobstoreClient.EnsureBucketExists()
+		fatalLog("ensure-bucket-exists", err)
 
 	default:
 		log.Fatalf("unknown command: '%s'\n", cmd)
