@@ -1,10 +1,14 @@
 name: S3 Integration Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
     - ".github/workflows/s3-integration.yml"
     - "s3/**"
+  push:
+    branches:
+      - main
 
 jobs:
   # AWS S3 US Integration Tests
