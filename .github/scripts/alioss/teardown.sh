@@ -20,7 +20,7 @@ pushd "${script_dir}"
     source utils.sh
     aliyun_configure
     if delete_bucket "${test_name}" ; then
-        delete_bucket_name_file "${test_name}"    
+        delete_bucket_name_file "${test_name}"
     else
         exit 1
     fi

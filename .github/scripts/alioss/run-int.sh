@@ -11,7 +11,7 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
 
 export ACCESS_KEY_ID="${access_key_id}"
 export ACCESS_KEY_SECRET="${access_key_secret}"
-export ENDPOINT="oss-"${region}".aliyuncs.com"
+export ENDPOINT="oss-${region}.aliyuncs.com"
 
 pushd "${script_dir}" > /dev/null
     source utils.sh

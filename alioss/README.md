@@ -50,6 +50,7 @@ curl -X GET <signed url>
 ## Running Tests
 
 ### Unit Tests
+Navigate to project's root folder. And run the following commands.
 ```bash
 go install github.com/onsi/ginkgo/v2/ginkgo
 ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
@@ -67,11 +68,11 @@ ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
   1. go build -o ./alioss  ./alioss && go test ./alioss/integration/...
 
 - To run it from scratch; create a new bucket, run tests, delete the bucket
-  1. Create a user in your ali account and add policy `AliyunOSSFullAccess` or restrict the users with more granular policies like `oss:CreateBucket, oss:DeleteBucket` etc.
+  1. Create a user in your ali account and add policy `AliyunOSSFullAccess`, or restrict the users with more granular policies like `oss:CreateBucket`, `oss:DeleteBucket` etc.
   1. Create access key for the user.
   1. Export `AccessKeyId` with command `export access_key_id=<AccessKeyId>`.
-  1. Export `AccessKeySecret` with command `export access_key_secret=<AccessKeyId>`.
+  1. Export `AccessKeySecret` with command `export access_key_secret=<AccessKeySecret>`.
   1. Navigate to project's root folder.
-  1. Run environment setup script to create container `/.github/scripts/alioss/setup.sh`.
-  1. Run tests `/.github/scripts/alioss/run-int.sh`.
-  1. Run environment teardown script to delete test resources `/.github/scripts/alioss/teardown.sh`.
+  1. Run environment setup script to create bucket `./.github/scripts/alioss/setup.sh`.
+  1. Run tests `./.github/scripts/alioss/run-int.sh`.
+  1. Run environment teardown script to delete test resources `./.github/scripts/alioss/teardown.sh`.
