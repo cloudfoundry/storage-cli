@@ -52,11 +52,13 @@ curl -X GET <signed url>
 ## Running Tests
 
 ### Unit Tests
+**Note:** Run the following commands from the repository root directory
 
 - Using ginkgo:
 
   ``` bash
   go install github.com/onsi/ginkgo/v2/ginkgo
+
   ginkgo --skip-package=integration --randomize-all --cover -v -r ./azurebs/...
   ```
 
@@ -69,15 +71,18 @@ curl -X GET <signed url>
 ### Integration Tests
 - To run the integration tests with your existing container
   1. Export the following variables into your environment.
-    ```bash
-    export ACCOUNT_NAME=<your Azure accounnt name>
-    export ACCOUNT_KEY=<your Azure account key>
-    export CONTAINER_NAME=<the target container name>
-    ```
-  1. Run the command
-    ```bash
-    go test ./azurebs/integration/...
-    ```
+  
+      ```bash
+      export ACCOUNT_NAME=<your Azure accounnt name>
+      export ACCOUNT_KEY=<your Azure account key>
+      export CONTAINER_NAME=<the target container name>
+      ```
+      
+  1. Navigate to project's root folder and run the command below:
+
+      ```bash
+      go test ./azurebs/integration/...
+      ```
 
 - To run it from scratch; create a new container, run tests, delete the container
   1. Create a storage account in your azure subscription.
@@ -85,6 +90,6 @@ curl -X GET <signed url>
   1. Export `account name` with command `export azure_storage_account=<account name>`.
   1. Export `access key` with command `export azure_storage_key=<access key>`.
   1. Navigate to project's root folder.
-  1. Run environment setup script to create container `/.github/scripts/azurebs/setup.sh`.
-  1. Run tests `/.github/scripts/azurebs/run-int.sh`.
-  1. Run environment teardown script to delete test resources `/.github/scripts/azurebs/teardown.sh`.
+  1. Run environment setup script to create container `./.github/scripts/azurebs/setup.sh`.
+  1. Run tests `./.github/scripts/azurebs/run-int.sh`.
+  1. Run environment teardown script to delete test resources `./.github/scripts/azurebs/teardown.sh`.
