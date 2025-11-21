@@ -53,6 +53,7 @@ curl -X GET <signed url>
 Navigate to project's root folder. And run the following commands.
 ```bash
 go install github.com/onsi/ginkgo/v2/ginkgo
+
 ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
 ```
 ### Integration Tests
@@ -65,8 +66,10 @@ ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
       export ENDPOINT=<your Alibaba OSS endpoint>
       export BUCKET_NAME=<your Alibaba OSS bucket>
       ```
-  1. go build -o ./alioss  ./alioss && go test ./alioss/integration/...
-
+  1. Navigate to project's root folder and run the command below:
+      ``` bash
+      go build -o ./alioss  ./alioss && go test ./alioss/integration/...
+      ```
 - To run it from scratch; create a new bucket, run tests, delete the bucket
   1. Create a user in your ali account and add policy `AliyunOSSFullAccess`, or restrict the users with more granular policies like `oss:CreateBucket`, `oss:DeleteBucket` etc.
   1. Create access key for the user.
