@@ -1,10 +1,14 @@
 name: Azurebs Integration Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
     - ".github/workflows/azurebs-integration.yml"
     - "azurebs/**"
+  push:
+    branches:
+      - main
 
 jobs:
   azurecloud-environment-integration-tests:
