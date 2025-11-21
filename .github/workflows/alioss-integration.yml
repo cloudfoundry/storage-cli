@@ -1,11 +1,14 @@
 name: Alioss Integration Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
     - ".github/workflows/alioss-integration.yml"
     - "alioss/**"
-
+  push:
+    branches:
+      - main
 jobs:
   alioss-general-integration-tests:
     name:  Alioss General Integration Tests
