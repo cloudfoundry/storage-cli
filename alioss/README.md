@@ -50,7 +50,8 @@ curl -X GET <signed url>
 ## Running Tests
 
 ### Unit Tests
-Navigate to project's root folder. And run the following commands.
+**Note:** Run the following commands from the repository root directory.
+
 ```bash
 go install github.com/onsi/ginkgo/v2/ginkgo
 
