@@ -150,6 +150,96 @@ var _ = Describe("General testing for all Ali regions", func() {
 		})
 	})
 
+	Describe("Invoking `delete-recursive`", func() {
+		It("deletes all objects with a given prefix", func() {
+			prefix := integration.GenerateRandomString()
+			blob1 := prefix + "/a"
+			blob2 := prefix + "/b"
+			otherBlob := integration.GenerateRandomString()
+
+			contentFile1 := integration.MakeContentFile("content-1")
+			contentFile2 := integration.MakeContentFile("content-2")
+			contentFileOther := integration.MakeContentFile("other-content")
+			defer func() {
+				_ = os.Remove(contentFile1)     //nolint:errcheck
+				_ = os.Remove(contentFile2)     //nolint:errcheck
+				_ = os.Remove(contentFileOther) //nolint:errcheck
+
+				for _, b := range []string{blob1, blob2, otherBlob} {
+					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					if err == nil && (cliSession.ExitCode() == 0 || cliSession.ExitCode() == 3) {
+						continue
+					}
+				}
+			}()
+
+			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile1, blob1)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile2, blob2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFileOther, otherBlob)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "delete-recursive", prefix)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blob1)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(Equal(3))
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blob2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(Equal(3))
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "exists", otherBlob)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(Equal(0))
+		})
+	})
+
+	Describe("Invoking `copy`", func() {
+		It("copies the contents from one object to another", func() {
+			srcBlob := blobName + "-src"
+			destBlob := blobName + "-dest"
+
+			defer func() {
+				cliSession, err := integration.RunCli(cliPath, configPath, "delete", srcBlob)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cliSession.ExitCode()).To(BeZero())
+
+				cliSession, err = integration.RunCli(cliPath, configPath, "delete", destBlob)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cliSession.ExitCode()).To(BeZero())
+			}()
+
+			contentFile = integration.MakeContentFile("copied content")
+			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, srcBlob)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "copy", srcBlob, destBlob)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			tmpLocalFile, _ := os.CreateTemp("", "ali-storage-cli-copy") //nolint:errcheck
+			tmpLocalFile.Close()                                         //nolint:errcheck
+			defer func() { _ = os.Remove(tmpLocalFile.Name()) }()        //nolint:errcheck
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "get", destBlob, tmpLocalFile.Name())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			gottenBytes, _ := os.ReadFile(tmpLocalFile.Name()) //nolint:errcheck
+			Expect(string(gottenBytes)).To(Equal("copied content"))
+		})
+	})
+
 	Describe("Invoking `exists`", func() {
 		It("returns 0 for an existing blob", func() {
 			defer func() {
@@ -210,4 +300,64 @@ var _ = Describe("General testing for all Ali regions", func() {
 			Expect(consoleOutput).To(ContainSubstring("version"))
 		})
 	})
+
+	Describe("Invoking `list`", func() {
+		It("lists all blobs with a given prefix", func() {
+			prefix := integration.GenerateRandomString()
+			blob1 := prefix + "/a"
+			blob2 := prefix + "/b"
+			otherBlob := integration.GenerateRandomString()
+
+			defer func() {
+				for _, b := range []string{blob1, blob2, otherBlob} {
+					_, err := integration.RunCli(cliPath, configPath, "delete", b)
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}()
+
+			contentFile1 := integration.MakeContentFile("list-1")
+			contentFile2 := integration.MakeContentFile("list-2")
+			contentFileOther := integration.MakeContentFile("list-other")
+			defer func() {
+				_ = os.Remove(contentFile1)     //nolint:errcheck
+				_ = os.Remove(contentFile2)     //nolint:errcheck
+				_ = os.Remove(contentFileOther) //nolint:errcheck
+			}()
+
+			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile1, blob1)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile2, blob2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFileOther, otherBlob)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, configPath, "list", prefix)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			output := bytes.NewBuffer(cliSession.Out.Contents()).String()
+
+			Expect(output).To(ContainSubstring(blob1))
+			Expect(output).To(ContainSubstring(blob2))
+			Expect(output).NotTo(ContainSubstring(otherBlob))
+		})
+	})
+
+	Describe("Invoking `ensure-bucket-exists`", func() {
+		It("is idempotent", func() {
+			s1, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(s1.ExitCode()).To(BeZero())
+
+			s2, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(s2.ExitCode()).To(BeZero())
+		})
+	})
+
 })

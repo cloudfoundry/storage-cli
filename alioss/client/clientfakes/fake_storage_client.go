@@ -8,6 +8,18 @@ import (
 )
 
 type FakeStorageClient struct {
+	CopyStub        func(string, string) error
+	copyMutex       sync.RWMutex
+	copyArgsForCall []struct {
+		arg1 string
+		arg2 string
+	}
+	copyReturns struct {
+		result1 error
+	}
+	copyReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DeleteStub        func(string) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -17,6 +29,17 @@ type FakeStorageClient struct {
 		result1 error
 	}
 	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DeleteRecursiveStub        func(string) error
+	deleteRecursiveMutex       sync.RWMutex
+	deleteRecursiveArgsForCall []struct {
+		arg1 string
+	}
+	deleteRecursiveReturns struct {
+		result1 error
+	}
+	deleteRecursiveReturnsOnCall map[int]struct {
 		result1 error
 	}
 	DownloadStub        func(string, string) error
@@ -31,6 +54,16 @@ type FakeStorageClient struct {
 	downloadReturnsOnCall map[int]struct {
 		result1 error
 	}
+	EnsureBucketExistsStub        func() error
+	ensureBucketExistsMutex       sync.RWMutex
+	ensureBucketExistsArgsForCall []struct {
+	}
+	ensureBucketExistsReturns struct {
+		result1 error
+	}
+	ensureBucketExistsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ExistsStub        func(string) (bool, error)
 	existsMutex       sync.RWMutex
 	existsArgsForCall []struct {
@@ -43,6 +76,30 @@ type FakeStorageClient struct {
 	existsReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	ListStub        func(string) ([]string, error)
+	listMutex       sync.RWMutex
+	listArgsForCall []struct {
+		arg1 string
+	}
+	listReturns struct {
+		result1 []string
+		result2 error
+	}
+	listReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
+	PropertiesStub        func(string) error
+	propertiesMutex       sync.RWMutex
+	propertiesArgsForCall []struct {
+		arg1 string
+	}
+	propertiesReturns struct {
+		result1 error
+	}
+	propertiesReturnsOnCall map[int]struct {
+		result1 error
 	}
 	SignedUrlGetStub        func(string, int64) (string, error)
 	signedUrlGetMutex       sync.RWMutex
@@ -87,6 +144,68 @@ type FakeStorageClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeStorageClient) Copy(arg1 string, arg2 string) error {
+	fake.copyMutex.Lock()
+	ret, specificReturn := fake.copyReturnsOnCall[len(fake.copyArgsForCall)]
+	fake.copyArgsForCall = append(fake.copyArgsForCall, struct {
+		arg1 string
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.CopyStub
+	fakeReturns := fake.copyReturns
+	fake.recordInvocation("Copy", []interface{}{arg1, arg2})
+	fake.copyMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorageClient) CopyCallCount() int {
+	fake.copyMutex.RLock()
+	defer fake.copyMutex.RUnlock()
+	return len(fake.copyArgsForCall)
+}
+
+func (fake *FakeStorageClient) CopyCalls(stub func(string, string) error) {
+	fake.copyMutex.Lock()
+	defer fake.copyMutex.Unlock()
+	fake.CopyStub = stub
+}
+
+func (fake *FakeStorageClient) CopyArgsForCall(i int) (string, string) {
+	fake.copyMutex.RLock()
+	defer fake.copyMutex.RUnlock()
+	argsForCall := fake.copyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeStorageClient) CopyReturns(result1 error) {
+	fake.copyMutex.Lock()
+	defer fake.copyMutex.Unlock()
+	fake.CopyStub = nil
+	fake.copyReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) CopyReturnsOnCall(i int, result1 error) {
+	fake.copyMutex.Lock()
+	defer fake.copyMutex.Unlock()
+	fake.CopyStub = nil
+	if fake.copyReturnsOnCall == nil {
+		fake.copyReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.copyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeStorageClient) Delete(arg1 string) error {
@@ -146,6 +265,67 @@ func (fake *FakeStorageClient) DeleteReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) DeleteRecursive(arg1 string) error {
+	fake.deleteRecursiveMutex.Lock()
+	ret, specificReturn := fake.deleteRecursiveReturnsOnCall[len(fake.deleteRecursiveArgsForCall)]
+	fake.deleteRecursiveArgsForCall = append(fake.deleteRecursiveArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.DeleteRecursiveStub
+	fakeReturns := fake.deleteRecursiveReturns
+	fake.recordInvocation("DeleteRecursive", []interface{}{arg1})
+	fake.deleteRecursiveMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorageClient) DeleteRecursiveCallCount() int {
+	fake.deleteRecursiveMutex.RLock()
+	defer fake.deleteRecursiveMutex.RUnlock()
+	return len(fake.deleteRecursiveArgsForCall)
+}
+
+func (fake *FakeStorageClient) DeleteRecursiveCalls(stub func(string) error) {
+	fake.deleteRecursiveMutex.Lock()
+	defer fake.deleteRecursiveMutex.Unlock()
+	fake.DeleteRecursiveStub = stub
+}
+
+func (fake *FakeStorageClient) DeleteRecursiveArgsForCall(i int) string {
+	fake.deleteRecursiveMutex.RLock()
+	defer fake.deleteRecursiveMutex.RUnlock()
+	argsForCall := fake.deleteRecursiveArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeStorageClient) DeleteRecursiveReturns(result1 error) {
+	fake.deleteRecursiveMutex.Lock()
+	defer fake.deleteRecursiveMutex.Unlock()
+	fake.DeleteRecursiveStub = nil
+	fake.deleteRecursiveReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) DeleteRecursiveReturnsOnCall(i int, result1 error) {
+	fake.deleteRecursiveMutex.Lock()
+	defer fake.deleteRecursiveMutex.Unlock()
+	fake.DeleteRecursiveStub = nil
+	if fake.deleteRecursiveReturnsOnCall == nil {
+		fake.deleteRecursiveReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteRecursiveReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -212,6 +392,59 @@ func (fake *FakeStorageClient) DownloadReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeStorageClient) EnsureBucketExists() error {
+	fake.ensureBucketExistsMutex.Lock()
+	ret, specificReturn := fake.ensureBucketExistsReturnsOnCall[len(fake.ensureBucketExistsArgsForCall)]
+	fake.ensureBucketExistsArgsForCall = append(fake.ensureBucketExistsArgsForCall, struct {
+	}{})
+	stub := fake.EnsureBucketExistsStub
+	fakeReturns := fake.ensureBucketExistsReturns
+	fake.recordInvocation("EnsureBucketExists", []interface{}{})
+	fake.ensureBucketExistsMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorageClient) EnsureBucketExistsCallCount() int {
+	fake.ensureBucketExistsMutex.RLock()
+	defer fake.ensureBucketExistsMutex.RUnlock()
+	return len(fake.ensureBucketExistsArgsForCall)
+}
+
+func (fake *FakeStorageClient) EnsureBucketExistsCalls(stub func() error) {
+	fake.ensureBucketExistsMutex.Lock()
+	defer fake.ensureBucketExistsMutex.Unlock()
+	fake.EnsureBucketExistsStub = stub
+}
+
+func (fake *FakeStorageClient) EnsureBucketExistsReturns(result1 error) {
+	fake.ensureBucketExistsMutex.Lock()
+	defer fake.ensureBucketExistsMutex.Unlock()
+	fake.EnsureBucketExistsStub = nil
+	fake.ensureBucketExistsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) EnsureBucketExistsReturnsOnCall(i int, result1 error) {
+	fake.ensureBucketExistsMutex.Lock()
+	defer fake.ensureBucketExistsMutex.Unlock()
+	fake.EnsureBucketExistsStub = nil
+	if fake.ensureBucketExistsReturnsOnCall == nil {
+		fake.ensureBucketExistsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.ensureBucketExistsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeStorageClient) Exists(arg1 string) (bool, error) {
 	fake.existsMutex.Lock()
 	ret, specificReturn := fake.existsReturnsOnCall[len(fake.existsArgsForCall)]
@@ -274,6 +507,131 @@ func (fake *FakeStorageClient) ExistsReturnsOnCall(i int, result1 bool, result2 
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) List(arg1 string) ([]string, error) {
+	fake.listMutex.Lock()
+	ret, specificReturn := fake.listReturnsOnCall[len(fake.listArgsForCall)]
+	fake.listArgsForCall = append(fake.listArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.ListStub
+	fakeReturns := fake.listReturns
+	fake.recordInvocation("List", []interface{}{arg1})
+	fake.listMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStorageClient) ListCallCount() int {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	return len(fake.listArgsForCall)
+}
+
+func (fake *FakeStorageClient) ListCalls(stub func(string) ([]string, error)) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = stub
+}
+
+func (fake *FakeStorageClient) ListArgsForCall(i int) string {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
+	argsForCall := fake.listArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeStorageClient) ListReturns(result1 []string, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	fake.listReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) ListReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = nil
+	if fake.listReturnsOnCall == nil {
+		fake.listReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.listReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) Properties(arg1 string) error {
+	fake.propertiesMutex.Lock()
+	ret, specificReturn := fake.propertiesReturnsOnCall[len(fake.propertiesArgsForCall)]
+	fake.propertiesArgsForCall = append(fake.propertiesArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.PropertiesStub
+	fakeReturns := fake.propertiesReturns
+	fake.recordInvocation("Properties", []interface{}{arg1})
+	fake.propertiesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorageClient) PropertiesCallCount() int {
+	fake.propertiesMutex.RLock()
+	defer fake.propertiesMutex.RUnlock()
+	return len(fake.propertiesArgsForCall)
+}
+
+func (fake *FakeStorageClient) PropertiesCalls(stub func(string) error) {
+	fake.propertiesMutex.Lock()
+	defer fake.propertiesMutex.Unlock()
+	fake.PropertiesStub = stub
+}
+
+func (fake *FakeStorageClient) PropertiesArgsForCall(i int) string {
+	fake.propertiesMutex.RLock()
+	defer fake.propertiesMutex.RUnlock()
+	argsForCall := fake.propertiesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeStorageClient) PropertiesReturns(result1 error) {
+	fake.propertiesMutex.Lock()
+	defer fake.propertiesMutex.Unlock()
+	fake.PropertiesStub = nil
+	fake.propertiesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) PropertiesReturnsOnCall(i int, result1 error) {
+	fake.propertiesMutex.Lock()
+	defer fake.propertiesMutex.Unlock()
+	fake.PropertiesStub = nil
+	if fake.propertiesReturnsOnCall == nil {
+		fake.propertiesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.propertiesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeStorageClient) SignedUrlGet(arg1 string, arg2 int64) (string, error) {
@@ -472,18 +830,6 @@ func (fake *FakeStorageClient) UploadReturnsOnCall(i int, result1 error) {
 func (fake *FakeStorageClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.downloadMutex.RLock()
-	defer fake.downloadMutex.RUnlock()
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	fake.signedUrlGetMutex.RLock()
-	defer fake.signedUrlGetMutex.RUnlock()
-	fake.signedUrlPutMutex.RLock()
-	defer fake.signedUrlPutMutex.RUnlock()
-	fake.uploadMutex.RLock()
-	defer fake.uploadMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
