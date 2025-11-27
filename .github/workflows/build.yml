@@ -25,7 +25,7 @@ jobs:
           run: |
                 echo "Building Storage CLI for Linux"
                 go build -o "storage-cli-linux-amd64"
-                sha1sum "storage-cli-amd64"
+                sha1sum "storage-cli-linux-amd64"
         
         - name: Storage-CLI Build for Windows
           env:
