@@ -33,10 +33,12 @@ trap "cat ${lambda_log}" EXIT
 # Go to the repository root (3 levels up from script directory)
 
 pushd "${repo_root}" > /dev/null
-
+  export CGO_ENABLED=0
+  export GOOS=linux
+  export GOARCH=amd64
   echo -e "\n building artifact with $(go version)..."
-  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o out/s3cli ./s3
-  CGO_ENABLED=0 ginkgo build s3/integration
+  go build -o out/s3cli
+  ginkgo build s3/integration
 
   zip -j payload.zip s3/integration/integration.test out/s3cli ${script_dir}/assets/lambda_function.py
 
@@ -51,6 +53,7 @@ pushd "${repo_root}" > /dev/null
   --handler lambda_function.test_runner_handler \
   --runtime python3.9
 
+  echo "Create done, invoking Lambda function ${lambda_function_name}..."
   set +e
     tries=0
     get_function_status_command="aws lambda get-function --region ${region_name} --function-name ${lambda_function_name}"

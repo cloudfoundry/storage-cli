@@ -36,39 +36,32 @@ const NoLongMsg = "environment variable %s filled, skipping long test"
 // This is using gomega matchers, so it will fail if called outside an
 // 'It' test.
 func AssertLifecycleWorks(gcsCLIPath string, ctx AssertContext) {
-	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath,
-		"put", ctx.ContentFile, ctx.GCSFileName)
+	var storageType string = "gcs"
+	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", ctx.ContentFile, ctx.GCSFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
 
-	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath,
-		"exists", ctx.GCSFileName)
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "exists", ctx.GCSFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
 	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))
 
-	tmpLocalFile, err := os.CreateTemp("", "gcscli-download")
-	Expect(err).ToNot(HaveOccurred())
-	defer os.Remove(tmpLocalFile.Name()) //nolint:errcheck
-	err = tmpLocalFile.Close()
-	Expect(err).ToNot(HaveOccurred())
+	tmpLocalFileName := "gcscli-download"
+	defer os.Remove(tmpLocalFileName) //nolint:errcheck
 
-	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath,
-		"get", ctx.GCSFileName, tmpLocalFile.Name())
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "get", ctx.GCSFileName, tmpLocalFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
 
-	gottenBytes, err := os.ReadFile(tmpLocalFile.Name())
+	gottenBytes, err := os.ReadFile(tmpLocalFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(gottenBytes)).To(Equal(ctx.ExpectedString))
 
-	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath,
-		"delete", ctx.GCSFileName)
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", ctx.GCSFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
 
-	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath,
-		"exists", ctx.GCSFileName)
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "exists", ctx.GCSFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(Equal(3))
 	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))

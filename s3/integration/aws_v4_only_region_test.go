@@ -13,6 +13,7 @@ import (
 var _ = Describe("Testing in any AWS region that only supports v4 signature version", func() {
 	Context("with AWS V4 ONLY REGION (static creds) configurations", func() {
 		It("fails with a config that specifies signature version 2", func() {
+			var storageType string = "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 
@@ -40,11 +41,11 @@ var _ = Describe("Testing in any AWS region that only supports v4 signature vers
 			contentFile := integration.MakeContentFile("test")
 			defer os.Remove(contentFile) //nolint:errcheck
 
-			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, "put", contentFile, s3Filename)
+			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 
-			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 		})

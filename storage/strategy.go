@@ -1,51 +1,25 @@
-package main
+package storage
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
 	"time"
-
-	"github.com/cloudfoundry/storage-cli/azurebs/client"
-	"github.com/cloudfoundry/storage-cli/azurebs/config"
 )
 
-var version string
+type Strategy struct {
+	str Storager
+}
 
-func main() {
+func NewStrategy(s Storager) Strategy {
+	return Strategy{str: s}
+}
 
-	configPath := flag.String("c", "", "configuration path")
-	showVer := flag.Bool("v", false, "version")
-	flag.Parse()
+func (sty Strategy) SetStorager(s Storager) {
+	sty.str = s
+}
 
-	if *showVer {
-		fmt.Printf("version %s\n", version)
-		os.Exit(0)
-	}
-
-	configFile, err := os.Open(*configPath)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	azConfig, err := config.NewFromReader(configFile)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	storageClient, err := client.NewStorageClient(azConfig)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	blobstoreClient, err := client.New(storageClient)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	nonFlagArgs := flag.Args()
-	cmd := nonFlagArgs[0]
+func (sty Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
 
 	switch cmd {
 	case "put":
@@ -59,7 +33,7 @@ func main() {
 			log.Fatalln(err)
 		}
 
-		err = blobstoreClient.Put(sourceFilePath, dst)
+		err = sty.str.Put(sourceFilePath, dst)
 		fatalLog(cmd, err)
 
 	case "get":
@@ -68,15 +42,7 @@ func main() {
 		}
 		src, dst := nonFlagArgs[1], nonFlagArgs[2]
 
-		var dstFile *os.File
-		dstFile, err = os.Create(dst)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		defer dstFile.Close() //nolint:errcheck
-
-		err = blobstoreClient.Get(src, dstFile)
+		err := sty.str.Get(src, dst)
 		fatalLog(cmd, err)
 
 	case "copy":
@@ -86,7 +52,7 @@ func main() {
 
 		srcBlob, dstBlob := nonFlagArgs[1], nonFlagArgs[2]
 
-		err = blobstoreClient.Copy(srcBlob, dstBlob)
+		err := sty.str.Copy(srcBlob, dstBlob)
 		fatalLog(cmd, err)
 
 	case "delete":
@@ -94,7 +60,7 @@ func main() {
 			log.Fatalf("Delete method expected 2 arguments got %d\n", len(nonFlagArgs))
 		}
 
-		err = blobstoreClient.Delete(nonFlagArgs[1])
+		err := sty.str.Delete(nonFlagArgs[1])
 		fatalLog(cmd, err)
 
 	case "delete-recursive":
@@ -106,7 +72,7 @@ func main() {
 		} else {
 			prefix = ""
 		}
-		err = blobstoreClient.DeleteRecursive(prefix)
+		err := sty.str.DeleteRecursive(prefix)
 		fatalLog("delete-recursive", err)
 
 	case "exists":
@@ -115,7 +81,7 @@ func main() {
 		}
 
 		var exists bool
-		exists, err = blobstoreClient.Exists(nonFlagArgs[1])
+		exists, err := sty.str.Exists(nonFlagArgs[1])
 
 		// If the object exists the exit status is 0, otherwise it is 3
 		// We are using `3` since `1` and `2` have special meanings
@@ -139,7 +105,7 @@ func main() {
 			log.Fatalf("Expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[3])
 		}
 
-		signedURL, err := blobstoreClient.Sign(objectID, action, expiration)
+		signedURL, err := sty.str.Sign(objectID, action, expiration)
 
 		if err != nil {
 			log.Fatalf("Failed to sign request: %s", err)
@@ -160,7 +126,7 @@ func main() {
 		}
 
 		var objects []string
-		objects, err = blobstoreClient.List(prefix)
+		objects, err := sty.str.List(prefix)
 		if err != nil {
 			log.Fatalf("Failed to list objects: %s", err)
 		}
@@ -174,7 +140,7 @@ func main() {
 			log.Fatalf("Properties method expected 2 arguments got %d\n", len(nonFlagArgs))
 		}
 
-		err = blobstoreClient.Properties(nonFlagArgs[1])
+		err := sty.str.Properties(nonFlagArgs[1])
 		fatalLog("properties", err)
 
 	case "ensure-bucket-exists":
@@ -182,7 +148,7 @@ func main() {
 			log.Fatalf("EnsureBucketExists method expected 1 arguments got %d\n", len(nonFlagArgs))
 		}
 
-		err = blobstoreClient.EnsureContainerExists()
+		err := sty.str.EnsureStorageExists()
 		fatalLog("ensure-bucket-exists", err)
 
 	default:

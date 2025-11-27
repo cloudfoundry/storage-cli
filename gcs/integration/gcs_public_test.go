@@ -30,6 +30,7 @@ import (
 )
 
 var _ = Describe("GCS Public Bucket", func() {
+	var storageType string = "gcs"
 	Context("with read-only configuration", func() {
 		var (
 			setupEnv  AssertContext
@@ -54,7 +55,7 @@ var _ = Describe("GCS Public Bucket", func() {
 		Describe("with a public file", func() {
 			BeforeEach(func() {
 				// Place a file in the bucket
-				RunGCSCLI(gcsCLIPath, setupEnv.ConfigPath, "put", setupEnv.ContentFile, setupEnv.GCSFileName) //nolint:errcheck
+				RunGCSCLI(gcsCLIPath, setupEnv.ConfigPath, storageType, "put", setupEnv.ContentFile, setupEnv.GCSFileName) //nolint:errcheck
 
 				// Make the file public
 				rwClient, err := newSDK(setupEnv.ctx, *setupEnv.Config)
@@ -64,48 +65,46 @@ var _ = Describe("GCS Public Bucket", func() {
 				Expect(obj.ACL().Set(context.Background(), storage.AllUsers, storage.RoleReader)).To(Succeed())
 			})
 			AfterEach(func() {
-				RunGCSCLI(gcsCLIPath, setupEnv.ConfigPath, "delete", setupEnv.GCSFileName) //nolint:errcheck
+				RunGCSCLI(gcsCLIPath, setupEnv.ConfigPath, storageType, "delete", setupEnv.GCSFileName) //nolint:errcheck
 				publicEnv.Cleanup()
 			})
 
 			It("can check if it exists", func() {
-				session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, "exists", setupEnv.GCSFileName)
+				session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "exists", setupEnv.GCSFileName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(session.ExitCode()).To(BeZero())
 			})
 
 			It("can get", func() {
-				tmpLocalFile, err := os.CreateTemp("", "gcscli-download")
-				Expect(err).ToNot(HaveOccurred())
-				defer os.Remove(tmpLocalFile.Name()) //nolint:errcheck
-				Expect(tmpLocalFile.Close()).To(Succeed())
+				tmpLocalFileName := "gcscli-download"
+				defer os.Remove(tmpLocalFileName) //nolint:errcheck
 
-				session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, "get", setupEnv.GCSFileName, tmpLocalFile.Name())
+				session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "get", setupEnv.GCSFileName, tmpLocalFileName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(session.ExitCode()).To(BeZero(), fmt.Sprintf("unexpected '%s'", session.Err.Contents()))
 
-				gottenBytes, err := os.ReadFile(tmpLocalFile.Name())
+				gottenBytes, err := os.ReadFile(tmpLocalFileName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(gottenBytes)).To(Equal(setupEnv.ExpectedString))
 			})
 		})
 
 		It("fails to get a missing file", func() {
-			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, "get", setupEnv.GCSFileName, "/dev/null")
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "get", setupEnv.GCSFileName, "/dev/null")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
 			Expect(session.Err.Contents()).To(ContainSubstring("object doesn't exist"))
 		})
 
 		It("fails to put", func() {
-			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, "put", publicEnv.ContentFile, publicEnv.GCSFileName)
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "put", publicEnv.ContentFile, publicEnv.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
 			Expect(session.Err.Contents()).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
 		})
 
 		It("fails to delete", func() {
-			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, "delete", publicEnv.GCSFileName)
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "delete", publicEnv.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
 			Expect(session.Err.Contents()).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))

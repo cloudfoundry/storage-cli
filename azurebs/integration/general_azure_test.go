@@ -13,6 +13,7 @@ import (
 
 var _ = Describe("General testing for all Azure regions", func() {
 	var defaultConfig config.AZStorageConfig
+	var storageType string = "azurebs"
 
 	BeforeEach(func() {
 		defaultConfig = config.AZStorageConfig{
@@ -113,16 +114,16 @@ var _ = Describe("General testing for all Azure regions", func() {
 
 		It("uploads a file", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 			Expect(string(cliSession.Err.Contents())).To(MatchRegexp("File '" + blobName + "' exists in bucket '" + defaultConfig.ContainerName + "'"))
@@ -130,7 +131,7 @@ var _ = Describe("General testing for all Azure regions", func() {
 
 		It("overwrites an existing file", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
@@ -140,11 +141,11 @@ var _ = Describe("General testing for all Azure regions", func() {
 			os.Remove(tmpLocalFile.Name())                                     //nolint:errcheck
 
 			contentFile = integration.MakeContentFile("initial content")
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", blobName, tmpLocalFile.Name())
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", blobName, tmpLocalFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -152,11 +153,11 @@ var _ = Describe("General testing for all Azure regions", func() {
 			Expect(string(gottenBytes)).To(Equal("initial content"))
 
 			contentFile = integration.MakeContentFile("updated content")
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", blobName, tmpLocalFile.Name())
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", blobName, tmpLocalFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -173,7 +174,7 @@ var _ = Describe("General testing for all Azure regions", func() {
 
 			configPath = integration.MakeConfigFile(cfg)
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(1))
 

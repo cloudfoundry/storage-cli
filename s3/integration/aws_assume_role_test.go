@@ -13,6 +13,7 @@ import (
 var _ = Describe("Testing AWS assume role ", func() {
 	Context("with AWS ASSUME ROLE configurations", func() {
 		It("get file from assumed role", func() {
+			var storageType string = "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 
@@ -46,14 +47,16 @@ var _ = Describe("Testing AWS assume role ", func() {
 			notAssumeRoleConfigPath := integration.MakeConfigFile(nonAssumedRoleCfg)
 			defer os.Remove(notAssumeRoleConfigPath) //nolint:errcheck
 
-			s3CLISession, err := integration.RunS3CLI(s3CLIPath, notAssumeRoleConfigPath, "exists", s3Filename)
+			s3CLISession, err := integration.RunS3CLI(s3CLIPath, notAssumeRoleConfigPath, storageType, "exists", s3Filename)
+			GinkgoWriter.Println("error is %v", err)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 
 			assumeRoleConfigPath := integration.MakeConfigFile(assumedRoleCfg)
 			defer os.Remove(assumeRoleConfigPath) //nolint:errcheck
 
-			s3CLISession, err = integration.RunS3CLI(s3CLIPath, assumeRoleConfigPath, "exists", s3Filename)
+			s3CLISession, err = integration.RunS3CLI(s3CLIPath, assumeRoleConfigPath, storageType, "exists", s3Filename)
+			GinkgoWriter.Println("error is %v", err)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).To(BeZero())
 		})

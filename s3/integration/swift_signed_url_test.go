@@ -16,6 +16,7 @@ var _ = Describe("Testing for working signed URLs all Swift/OpenStack regions", 
 		var configPath string
 		var contentFile string
 		var defaultConfig config.S3Cli
+		var storageType string = "s3"
 
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")
@@ -54,13 +55,13 @@ var _ = Describe("Testing for working signed URLs all Swift/OpenStack regions", 
 
 		Describe("Invoking `sign`", func() {
 			It("returns 0 for an existing blob", func() {
-				cliSession, err := integration.RunS3CLI(s3CLIPath, configPath, "sign", "some-blob", "get", "60s")
+				cliSession, err := integration.RunS3CLI(s3CLIPath, configPath, storageType, "sign", "some-blob", "get", "60s")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 
 				getUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
 				Expect(getUrl).To(MatchRegexp("https://" + swiftHost + ".*?" + "/some-blob"))
-				cliSession, err = integration.RunS3CLI(s3CLIPath, configPath, "sign", "some-blob", "put", "60s")
+				cliSession, err = integration.RunS3CLI(s3CLIPath, configPath, storageType, "sign", "some-blob", "put", "60s")
 				Expect(err).ToNot(HaveOccurred())
 
 				putUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()

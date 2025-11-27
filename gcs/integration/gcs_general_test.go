@@ -17,10 +17,9 @@
 package integration
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 	"os"
+	"syscall"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -29,43 +28,8 @@ import (
 	"github.com/cloudfoundry/storage-cli/gcs/config"
 )
 
-// randReadSeeker is a ReadSeeker which returns random content and
-// non-nil error for every operation.
-//
-// crypto/rand is used to ensure any compression
-// applied to the reader's output doesn't effect the work we intend to do.
-type randReadSeeker struct {
-	reader io.Reader
-}
-
-func newrandReadSeeker(maxSize int64) randReadSeeker {
-	limited := io.LimitReader(rand.Reader, maxSize)
-	return randReadSeeker{limited}
-}
-
-func (rrs *randReadSeeker) Read(p []byte) (n int, err error) {
-	return rrs.reader.Read(p)
-}
-
-func (rrs *randReadSeeker) Seek(offset int64, whenc int) (n int64, err error) {
-	return offset, nil
-}
-
-// badReadSeeker is a ReadSeeker which returns a non-nil error
-// for every operation.
-type badReadSeeker struct{}
-
-var badReadSeekerErr = io.ErrUnexpectedEOF
-
-func (brs *badReadSeeker) Read(p []byte) (n int, err error) {
-	return 0, badReadSeekerErr
-}
-
-func (brs *badReadSeeker) Seek(offset int64, whenc int) (n int64, err error) {
-	return 0, badReadSeekerErr
-}
-
 var _ = Describe("Integration", func() {
+	var storageType string = "gcs"
 	Context("general (Default Applicaton Credentials) configuration", func() {
 		var env AssertContext
 		BeforeEach(func() {
@@ -88,8 +52,7 @@ var _ = Describe("Integration", func() {
 			func(config *config.GCSCli) {
 				env.AddConfig(config)
 
-				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath,
-					"delete", env.GCSFileName)
+				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "delete", env.GCSFileName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(session.ExitCode()).To(BeZero())
 			},
@@ -111,12 +74,14 @@ var _ = Describe("Integration", func() {
 				}
 
 				const twoGB = 1024 * 1024 * 1024 * 2
-				limited := newrandReadSeeker(twoGB)
+
+				largeFile := MakeContentFile(GenerateRandomString(twoGB))
+				defer os.Remove(largeFile) //nolint:errcheck
 
 				blobstoreClient, err := client.New(env.ctx, env.Config)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = blobstoreClient.Put(&limited, env.GCSFileName)
+				err = blobstoreClient.Put(largeFile, env.GCSFileName)
 				Expect(err).ToNot(HaveOccurred())
 
 				blobstoreClient.Delete(env.GCSFileName) //nolint:errcheck
@@ -131,8 +96,21 @@ var _ = Describe("Integration", func() {
 				blobstoreClient, err := client.New(env.ctx, env.Config)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = blobstoreClient.Put(&badReadSeeker{}, env.GCSFileName)
-				Expect(err).To(HaveOccurred())
+				// create pipe to be open but not seekable
+				pipePath := fmt.Sprintf("/tmp/%s", GenerateRandomString(10))
+				err = syscall.Mkfifo(pipePath, 0666)
+				Expect(err).ToNot(HaveOccurred())
+
+				go func() {
+					// This will block until the main test opens the pipe for reading.
+					writer, _ := os.OpenFile(pipePath, os.O_WRONLY, 0)
+					if writer != nil {
+						writer.Close()
+					}
+				}()
+
+				err = blobstoreClient.Put(pipePath, env.GCSFileName)
+				Expect(err).To(MatchError(ContainSubstring("illegal seek")))
 			},
 			configurations)
 
@@ -140,8 +118,7 @@ var _ = Describe("Integration", func() {
 			func(config *config.GCSCli) {
 				env.AddConfig(config)
 
-				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath,
-					"get", env.GCSFileName, "/dev/null")
+				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "get", env.GCSFileName, "/dev/null")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(session.ExitCode()).ToNot(BeZero())
 				Expect(session.Err.Contents()).To(ContainSubstring("object doesn't exist"))

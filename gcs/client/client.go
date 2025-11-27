@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2/google"
@@ -85,7 +87,13 @@ func New(ctx context.Context, cfg *config.GCSCli) (*GCSBlobstore, error) {
 
 // Get fetches a blob from the GCS blobstore.
 // Destination will be overwritten if it already exists.
-func (client *GCSBlobstore) Get(src string, dest io.Writer) error {
+func (client *GCSBlobstore) Get(src string, dest string) error {
+	dstFile, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close() //nolint:errcheck
+
 	reader, err := client.getReader(client.publicGCS, src)
 
 	// If the public client fails, try using it as an authenticated actor
@@ -97,7 +105,7 @@ func (client *GCSBlobstore) Get(src string, dest io.Writer) error {
 		return err
 	}
 
-	_, err = io.Copy(dest, reader)
+	_, err = io.Copy(dstFile, reader)
 	return err
 }
 
@@ -111,7 +119,14 @@ func (client *GCSBlobstore) getReader(gcs *storage.Client, src string) (*storage
 // Put retries retryAttempts times
 const retryAttempts = 3
 
-func (client *GCSBlobstore) Put(src io.ReadSeeker, dest string) error {
+func (client *GCSBlobstore) Put(sourceFilePath string, dest string) error {
+
+	src, err := os.Open(sourceFilePath)
+	if err != nil {
+		return err
+	}
+	defer src.Close() //nolint:errcheck
+
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -126,7 +141,7 @@ func (client *GCSBlobstore) Put(src io.ReadSeeker, dest string) error {
 	}
 
 	var errs []error
-	for i := 0; i < retryAttempts; i++ {
+	for i := range retryAttempts {
 		err := client.putOnce(src, dest)
 		if err == nil {
 			return nil
@@ -144,11 +159,14 @@ func (client *GCSBlobstore) Put(src io.ReadSeeker, dest string) error {
 }
 
 func (client *GCSBlobstore) putOnce(src io.ReadSeeker, dest string) error {
-	remoteWriter := client.getObjectHandle(client.authenticatedGCS, dest).NewWriter(context.Background()) //nolint:staticcheck
-	remoteWriter.ObjectAttrs.StorageClass = client.config.StorageClass                                    //nolint:staticcheck
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Clean up the context after the function completes
+
+	remoteWriter := client.getObjectHandle(client.authenticatedGCS, dest).NewWriter(ctx) //nolint:staticcheck
+	remoteWriter.ObjectAttrs.StorageClass = client.config.StorageClass                   //nolint:staticcheck
 
 	if _, err := io.Copy(remoteWriter, src); err != nil {
-		remoteWriter.CloseWithError(err) //nolint:errcheck,staticcheck
+		remoteWriter.Close() //nolint:errcheck
 		return err
 	}
 
@@ -201,6 +219,7 @@ func (client *GCSBlobstore) readOnly() bool {
 }
 
 func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration) (string, error) {
+	action = strings.ToUpper(action)
 	token, err := google.JWTConfigFromJSON([]byte(client.config.ServiceAccountFile), storage.ScopeFullControl)
 	if err != nil {
 		return "", err
@@ -224,4 +243,24 @@ func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration)
 		}
 	}
 	return storage.SignedURL(client.config.BucketName, id, &options)
+}
+
+func (client *GCSBlobstore) List(prefix string) ([]string, error) {
+	return nil, errors.New("Not implemented")
+}
+
+func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
+	return errors.New("Not implemented")
+}
+
+func (client *GCSBlobstore) Properties(dest string) error {
+	return errors.New("Not implemented")
+}
+
+func (client *GCSBlobstore) EnsureStorageExists() error {
+	return errors.New("Not implemented")
+}
+
+func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
+	return errors.New("Not implemented")
 }

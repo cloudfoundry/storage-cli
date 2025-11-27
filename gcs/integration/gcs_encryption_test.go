@@ -17,8 +17,8 @@
 package integration
 
 import (
-	"bytes"
 	"crypto/sha256"
+	"os"
 
 	"github.com/cloudfoundry/storage-cli/gcs/client"
 	"github.com/cloudfoundry/storage-cli/gcs/config"
@@ -35,6 +35,7 @@ var encryptionKeyBytes = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
 var encryptionKeyBytesHash = sha256.Sum256(encryptionKeyBytes) //nolint:unused
 
 var _ = Describe("Integration", func() {
+	var storageType string = "gcs"
 	Context("general (Default Applicaton Credentials) configuration", func() {
 		var (
 			env AssertContext
@@ -59,11 +60,9 @@ var _ = Describe("Integration", func() {
 		// tests that uploading a blob with encryption
 		// results in failure to download when the key is changed.
 		It("fails to get with the wrong encryption_key", func() {
-			Expect(env.Config.EncryptionKey).ToNot(BeNil(),
-				"Need encryption key for test")
+			Expect(env.Config.EncryptionKey).ToNot(BeNil(), "Need encryption key for test")
 
-			session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath,
-				"put", env.ContentFile, env.GCSFileName)
+			session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "put", env.ContentFile, env.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(BeZero())
 
@@ -72,11 +71,12 @@ var _ = Describe("Integration", func() {
 
 			env.Config.EncryptionKey[0]++
 
-			var target bytes.Buffer
-			err = blobstoreClient.Get(env.GCSFileName, &target)
+			tmpFileName := "gcscli-test-wrong-enc-key"
+			defer os.Remove(tmpFileName) //nolint:errcheck
+			err = blobstoreClient.Get(env.GCSFileName, tmpFileName)
 			Expect(err).To(HaveOccurred())
 
-			session, err = RunGCSCLI(gcsCLIPath, env.ConfigPath, "delete", env.GCSFileName)
+			session, err = RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "delete", env.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(BeZero())
 		})
@@ -87,7 +87,7 @@ var _ = Describe("Integration", func() {
 			Expect(env.Config.EncryptionKey).ToNot(BeNil(),
 				"Need encryption key for test")
 
-			session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, "put", env.ContentFile, env.GCSFileName)
+			session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "put", env.ContentFile, env.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(BeZero())
 
@@ -96,11 +96,12 @@ var _ = Describe("Integration", func() {
 
 			env.Config.EncryptionKey = nil
 
-			var target bytes.Buffer
-			err = blobstoreClient.Get(env.GCSFileName, &target)
+			tmpFileName := "gcscli-test-no-enc-key"
+			defer os.Remove(tmpFileName) //nolint:errcheck
+			err = blobstoreClient.Get(env.GCSFileName, tmpFileName)
 			Expect(err).To(HaveOccurred())
 
-			session, err = RunGCSCLI(gcsCLIPath, env.ConfigPath, "delete", env.GCSFileName)
+			session, err = RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "delete", env.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(BeZero())
 		})

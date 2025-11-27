@@ -13,6 +13,7 @@ import (
 var _ = Describe("Testing in any AWS region isolated from the US standard regions (i.e., cn-north-1)", func() {
 	Context("with AWS ISOLATED REGION (static creds) configurations", func() {
 		It("fails with a config that specifies a valid region but invalid host", func() {
+			var storageType string = "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 
@@ -42,12 +43,12 @@ var _ = Describe("Testing in any AWS region isolated from the US standard region
 			contentFile := integration.MakeContentFile("test")
 			defer os.Remove(contentFile) //nolint:errcheck
 
-			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, "put", contentFile, s3Filename)
+			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 			Expect(s3CLISession.Err.Contents()).To(ContainSubstring("AuthorizationHeaderMalformed"))
 
-			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 			Expect(s3CLISession.Err.Contents()).To(ContainSubstring("AuthorizationHeaderMalformed"))

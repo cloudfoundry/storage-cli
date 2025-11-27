@@ -28,6 +28,7 @@ import (
 )
 
 var _ = Describe("Integration", func() {
+	var storageType string = "gcs"
 	Context("static credentials configuration with a regional bucket", func() {
 		var (
 			ctx AssertContext
@@ -47,13 +48,13 @@ var _ = Describe("Integration", func() {
 		})
 
 		It("validates the action is valid", func() {
-			session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, "sign", ctx.GCSFileName, "not-valid", "1h")
+			session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "sign", ctx.GCSFileName, "not-valid", "1h")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(Equal(0))
 		})
 
 		It("can generate a signed url for a given object and action", func() {
-			session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, "sign", ctx.GCSFileName, "put", "1h")
+			session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "sign", ctx.GCSFileName, "put", "1h")
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).To(Equal(0))
@@ -90,12 +91,12 @@ var _ = Describe("Integration", func() {
 				// echo -n key | base64 -D | shasum -a 256 | cut -f1 -d' ' | tr -d '\n' | xxd -r -p | base64
 				hash := "bQOB9Mp048LRjpIoKm2njgQgiC3FRO2gn/+x6Vlfa4E="
 
-				session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, "sign", ctx.GCSFileName, "PUT", "1h")
+				session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "sign", ctx.GCSFileName, "put", "1h")
 				Expect(err).ToNot(HaveOccurred())
 				signedPutUrl := string(session.Out.Contents())
 				Expect(signedPutUrl).ToNot(BeNil())
 
-				session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, "sign", ctx.GCSFileName, "GET", "1h")
+				session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "sign", ctx.GCSFileName, "get", "1h")
 				Expect(err).ToNot(HaveOccurred())
 				signedGetUrl := string(session.Out.Contents())
 				Expect(signedGetUrl).ToNot(BeNil())

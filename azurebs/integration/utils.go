@@ -51,10 +51,12 @@ func MakeContentFile(content string) string {
 	return tmpFile.Name()
 }
 
-func RunCli(cliPath string, configPath string, subcommand string, args ...string) (*gexec.Session, error) {
+func RunCli(cliPath string, configPath string, storageType string, subcommand string, args ...string) (*gexec.Session, error) {
 	cmdArgs := []string{
 		"-c",
 		configPath,
+		"-s",
+		storageType,
 		subcommand,
 	}
 	cmdArgs = append(cmdArgs, args...)

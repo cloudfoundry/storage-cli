@@ -19,6 +19,7 @@ import (
 var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
 	Context("with PUBLIC READ ONLY (no creds) configuration", func() {
 		It("can successfully get a publicly readable file", func() {
+			var storageType string = "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 
@@ -57,7 +58,7 @@ var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
 			configPath := integration.MakeConfigFile(cfg)
 			defer os.Remove(configPath) //nolint:errcheck
 
-			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, "get", s3Filename, "public-file")
+			s3CLISession, err := integration.RunS3CLI(s3CLIPath, configPath, storageType, "get", s3Filename, "public-file")
 			Expect(err).ToNot(HaveOccurred())
 
 			defer os.Remove("public-file") //nolint:errcheck
@@ -67,7 +68,7 @@ var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(gottenBytes)).To(Equal(s3FileContents))
 
-			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, "exists", s3Filename)
+			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).To(BeZero())
 			Expect(s3CLISession.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))

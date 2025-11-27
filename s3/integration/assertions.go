@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/cloudfoundry/storage-cli/s3/client"
@@ -19,6 +18,7 @@ import (
 
 // AssertLifecycleWorks tests the main blobstore object lifecycle from creation to deletion
 func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
+	var storageType string = "s3"
 	expectedString := GenerateRandomString()
 	s3Filename := GenerateRandomString()
 
@@ -28,7 +28,7 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 	contentFile := MakeContentFile(expectedString)
 	defer os.Remove(contentFile) //nolint:errcheck
 
-	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, "put", contentFile, s3Filename)
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
@@ -39,12 +39,12 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 		defer os.Remove(noFolderConfigPath) //nolint:errcheck
 
 		s3CLISession, err :=
-			RunS3CLI(s3CLIPath, noFolderConfigPath, "exists", fmt.Sprintf("%s/%s", folderName, s3Filename))
+			RunS3CLI(s3CLIPath, noFolderConfigPath, storageType, "exists", fmt.Sprintf("%s/%s", folderName, s3Filename))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(s3CLISession.ExitCode()).To(BeZero())
 	}
 
-	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, "exists", s3Filename)
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 	Expect(s3CLISession.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))
@@ -55,7 +55,7 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 	Expect(err).ToNot(HaveOccurred())
 	defer os.Remove(tmpLocalFile.Name()) //nolint:errcheck
 
-	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, "get", s3Filename, tmpLocalFile.Name())
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "get", s3Filename, tmpLocalFile.Name())
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
@@ -63,11 +63,11 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(gottenBytes)).To(Equal(expectedString))
 
-	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
-	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, "exists", s3Filename)
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(Equal(3))
 	Expect(s3CLISession.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))
@@ -75,7 +75,7 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 
 func AssertOnPutFailures(s3CLIPath string, cfg *config.S3Cli, content, errorMessage string) {
 	s3Filename := GenerateRandomString()
-	sourceContent := strings.NewReader(content)
+	sourceFile := MakeContentFile(content)
 
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
@@ -92,13 +92,14 @@ func AssertOnPutFailures(s3CLIPath string, cfg *config.S3Cli, content, errorMess
 	}
 	blobstoreClient := client.New(s3Client, &s3Config)
 
-	err = blobstoreClient.Put(sourceContent, s3Filename)
+	err = blobstoreClient.Put(sourceFile, s3Filename)
 	Expect(err).To(HaveOccurred())
 	Expect(err.Error()).To(ContainSubstring(errorMessage))
 }
 
 // AssertPutOptionsApplied asserts that `s3cli put` uploads files with the requested encryption options
 func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
+	var storageType string = "s3"
 	expectedString := GenerateRandomString()
 	s3Filename := GenerateRandomString()
 
@@ -111,7 +112,7 @@ func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
 	configFile, err := os.Open(configPath)
 	Expect(err).ToNot(HaveOccurred())
 
-	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, "put", contentFile, s3Filename) //nolint:ineffassign,staticcheck
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename) //nolint:ineffassign,staticcheck
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
@@ -139,10 +140,11 @@ func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
 
 // AssertGetNonexistentFails asserts that `s3cli get` on a non-existent object will fail
 func AssertGetNonexistentFails(s3CLIPath string, cfg *config.S3Cli) {
+	var storageType string = "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 
-	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, "get", "non-existent-file", "/dev/null")
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "get", "non-existent-file", "/dev/null")
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).ToNot(BeZero())
 	Expect(s3CLISession.Err.Contents()).To(ContainSubstring("NoSuchKey"))
@@ -151,17 +153,18 @@ func AssertGetNonexistentFails(s3CLIPath string, cfg *config.S3Cli) {
 // AssertDeleteNonexistentWorks asserts that `s3cli delete` on a non-existent
 // object exits with status 0 (tests idempotency)
 func AssertDeleteNonexistentWorks(s3CLIPath string, cfg *config.S3Cli) {
+	var storageType string = "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 
-	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, "delete", "non-existent-file")
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "delete", "non-existent-file")
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 }
 
 func AssertOnMultipartUploads(s3CLIPath string, cfg *config.S3Cli, content string) {
 	s3Filename := GenerateRandomString()
-	sourceContent := strings.NewReader(content)
+	sourceFile := MakeContentFile(content)
 
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
@@ -181,7 +184,7 @@ func AssertOnMultipartUploads(s3CLIPath string, cfg *config.S3Cli, content strin
 
 	blobstoreClient := client.New(s3Client, &s3Config)
 
-	err = blobstoreClient.Put(sourceContent, s3Filename)
+	err = blobstoreClient.Put(sourceFile, s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 
 	switch cfg.Host {

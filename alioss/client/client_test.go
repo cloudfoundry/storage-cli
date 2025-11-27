@@ -3,6 +3,7 @@ package client_test
 import (
 	"errors"
 	"os"
+	"time"
 
 	"github.com/cloudfoundry/storage-cli/alioss/client"
 	"github.com/cloudfoundry/storage-cli/alioss/client/clientfakes"
@@ -110,19 +111,25 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("signed url", func() {
+		var time_sec time.Duration
+
+		BeforeEach(func() {
+			time_sec = 100 * time.Second
+		})
+
 		It("returns a signed url for action 'get'", func() {
 			storageClient := clientfakes.FakeStorageClient{}
 			storageClient.SignedUrlGetReturns("https://the-signed-url", nil)
 
 			aliBlobstore, err := client.New(&storageClient)
 			Expect(err).NotTo(HaveOccurred())
-			url, err := aliBlobstore.Sign("blob", "get", 100)
+			url, err := aliBlobstore.Sign("blob", "get", time_sec)
 			Expect(url == "https://the-signed-url").To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
 			object, expiration := storageClient.SignedUrlGetArgsForCall(0)
 			Expect(object).To(Equal("blob"))
-			Expect(int(expiration)).To(Equal(100))
+			Expect(int(expiration)).To(Equal(int(time_sec.Seconds())))
 		})
 
 		It("returns a signed url for action 'put'", func() {
@@ -131,13 +138,13 @@ var _ = Describe("Client", func() {
 
 			aliBlobstore, err := client.New(&storageClient)
 			Expect(err).NotTo(HaveOccurred())
-			url, err := aliBlobstore.Sign("blob", "put", 100)
+			url, err := aliBlobstore.Sign("blob", "put", time_sec)
 			Expect(url == "https://the-signed-url").To(BeTrue())
 			Expect(err).ToNot(HaveOccurred())
 
 			object, expiration := storageClient.SignedUrlPutArgsForCall(0)
 			Expect(object).To(Equal("blob"))
-			Expect(int(expiration)).To(Equal(100))
+			Expect(int(expiration)).To(Equal(int(time_sec.Seconds())))
 		})
 
 		It("fails on unknown action", func() {
@@ -146,7 +153,7 @@ var _ = Describe("Client", func() {
 
 			aliBlobstore, err := client.New(&storageClient)
 			Expect(err).NotTo(HaveOccurred())
-			url, err := aliBlobstore.Sign("blob", "unknown", 100)
+			url, err := aliBlobstore.Sign("blob", "unknown", time_sec)
 			Expect(url).To(Equal(""))
 			Expect(err).To(HaveOccurred())
 
