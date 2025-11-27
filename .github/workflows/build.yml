@@ -17,102 +17,22 @@ jobs:
           with:
             go-version-file: 'go.mod'
         
-        - name: Alioss CLI Build for Linux
+        - name: Storage-CLI Build for Linux
           env:
             GOOS: linux
             GOARCH: amd64
             CGO_ENABLED: 0
           run: |
-                echo "Building Alioss CLI for Linux"
-                go build -o "alioss-cli-linux-amd64" ./alioss
-                sha1sum "alioss-cli-linux-amd64"
+                echo "Building Storage CLI for Linux"
+                go build -o "storage-cli-linux-amd64"
+                sha1sum "storage-cli-amd64"
         
-        - name: Alioss CLI Build for Windows
+        - name: Storage-CLI Build for Windows
           env:
             GOOS: windows
             GOARCH: amd64
             CGO_ENABLED: 0
           run: |
-                echo "Building Alioss CLI for Windows"
-                go build -o "alioss-cli-windows-amd64.exe" ./alioss
-                sha1sum "alioss-cli-windows-amd64.exe"
-
-        - name: Azurebs CLI Build for Linux
-          env:
-            GOOS: linux
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Azurebs CLI for Linux"
-                go build -o "azurebs-cli-linux-amd64" ./azurebs
-                sha1sum "azurebs-cli-linux-amd64"
-        
-        - name: Azurebs CLI Build for Windows
-          env:
-            GOOS: windows
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Azurebs CLI for Windows"
-                go build -o "azurebs-cli-windows-amd64.exe" ./azurebs
-                sha1sum "azurebs-cli-windows-amd64.exe"
-
-        - name: Dav CLI Build for Linux
-          env:
-            GOOS: linux
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Dav CLI for Linux"
-                go build -o "dav-cli-linux-amd64" ./dav/main
-                sha1sum "dav-cli-linux-amd64"
-        
-        - name: Dav CLI Build for Windows
-          env:
-            GOOS: windows
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Dav CLI for Windows"
-                go build -o "dav-cli-windows-amd64.exe" ./dav/main
-                sha1sum "dav-cli-windows-amd64.exe"
-
-        - name: GCS CLI Build for Linux
-          env:
-            GOOS: linux
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Gcs CLI for Linux"
-                go build -o "gcs-cli-linux-amd64" ./gcs
-                sha1sum "gcs-cli-linux-amd64"
-        
-        - name: GCS CLI Build for Windows
-          env:
-            GOOS: windows
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building Gcs CLI for Windows"
-                go build -o "gcs-cli-windows-amd64.exe" ./gcs
-                sha1sum "gcs-cli-windows-amd64.exe"
-
-        - name: S3 CLI Build for Linux
-          env:
-            GOOS: linux
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building S3 CLI for Linux"
-                go build -o "s3-cli-linux-amd64" ./s3
-                sha1sum "s3-cli-linux-amd64"
-        
-        - name: S3 CLI Build for Windows
-          env:
-            GOOS: windows
-            GOARCH: amd64
-            CGO_ENABLED: 0
-          run: |
-                echo "Building S3 CLI for Windows"
-                go build -o "s3-cli-windows-amd64.exe" ./s3
-                sha1sum "s3-cli-windows-amd64.exe"
+                echo "Building Storage CLI for Windows"
+                go build -o "storage-cli-windows-amd64.exe"
+                sha1sum "storage-cli-windows-amd64.exe"
