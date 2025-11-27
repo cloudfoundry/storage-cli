@@ -13,7 +13,7 @@ import (
 var _ = Describe("Testing in any AWS region that only supports v4 signature version", func() {
 	Context("with AWS V4 ONLY REGION (static creds) configurations", func() {
 		It("fails with a config that specifies signature version 2", func() {
-			var storageType string = "s3"
+			storageType := "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 

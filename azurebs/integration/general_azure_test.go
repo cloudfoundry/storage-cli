@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("General testing for all Azure regions", func() {
 	var defaultConfig config.AZStorageConfig
-	var storageType string = "azurebs"
+	storageType := "azurebs"
 
 	BeforeEach(func() {
 		defaultConfig = config.AZStorageConfig{

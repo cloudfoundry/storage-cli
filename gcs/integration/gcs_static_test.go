@@ -28,7 +28,7 @@ import (
 )
 
 var _ = Describe("Integration", func() {
-	var storageType string = "gcs"
+	storageType := "gcs"
 	Context("static credentials configuration with a regional bucket", func() {
 		var (
 			ctx AssertContext

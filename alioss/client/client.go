@@ -80,21 +80,21 @@ func (client *AliBlobstore) getMD5(filePath string) (string, error) {
 }
 
 func (client *AliBlobstore) List(prefix string) ([]string, error) {
-	return nil, errors.New("Not implemented")
+	return nil, errors.New("not implemented")
 }
 
 func (client *AliBlobstore) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *AliBlobstore) Properties(dest string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *AliBlobstore) EnsureStorageExists() error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *AliBlobstore) DeleteRecursive(prefix string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }

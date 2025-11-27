@@ -29,7 +29,8 @@ import (
 )
 
 var _ = Describe("Integration", func() {
-	var storageType string = "gcs"
+	storageType := "gcs"
+
 	Context("general (Default Applicaton Credentials) configuration", func() {
 		var env AssertContext
 		BeforeEach(func() {
@@ -103,9 +104,9 @@ var _ = Describe("Integration", func() {
 
 				go func() {
 					// This will block until the main test opens the pipe for reading.
-					writer, _ := os.OpenFile(pipePath, os.O_WRONLY, 0)
+					writer, _ := os.OpenFile(pipePath, os.O_WRONLY, 0) //nolint:errcheck
 					if writer != nil {
-						writer.Close()
+						writer.Close() //nolint:errcheck
 					}
 				}()
 

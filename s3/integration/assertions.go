@@ -18,7 +18,7 @@ import (
 
 // AssertLifecycleWorks tests the main blobstore object lifecycle from creation to deletion
 func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
-	var storageType string = "s3"
+	storageType := "s3"
 	expectedString := GenerateRandomString()
 	s3Filename := GenerateRandomString()
 
@@ -99,7 +99,7 @@ func AssertOnPutFailures(s3CLIPath string, cfg *config.S3Cli, content, errorMess
 
 // AssertPutOptionsApplied asserts that `s3cli put` uploads files with the requested encryption options
 func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
-	var storageType string = "s3"
+	storageType := "s3"
 	expectedString := GenerateRandomString()
 	s3Filename := GenerateRandomString()
 
@@ -140,7 +140,7 @@ func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
 
 // AssertGetNonexistentFails asserts that `s3cli get` on a non-existent object will fail
 func AssertGetNonexistentFails(s3CLIPath string, cfg *config.S3Cli) {
-	var storageType string = "s3"
+	storageType := "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 
@@ -153,7 +153,7 @@ func AssertGetNonexistentFails(s3CLIPath string, cfg *config.S3Cli) {
 // AssertDeleteNonexistentWorks asserts that `s3cli delete` on a non-existent
 // object exits with status 0 (tests idempotency)
 func AssertDeleteNonexistentWorks(s3CLIPath string, cfg *config.S3Cli) {
-	var storageType string = "s3"
+	storageType := "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 

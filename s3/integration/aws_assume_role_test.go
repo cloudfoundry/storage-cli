@@ -13,7 +13,7 @@ import (
 var _ = Describe("Testing AWS assume role ", func() {
 	Context("with AWS ASSUME ROLE configurations", func() {
 		It("get file from assumed role", func() {
-			var storageType string = "s3"
+			storageType := "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 

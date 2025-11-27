@@ -16,7 +16,7 @@ var _ = Describe("Testing for working signed URLs all Swift/OpenStack regions", 
 		var configPath string
 		var contentFile string
 		var defaultConfig config.S3Cli
-		var storageType string = "s3"
+		storageType := "s3"
 
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")

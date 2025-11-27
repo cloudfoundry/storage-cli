@@ -4,24 +4,23 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
-
-	"github.com/gogo/protobuf/plugin/stringer"
 )
 
 type Strategy struct {
 	str Storager
 }
 
-func NewStrategy(s Storager) Strategy {
-	return Strategy{str: s}
+func NewStrategy(s Storager) *Strategy {
+	return &Strategy{str: s}
 }
 
-func (sty Strategy) SetStorager(s Storager) {
+func (sty *Strategy) SetStorager(s Storager) {
 	sty.str = s
 }
 
-func (sty Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
+func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
 
 	switch cmd {
 	case "put":
@@ -97,7 +96,7 @@ func (sty Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
 		}
 
 		objectID, action := nonFlagArgs[1], nonFlagArgs[2]
-		action = stringer.ToLower(action)
+		action = strings.ToLower(action)
 
 		if action != "get" && action != "put" {
 			log.Fatalf("Action not implemented: %s. Available actions are 'get' and 'put'", action)

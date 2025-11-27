@@ -66,25 +66,25 @@ func (c *S3CompatibleClient) Sign(objectID string, action string, expiration tim
 }
 
 func (c *S3CompatibleClient) EnsureStorageExists() error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 
 }
 
 func (c *S3CompatibleClient) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 
 }
 
 func (c *S3CompatibleClient) Properties(dest string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 
 }
 
 func (c *S3CompatibleClient) List(prefix string) ([]string, error) {
-	return nil, errors.New("Not implemented")
+	return nil, errors.New("not implemented")
 
 }
 
 func (c *S3CompatibleClient) DeleteRecursive(prefix string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }

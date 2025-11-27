@@ -35,7 +35,7 @@ var encryptionKeyBytes = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
 var encryptionKeyBytesHash = sha256.Sum256(encryptionKeyBytes) //nolint:unused
 
 var _ = Describe("Integration", func() {
-	var storageType string = "gcs"
+	storageType := "gcs"
 	Context("general (Default Applicaton Credentials) configuration", func() {
 		var (
 			env AssertContext

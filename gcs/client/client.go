@@ -246,21 +246,21 @@ func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration)
 }
 
 func (client *GCSBlobstore) List(prefix string) ([]string, error) {
-	return nil, errors.New("Not implemented")
+	return nil, errors.New("not implemented")
 }
 
 func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *GCSBlobstore) Properties(dest string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *GCSBlobstore) EnsureStorageExists() error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }
 
 func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
-	return errors.New("Not implemented")
+	return errors.New("not implemented")
 }

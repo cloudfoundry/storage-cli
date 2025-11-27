@@ -30,7 +30,7 @@ import (
 )
 
 var _ = Describe("GCS Public Bucket", func() {
-	var storageType string = "gcs"
+	storageType := "gcs"
 	Context("with read-only configuration", func() {
 		var (
 			setupEnv  AssertContext

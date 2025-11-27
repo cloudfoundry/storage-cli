@@ -19,7 +19,7 @@ import (
 var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
 	Context("with PUBLIC READ ONLY (no creds) configuration", func() {
 		It("can successfully get a publicly readable file", func() {
-			var storageType string = "s3"
+			storageType := "s3"
 			accessKeyID := os.Getenv("ACCESS_KEY_ID")
 			Expect(accessKeyID).ToNot(BeEmpty(), "ACCESS_KEY_ID must be set")
 

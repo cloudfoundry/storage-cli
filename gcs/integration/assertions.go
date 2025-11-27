@@ -36,7 +36,7 @@ const NoLongMsg = "environment variable %s filled, skipping long test"
 // This is using gomega matchers, so it will fail if called outside an
 // 'It' test.
 func AssertLifecycleWorks(gcsCLIPath string, ctx AssertContext) {
-	var storageType string = "gcs"
+	storageType := "gcs"
 	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", ctx.ContentFile, ctx.GCSFileName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
