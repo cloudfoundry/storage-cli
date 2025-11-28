@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,11 +43,15 @@ func pathToFixture(file string) string {
 }
 
 var _ = Describe("App", func() {
-	It("reads the CA cert from config", func() {
-		runner := &FakeRunner{}
 
-		app := New(runner)
-		err := app.Run([]string{"dav-cli", "-c", pathToFixture("dav-cli-config-with-ca.json"), "put", "localFile", "remoteFile"})
+	It("reads the CA cert from config", func() {
+		configFile, _ := os.Open(pathToFixture("dav-cli-config-with-ca.json")) //nolint:errcheck
+		defer configFile.Close()                                               //nolint:errcheck
+		davConfig, _ := davconf.NewFromReader(configFile)                      //nolint:errcheck
+
+		runner := &FakeRunner{}
+		app := New(runner, davConfig)
+		err := app.Put("localFile", "remoteFile")
 		Expect(err).ToNot(HaveOccurred())
 
 		expectedConfig := davconf.Config{
@@ -66,22 +71,30 @@ var _ = Describe("App", func() {
 	})
 
 	It("returns error if CA Cert is invalid", func() {
+		configFile, _ := os.Open(pathToFixture("dav-cli-config-with-ca.json")) //nolint:errcheck
+		defer configFile.Close()                                               //nolint:errcheck
+		davConfig, _ := davconf.NewFromReader(configFile)                      //nolint:errcheck
+
 		runner := &FakeRunner{
 			SetConfigErr: errors.New("invalid cert"),
 		}
 
-		app := New(runner)
-		err := app.Run([]string{"dav-cli", "-c", pathToFixture("dav-cli-config-with-ca.json"), "put", "localFile", "remoteFile"})
+		app := New(runner, davConfig)
+		err := app.Put("localFile", "remoteFile")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Invalid CA Certificate: invalid cert"))
 
 	})
 
 	It("runs the put command", func() {
+		configFile, _ := os.Open(pathToFixture("dav-cli-config.json")) //nolint:errcheck
+		defer configFile.Close()                                       //nolint:errcheck
+		davConfig, _ := davconf.NewFromReader(configFile)              //nolint:errcheck
+
 		runner := &FakeRunner{}
 
-		app := New(runner)
-		err := app.Run([]string{"dav-cli", "-c", pathToFixture("dav-cli-config.json"), "put", "localFile", "remoteFile"})
+		app := New(runner, davConfig)
+		err := app.Put("localFile", "remoteFile")
 		Expect(err).ToNot(HaveOccurred())
 
 		expectedConfig := davconf.Config{
@@ -96,29 +109,58 @@ var _ = Describe("App", func() {
 		Expect(runner.RunArgs).To(Equal([]string{"put", "localFile", "remoteFile"}))
 	})
 
-	It("returns error with no config argument", func() {
-		runner := &FakeRunner{}
-
-		app := New(runner)
-		err := app.Run([]string{"put", "localFile", "remoteFile"})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Config file arg `-c` is missing"))
-	})
-	It("prints the version info with the -v flag", func() {
-		runner := &FakeRunner{}
-		app := New(runner)
-		err := app.Run([]string{"dav-cli", "-v"})
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("returns error from the cmd runner", func() {
+
+		configFile, _ := os.Open(pathToFixture("dav-cli-config.json")) //nolint:errcheck
+		defer configFile.Close()                                       //nolint:errcheck
+		davConfig, _ := davconf.NewFromReader(configFile)              //nolint:errcheck
+
 		runner := &FakeRunner{
 			RunErr: errors.New("fake-run-error"),
 		}
 
-		app := New(runner)
-		err := app.Run([]string{"dav-cli", "-c", pathToFixture("dav-cli-config.json"), "put", "localFile", "remoteFile"})
+		app := New(runner, davConfig)
+		err := app.Put("localFile", "remoteFile")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("fake-run-error"))
 	})
+
+	Context("Checking functionalities", func() {
+		// var app *App
+		var davConfig davconf.Config
+		BeforeEach(func() {
+
+			configFile, _ := os.Open(pathToFixture("dav-cli-config.json")) //nolint:errcheck
+			defer configFile.Close()                                       //nolint:errcheck
+			davConfig, _ = davconf.NewFromReader(configFile)               //nolint:errcheck
+		})
+
+		It("Exists fails", func() {
+
+			runner := &FakeRunner{
+				RunErr: errors.New("object does not exist"),
+			}
+			app := New(runner, davConfig)
+
+			exist, err := app.Exists("someObject") //nolint:errcheck
+
+			Expect(err.Error()).To(ContainSubstring("object does not exist"))
+			Expect(exist).To(BeFalse())
+
+		})
+
+		It("Sign Fails", func() {
+			runner := &FakeRunner{
+				RunErr: errors.New("can't sign"),
+			}
+
+			app := New(runner, davConfig)
+			signedurl, err := app.Sign("someObject", "SomeObject", time.Second*100)
+			Expect(signedurl).To(BeEmpty())
+			Expect(err.Error()).To(ContainSubstring("can't sign"))
+
+		})
+
+	})
+
 })

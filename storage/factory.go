@@ -2,14 +2,17 @@ package storage
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	alioss "github.com/cloudfoundry/storage-cli/alioss/client"
 	aliossconfig "github.com/cloudfoundry/storage-cli/alioss/config"
 	azurebs "github.com/cloudfoundry/storage-cli/azurebs/client"
 	azureconfigbs "github.com/cloudfoundry/storage-cli/azurebs/config"
+	davapp "github.com/cloudfoundry/storage-cli/dav/app"
+	davcmd "github.com/cloudfoundry/storage-cli/dav/cmd"
+	davconfig "github.com/cloudfoundry/storage-cli/dav/config"
 	gcs "github.com/cloudfoundry/storage-cli/gcs/client"
 	gcsconfig "github.com/cloudfoundry/storage-cli/gcs/config"
 	s3 "github.com/cloudfoundry/storage-cli/s3/client"
@@ -89,11 +92,22 @@ func NewStorageClient(storageType string, configFile *os.File) (Storager, error)
 		}
 	case "dav":
 		{
-			return nil, errors.New("dav storage provider not implemented yet")
+			davConfig, err := davconfig.NewFromReader(configFile)
+			if err != nil {
+				return nil, err
+			}
+
+			logger := boshlog.NewLogger(boshlog.LevelNone)
+			cmdFactory := davcmd.NewFactory(logger)
+
+			cmdRunner := davcmd.NewRunner(cmdFactory)
+
+			app := davapp.New(cmdRunner, davConfig)
+			client = app
 		}
 
 	default:
-		return nil, fmt.Errorf("storage %s provider not implemented", storageType)
+		return nil, fmt.Errorf("storage %s not implemented", storageType)
 	}
 
 	return client, nil

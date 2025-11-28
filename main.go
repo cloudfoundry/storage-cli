@@ -15,7 +15,7 @@ func main() {
 
 	configPath := flag.String("c", "", "configuration path")
 	showVer := flag.Bool("v", false, "version")
-	storageType := flag.String("s", "s3", "storage type: azurebs|alioss|s3|gcs")
+	storageType := flag.String("s", "s3", "storage type: azurebs|alioss|s3|gcs|dav")
 	flag.Parse()
 
 	if *showVer {
@@ -27,11 +27,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	defer configFile.Close() //nolint:errcheck
 
 	client, err := storage.NewStorageClient(*storageType, configFile)
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	sty := storage.NewStrategy(client)
 
 	nonFlagArgs := flag.Args()
