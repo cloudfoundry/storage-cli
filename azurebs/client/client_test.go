@@ -79,15 +79,16 @@ var _ = Describe("Client", func() {
 		azBlobstore, err := client.New(&storageClient)
 		Expect(err).ToNot(HaveOccurred())
 
-		file, _ := os.CreateTemp("", "tmpfile") //nolint:errcheck
+		dstFileName := "tmp-dest-azurebs-get"
+		defer os.Remove("tmp-dest-azurebs-get") //nolint:errcheck
 
-		azBlobstore.Get("source/blob", file) //nolint:errcheck
+		azBlobstore.Get("source/blob", dstFileName) //nolint:errcheck
 
 		Expect(storageClient.DownloadCallCount()).To(Equal(1))
-		source, dest := storageClient.DownloadArgsForCall(0)
 
+		source, dest := storageClient.DownloadArgsForCall(0)
 		Expect(source).To(Equal("source/blob"))
-		Expect(dest).To(Equal(file))
+		Expect(dest.Name()).To(Equal(dstFileName))
 	})
 
 	It("delete blob deletes the blob", func() {

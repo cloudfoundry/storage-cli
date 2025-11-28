@@ -87,6 +87,7 @@ test-int:
 	 export MULTIREGIONAL_BUCKET_NAME="$$(cat $(TMP_DIR)/multiregional.lock)" && \
 	 export REGIONAL_BUCKET_NAME="$$(cat $(TMP_DIR)/regional.lock)" && \
 	 export PUBLIC_BUCKET_NAME="$$(cat $(TMP_DIR)/public.lock)" && \
+	 export SKIP_LONG_TESTS="" && \
 	 cd ../../.. && go run github.com/onsi/ginkgo/v2/ginkgo gcs/integration/
 
 # Perform all non-long tests, including integration tests.

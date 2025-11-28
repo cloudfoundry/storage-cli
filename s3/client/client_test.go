@@ -10,12 +10,13 @@ import (
 	"github.com/cloudfoundry/storage-cli/s3/client"
 	"github.com/cloudfoundry/storage-cli/s3/config"
 
+	s "github.com/cloudfoundry/storage-cli/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("S3CompatibleClient", func() {
-	var blobstoreClient client.S3CompatibleClient
+	var blobstoreClient s.Storager
 	var s3Config *config.S3Cli
 
 	Describe("Sign()", func() {
@@ -57,7 +58,7 @@ var _ = Describe("S3CompatibleClient", func() {
 
 			Context("when the action is GET", func() {
 				BeforeEach(func() {
-					action = "GET"
+					action = "get"
 				})
 
 				It("returns a signed URL", func() {
@@ -70,7 +71,7 @@ var _ = Describe("S3CompatibleClient", func() {
 
 			Context("when the action is PUT", func() {
 				BeforeEach(func() {
-					action = "PUT"
+					action = "put"
 				})
 
 				It("returns a signed URL", func() {
@@ -117,7 +118,7 @@ var _ = Describe("S3CompatibleClient", func() {
 
 			Context("when the action is GET", func() {
 				BeforeEach(func() {
-					action = "GET"
+					action = "get"
 				})
 
 				It("returns a signed URL", func() {
@@ -130,7 +131,7 @@ var _ = Describe("S3CompatibleClient", func() {
 
 			Context("when the action is PUT", func() {
 				BeforeEach(func() {
-					action = "PUT"
+					action = "put"
 				})
 
 				It("returns a signed URL", func() {

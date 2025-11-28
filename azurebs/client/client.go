@@ -29,7 +29,6 @@ func (client *AzBlobstore) Put(sourceFilePath string, dest string) error {
 	if err != nil {
 		return err
 	}
-
 	defer source.Close() //nolint:errcheck
 
 	md5, err := client.storageClient.Upload(source, dest)
@@ -52,9 +51,14 @@ func (client *AzBlobstore) Put(sourceFilePath string, dest string) error {
 	return nil
 }
 
-func (client *AzBlobstore) Get(source string, dest *os.File) error {
+func (client *AzBlobstore) Get(source string, dest string) error {
+	dstFile, err := os.Create(dest)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer dstFile.Close() //nolint:errcheck
 
-	return client.storageClient.Download(source, dest)
+	return client.storageClient.Download(source, dstFile)
 }
 
 func (client *AzBlobstore) Delete(dest string) error {
@@ -113,7 +117,7 @@ func (client *AzBlobstore) Properties(dest string) error {
 	return client.storageClient.Properties(dest)
 }
 
-func (client *AzBlobstore) EnsureContainerExists() error {
+func (client *AzBlobstore) EnsureStorageExists() error {
 
 	return client.storageClient.EnsureContainerExists()
 }

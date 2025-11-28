@@ -34,7 +34,7 @@ func TestIntegration(t *testing.T) {
 var _ = BeforeSuite(func() {
 	// Integration test against the CLI means we need the binary.
 	var err error
-	gcsCLIPath, err = gexec.Build("github.com/cloudfoundry/storage-cli/gcs")
+	gcsCLIPath, err = gexec.Build("github.com/cloudfoundry/storage-cli")
 	Expect(err).ShouldNot(HaveOccurred())
 })
 
