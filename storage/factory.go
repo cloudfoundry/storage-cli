@@ -19,97 +19,100 @@ import (
 	s3config "github.com/cloudfoundry/storage-cli/s3/config"
 )
 
-func NewStorageClient(storageType string, configFile *os.File) (Storager, error) {
-	var client Storager
+var newAzurebsClient = func(configFile *os.File) (Storager, error) {
+	conf, err := azureconfigbs.NewFromReader(configFile)
+	if err != nil {
+		return nil, err
+	}
 
+	sc, err := azurebs.NewStorageClient(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	azClient, err := azurebs.New(sc)
+	if err != nil {
+		return nil, err
+	}
+	return &azClient, nil
+}
+
+var newAliossClient = func(configFile *os.File) (Storager, error) {
+	aliConfig, err := aliossconfig.NewFromReader(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	storageClient, err := alioss.NewStorageClient(aliConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	aliClient, err := alioss.New(storageClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &aliClient, nil
+}
+
+var newGcsClient = func(configFile *os.File) (Storager, error) {
+	gcsConfig, err := gcsconfig.NewFromReader(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	gcsClient, err := gcs.New(ctx, &gcsConfig)
+	if err != nil {
+		return nil, err
+	}
+	return gcsClient, nil
+
+}
+
+var newS3Client = func(configFile *os.File) (Storager, error) {
+	s3Config, err := s3config.NewFromReader(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	s3Client, err := s3.NewAwsS3Client(&s3Config)
+	if err != nil {
+		return nil, err
+	}
+
+	return s3.New(s3Client, &s3Config), nil
+
+}
+
+var newDavClient = func(configFile *os.File) (Storager, error) {
+	davConfig, err := davconfig.NewFromReader(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := boshlog.NewLogger(boshlog.LevelNone)
+	cmdFactory := davcmd.NewFactory(logger)
+
+	cmdRunner := davcmd.NewRunner(cmdFactory)
+
+	return davapp.New(cmdRunner, davConfig), nil
+}
+
+func NewStorageClient(storageType string, configFile *os.File) (Storager, error) {
 	switch storageType {
 	case "azurebs":
-		{
-
-			conf, err := azureconfigbs.NewFromReader(configFile)
-			if err != nil {
-				return nil, err
-			}
-
-			sc, err := azurebs.NewStorageClient(conf)
-			if err != nil {
-				return nil, err
-			}
-
-			azClient, err := azurebs.New(sc)
-			if err != nil {
-				return nil, err
-			}
-			client = &azClient
-
-		}
+		return newAzurebsClient(configFile)
 	case "alioss":
-		{
-			aliConfig, err := aliossconfig.NewFromReader(configFile)
-			if err != nil {
-				return nil, err
-			}
-
-			storageClient, err := alioss.NewStorageClient(aliConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			aliClient, err := alioss.New(storageClient)
-			if err != nil {
-				return nil, err
-			}
-
-			client = &aliClient
-		}
+		return newAliossClient(configFile)
 	case "s3":
-		{
-			s3Config, err := s3config.NewFromReader(configFile)
-			if err != nil {
-				return nil, err
-			}
-
-			s3Client, err := s3.NewAwsS3Client(&s3Config)
-			if err != nil {
-				return nil, err
-			}
-
-			client = s3.New(s3Client, &s3Config)
-		}
+		return newS3Client(configFile)
 	case "gcs":
-		{
-			gcsConfig, err := gcsconfig.NewFromReader(configFile)
-			if err != nil {
-				return nil, err
-			}
-
-			ctx := context.Background()
-			gcsClient, err := gcs.New(ctx, &gcsConfig)
-			if err != nil {
-				return nil, err
-			}
-			client = gcsClient
-		}
+		return newGcsClient(configFile)
 	case "dav":
-		{
-			davConfig, err := davconfig.NewFromReader(configFile)
-			if err != nil {
-				return nil, err
-			}
-
-			logger := boshlog.NewLogger(boshlog.LevelNone)
-			cmdFactory := davcmd.NewFactory(logger)
-
-			cmdRunner := davcmd.NewRunner(cmdFactory)
-
-			app := davapp.New(cmdRunner, davConfig)
-			client = app
-		}
-
+		return newDavClient(configFile)
 	default:
 		return nil, fmt.Errorf("storage %s not implemented", storageType)
 	}
-
-	return client, nil
-
 }
