@@ -2,11 +2,18 @@ package storage
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
 )
+
+type NotExistsError struct {
+	err error
+}
+
+func (e *NotExistsError) Error() string {
+	return "object does not exist"
+}
 
 type Strategy struct {
 	str Storager
@@ -20,101 +27,87 @@ func (sty *Strategy) SetStorager(s Storager) {
 	sty.str = s
 }
 
-func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
+func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) error {
 
 	switch cmd {
 	case "put":
 		if len(nonFlagArgs) != 3 {
-			log.Fatalf("Put method expected 3 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Put method expected 3 arguments got %d\n", len(nonFlagArgs))
 		}
 		sourceFilePath, dst := nonFlagArgs[1], nonFlagArgs[2]
 
 		_, err := os.Stat(sourceFilePath)
 		if err != nil {
-			log.Fatalln(err)
+			return fmt.Errorf("%w", err)
 		}
-
-		err = sty.str.Put(sourceFilePath, dst)
-		fatalLog(cmd, err)
+		return sty.str.Put(sourceFilePath, dst)
 
 	case "get":
 		if len(nonFlagArgs) != 3 {
-			log.Fatalf("Get method expected 3 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Get method expected 3 arguments got %d\n", len(nonFlagArgs))
 		}
 		src, dst := nonFlagArgs[1], nonFlagArgs[2]
-
-		err := sty.str.Get(src, dst)
-		fatalLog(cmd, err)
+		return sty.str.Get(src, dst)
 
 	case "copy":
 		if len(nonFlagArgs) != 3 {
-			log.Fatalf("Get method expected 3 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Copy method expected 3 arguments got %d\n", len(nonFlagArgs))
 		}
 
 		srcBlob, dstBlob := nonFlagArgs[1], nonFlagArgs[2]
-
-		err := sty.str.Copy(srcBlob, dstBlob)
-		fatalLog(cmd, err)
+		return sty.str.Copy(srcBlob, dstBlob)
 
 	case "delete":
 		if len(nonFlagArgs) != 2 {
-			log.Fatalf("Delete method expected 2 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Delete method expected 2 arguments got %d\n", len(nonFlagArgs))
 		}
-
-		err := sty.str.Delete(nonFlagArgs[1])
-		fatalLog(cmd, err)
+		return sty.str.Delete(nonFlagArgs[1])
 
 	case "delete-recursive":
 		var prefix string
 		if len(nonFlagArgs) > 2 {
-			log.Fatalf("delete-recursive takes at most one argument (prefix) got %d\n", len(nonFlagArgs)-1)
+			return fmt.Errorf("delete-recursive takes at most one argument (prefix) got %d\n", len(nonFlagArgs)-1)
 		} else if len(nonFlagArgs) == 2 {
 			prefix = nonFlagArgs[1]
 		} else {
 			prefix = ""
 		}
-		err := sty.str.DeleteRecursive(prefix)
-		fatalLog("delete-recursive", err)
+		return sty.str.DeleteRecursive(prefix)
 
 	case "exists":
 		if len(nonFlagArgs) != 2 {
-			log.Fatalf("Exists method expected 2 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Exists method expected 2 arguments got %d\n", len(nonFlagArgs))
 		}
 
-		var exists bool
 		exists, err := sty.str.Exists(nonFlagArgs[1])
-
-		// If the object exists the exit status is 0, otherwise it is 3
-		// We are using `3` since `1` and `2` have special meanings
 		if err == nil && !exists {
-			os.Exit(3)
+			return &NotExistsError{}
+		}
+		if err != nil {
+			return fmt.Errorf("Failed to check exist: %w", err)
 		}
 
 	case "sign":
 		if len(nonFlagArgs) != 4 {
-			log.Fatalf("Sign method expects 3 arguments got %d\n", len(nonFlagArgs)-1)
+			return fmt.Errorf("Sign method expects 3 arguments got %d\n", len(nonFlagArgs)-1)
 		}
 
 		objectID, action := nonFlagArgs[1], nonFlagArgs[2]
 		action = strings.ToLower(action)
-
 		if action != "get" && action != "put" {
-			log.Fatalf("Action not implemented: %s. Available actions are 'get' and 'put'", action)
+			return fmt.Errorf("Action not implemented: %s. Available actions are 'get' and 'put'", action)
 		}
 
 		expiration, err := time.ParseDuration(nonFlagArgs[3])
 		if err != nil {
-			log.Fatalf("Expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[3])
+			return fmt.Errorf("Expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[3])
 		}
 
 		signedURL, err := sty.str.Sign(objectID, action, expiration)
-
 		if err != nil {
-			log.Fatalf("Failed to sign request: %s", err)
+			return fmt.Errorf("Failed to sign request: %w", err)
 		}
-
 		fmt.Print(signedURL)
-		os.Exit(0)
 
 	case "list":
 		var prefix string
@@ -124,13 +117,13 @@ func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
 		} else if len(nonFlagArgs) == 2 {
 			prefix = nonFlagArgs[1]
 		} else {
-			log.Fatalf("List method expected 1 or 2 arguments, got %d\n", len(nonFlagArgs)-1)
+			return fmt.Errorf("List method expected 1 or 2 arguments, got %d\n", len(nonFlagArgs)-1)
 		}
 
 		var objects []string
 		objects, err := sty.str.List(prefix)
 		if err != nil {
-			log.Fatalf("Failed to list objects: %s", err)
+			return fmt.Errorf("Failed to list objects: %w", err)
 		}
 
 		for _, object := range objects {
@@ -139,27 +132,19 @@ func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) {
 
 	case "properties":
 		if len(nonFlagArgs) != 2 {
-			log.Fatalf("Properties method expected 2 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("Properties method expected 2 arguments got %d\n", len(nonFlagArgs))
 		}
-
-		err := sty.str.Properties(nonFlagArgs[1])
-		fatalLog("properties", err)
+		return sty.str.Properties(nonFlagArgs[1])
 
 	case "ensure-storage-exists":
 		if len(nonFlagArgs) != 1 {
-			log.Fatalf("EnsureStorageExists method expected 1 arguments got %d\n", len(nonFlagArgs))
+			return fmt.Errorf("EnsureStorageExists method expected 1 arguments got %d\n", len(nonFlagArgs))
 		}
-
-		err := sty.str.EnsureStorageExists()
-		fatalLog("ensure-storage-exists", err)
+		return sty.str.EnsureStorageExists()
 
 	default:
-		log.Fatalf("unknown command: '%s'\n", cmd)
+		return fmt.Errorf("unknown command: '%s'\n", cmd)
 	}
-}
 
-func fatalLog(cmd string, err error) {
-	if err != nil {
-		log.Fatalf("performing operation %s: %s\n", cmd, err)
-	}
+	return nil
 }

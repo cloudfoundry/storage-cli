@@ -11,6 +11,20 @@ import (
 
 var version string
 
+func fatalLog(cmd string, err error) {
+	if err == nil {
+		return
+	}
+	// If the object exists the exit status is 0, otherwise it is 3
+	// We are using `3` since `1` and `2` have special meanings
+	if _, ok := err.(*storage.NotExistsError); ok {
+		log.Printf("performing operation %s: %s\n", cmd, err)
+		os.Exit(3)
+	}
+	log.Fatalf("performing operation %s: %s\n", cmd, err)
+
+}
+
 func main() {
 
 	configPath := flag.String("c", "", "configuration path")
@@ -42,6 +56,7 @@ func main() {
 	}
 
 	cmd := nonFlagArgs[0]
-	sty.ExecuteCommand(cmd, nonFlagArgs)
+	err = sty.ExecuteCommand(cmd, nonFlagArgs)
+	fatalLog(cmd, err)
 
 }
