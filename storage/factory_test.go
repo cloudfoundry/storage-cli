@@ -12,12 +12,12 @@ var _ = Describe("Factory", func() {
 
 		var configFile *os.File
 		BeforeEach(func() {
-			configFile, _ = os.CreateTemp("", "some-config-file") //linting:noerrcheck
+			configFile, _ = os.CreateTemp("", "some-config-file") ////nolint:errcheck
 
 		})
 		AfterEach(func() {
-			configFile.Close()
-			os.Remove("some-config-file")
+			configFile.Close()            //nolint:errcheck
+			os.Remove("some-config-file") //nolint:errcheck
 		})
 
 		Context("alioss", func() {
