@@ -9,5 +9,5 @@ import (
 
 func TestCmd(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Davcli Cmd Suite")
+	RunSpecs(t, "Dav Cmd Suite")
 }

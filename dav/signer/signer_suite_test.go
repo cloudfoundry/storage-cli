@@ -9,5 +9,5 @@ import (
 
 func TestSigner(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "DavCli Signer Suite")
+	RunSpecs(t, "Dav Signer Suite")
 }
