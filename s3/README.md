@@ -1,15 +1,14 @@
-## S3 CLI
+# S3 Client
 
-A CLI for uploading, fetching and deleting content to/from an S3-compatible
-blobstore.
+S3 client implementation for the unified storage-cli tool. This module provides S3-compatible blobstore operations through the main storage-cli binary.
 
-Continuous integration: <https://github.com/cloudfoundry/storage-cli/actions/workflows/s3-integration.yml>
+**Note:** This is not a standalone CLI. Use the main `storage-cli` binary with `-s s3` flag to access S3 functionality.
 
-Releases can be found in `https://s3.amazonaws.com/bosh-s3cli-artifacts`. The Linux binaries follow the regex `s3cli-(\d+\.\d+\.\d+)-linux-amd64` and the windows binaries `s3cli-(\d+\.\d+\.\d+)-windows-amd64`.
+For general usage and build instructions, see the [main README](../README.md).
 
-## Usage
+## S3-Specific Configuration
 
-Given a JSON config file (`config.json`)...
+The S3 client requires a JSON configuration file with the following structure:
 
 ``` json
 {
@@ -32,67 +31,31 @@ Given a JSON config file (`config.json`)...
 }
 ```
 
-``` bash
-# Usage
-s3-cli --help
+**Usage examples:**
+```shell
+# Upload a file to S3
+storage-cli -s s3 -c s3-config.json put local-file.txt remote-object.txt
 
-# Command: "put"
-# Upload a blob to an S3-compatible blobstore.
-s3-cli -c config.json put <path/to/file> <remote-blob>
+# Download a file from S3
+storage-cli -s s3 -c s3-config.json get remote-object.txt downloaded-file.txt
 
-# Command: "get"
-# Fetch a blob from an S3-compatible blobstore.
-# Destination file will be overwritten if exists.
-s3-cli -c config.json get <remote-blob> <path/to/file>
+# Check if an object exists
+storage-cli -s s3 -c s3-config.json exists remote-object.txt
 
-# Command: "delete"
-# Remove a blob from an S3-compatible blobstore.
-s3-cli -c config.json delete <remote-blob>
+# List all objects
+storage-cli -s s3 -c s3-config.json list
 
-# Command: "exists"
-# Checks if blob exists in an S3-compatible blobstore.
-s3-cli -c config.json exists <remote-blob>
-
-# Command: "sign"
-# Create a self-signed url for an object
-s3-cli -c config.json sign <remote-blob> <get|put> <seconds-to-expiration>
+# Delete an object
+storage-cli -s s3 -c s3-config.json delete remote-object.txt
 ```
-
-## Contributing
-
-Follow these steps to make a contribution to the project:
-
-- Fork this repository
-- Create a feature branch based upon the `main` branch (*pull requests must be made against this branch*)
-  ``` bash
-  git checkout -b feature-name origin/main
-  ```
-- Run tests to check your development environment setup
-  ``` bash
-  ginkgo --race --skip-package=integration --randomize-all --cover -v -r ./s3/...
-  ```
-- Make your changes (*be sure to add/update tests*)
-- Run tests to check your changes
-  ``` bash
-  ginkgo --race --skip-package=integration --randomize-all --cover -v -r ./s3/...
-  ```
-- Push changes to your fork
-  ``` bash
-  git add .
-  git commit -m "Commit message"
-  git push origin feature-name
-  ```
-- Create a GitHub pull request, selecting `main` as the target branch
 
 ## Testing
 
 ### Unit Tests
-**Note:** Run the following commands from the repository root directory.
-  ``` bash
-  go install github.com/onsi/ginkgo/v2/ginkgo
-
-  ginkgo --skip-package=integration --randomize-all --cover -v -r ./s3/...
-  ```
+Run unit tests from the repository root:
+```bash
+ginkgo --skip-package=integration --cover -v -r ./s3/...
+```
 
 ### Integration Tests
 

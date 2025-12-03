@@ -1,45 +1,16 @@
-# GCS Storage CLI
-A Golang CLI for uploading, fetching and deleting content to/from [Google Cloud Storage](https://cloud.google.com/storage/). 
-This tool exists to work with the [bosh-cli](https://github.com/cloudfoundry/bosh-cli) and [director](https://github.com/cloudfoundry/bosh).
+# GCS Client
+
+GCS (Google Cloud Storage) client implementation for the unified storage-cli tool. This module provides Google Cloud Storage operations through the main storage-cli binary.
+
+**Note:** This is not a standalone CLI. Use the main `storage-cli` binary with `-s gcs` flag to access GCS functionality.
+
+For general usage and build instructions, see the [main README](../README.md).
 
 This is **not** an official Google Product.
 
+## GCS-Specific Configuration
 
-## Commands
-
-### Usage
-```bash
-gcs-cli --help
-```
-### Upload an object
-```bash
-gcs-cli  -c config.json put <path/to/file> <remote-blob>
-```
-### Fetch an object
-```bash
-gcs-cli  -c config.json get <remote-blob> <path/to/file>
-```
-### Delete an object
-```bash
-gcs-cli  -c config.json delete <remote-blob>
-```
-### Check if an object exists
-```bash
-gcs-cli  -c config.json exists <remote-blob>
-```
-
-### Generate a signed url for an object
-If there is an encryption key present in the config, then an additional header is sent
-
-```bash
-gcs-cli  -c config.json sign <remote-blob> <http action> <expiry>
-```
-Where:
- - `<http action>` is GET, PUT, or DELETE
- - `<expiry>` is a duration string less than 7 days (e.g. "6h")
-
-## Configuration
-The command line tool expects a JSON configuration file. Run `storage-cli-gcs --help` for details.
+The GCS client requires a JSON configuration file.
 
 ### Authentication Methods (`credentials_source`)
 * `static`: A [service account](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) key will be provided via the `json_key` field.
@@ -48,11 +19,35 @@ The command line tool expects a JSON configuration file. Run `storage-cli-gcs --
   will be used if they exist (either through `gcloud auth application-default login` or a [service account](https://cloud.google.com/iam/docs/understanding-service-accounts)).
   If they don't exist the client will fall back to `none` behavior.
 
-## Running Tests
-## Unit Tests
-1. Use the command `make -C .github/scripts/gcs test-unit`
+**Usage examples:**
+```bash
+# Upload an object
+storage-cli -s gcs -c gcs-config.json put local-file.txt remote-blob
 
-## Integration Tests
+# Fetch an object
+storage-cli -s gcs -c gcs-config.json get remote-blob local-file.txt
+
+# Delete an object
+storage-cli -s gcs -c gcs-config.json delete remote-blob
+
+# Check if an object exists
+storage-cli -s gcs -c gcs-config.json exists remote-blob
+
+# Generate a signed URL (e.g., GET for 1 hour)
+storage-cli -s gcs -c gcs-config.json sign remote-blob get 60s
+```
+
+
+## Testing
+
+### Unit Tests
+Run unit tests from the repository root:
+
+```bash
+ginkgo --skip-package=integration --cover -v -r ./gcs/...
+```
+
+### Integration Tests
 1. Create a service account with the `Storage Admin` role.
 1. Create a new key for your service account and download credential as JSON file.
 1. Export json content with `export google_json_key_data="$(cat <path-to-json-file.json>)"`.

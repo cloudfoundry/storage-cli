@@ -1,72 +1,65 @@
-# Azure Storage CLI
+# Azure Blob Storage Client
 
-The Azure Storage CLI is for uploading, fetching and deleting content to and from an Azure blobstore.
-It is highly inspired by the [storage-cli/s3](https://github.com/cloudfoundry/storage-cli/blob/6058f516e9b81471b64a50b01e228158a05731f0/s3)
+Azure Blob Storage client implementation for the unified storage-cli tool. This module provides Azure Blob Storage operations through the main storage-cli binary.
 
-## Usage
+**Note:** This is not a standalone CLI. Use the main `storage-cli` binary with `-s azurebs` flag to access Azure Blob Storage functionality.
 
-Given a JSON config file (`config.json`)...
+For general usage and build instructions, see the [main README](../README.md).
+
+## Azure-Specific Configuration
+
+The Azure client requires a JSON configuration file with the following structure:
 
 ``` json
 {
   "account_name":           "<string> (required)",
   "account_key":            "<string> (required)",
   "container_name":         "<string> (required)",
-  "environment":            "<string> (optional, default: 'AzureCloud')",
+  "environment":            "<string> (optional, default: 'AzureCloud')"
 }
 ```
 
+**Usage examples:**
 ``` bash
-# Command: "put"
-# Upload a blob to the blobstore.
-./azurebs-cli -c config.json put <path/to/file> <remote-blob> 
+# Upload a blob
+storage-cli -s azurebs -c azure-config.json put local-file.txt remote-blob
 
-# Command: "get"
-# Fetch a blob from the blobstore.
-# Destination file will be overwritten if exists.
-./azurebs-cli -c config.json get <remote-blob> <path/to/file>
+# Fetch a blob (destination file will be overwritten if exists)
+storage-cli -s azurebs -c azure-config.json get remote-blob local-file.txt
 
-# Command: "delete"
-# Remove a blob from the blobstore.
-./azurebs-cli -c config.json delete <remote-blob>
+# Delete a blob
+storage-cli -s azurebs -c azure-config.json delete remote-blob
 
-# Command: "exists"
-# Checks if blob exists in the blobstore.
-./azurebs-cli -c config.json exists <remote-blob>
+# Check if blob exists
+storage-cli -s azurebs -c azure-config.json exists remote-blob
 
-# Command: "sign"
-# Create a self-signed url for a blob in the blobstore.
-./azurebs-cli -c config.json sign <remote-blob> <get|put> <seconds-to-expiration>
+# Generate a signed URL (e.g., GET for 3600 seconds)
+storage-cli -s azurebs -c azure-config.json sign remote-blob get 3600s
 ```
 
-### Using signed urls with curl
+### Using Signed URLs with curl
 
 ``` bash
 # Uploading a blob:
-curl -X PUT -H "x-ms-blob-type: blockblob" -F 'fileX=<path/to/file>' <signed url>
+curl -X PUT -H "x-ms-blob-type: blockblob" -F 'fileX=<path/to/file>' <signed-url>
 
 # Downloading a blob:
-curl -X GET <signed url>
+curl -X GET <signed-url>
 ```
 
-## Running Tests
+## Testing
 
 ### Unit Tests
-**Note:** Run the following commands from the repository root directory
+Run from the repository root directory:
 
-- Using ginkgo:
+```bash
+ginkgo --skip-package=integration --randomize-all --cover -v -r ./azurebs/...
+```
 
-  ``` bash
-  go install github.com/onsi/ginkgo/v2/ginkgo
-
-  ginkgo --skip-package=integration --randomize-all --cover -v -r ./azurebs/...
-  ```
-
-- Using go test:
-
-  ``` bash
-  go test $(go list ./azurebs/... | grep -v integration)
-  ```
+Or using go test:
+```bash
+go test $(go list ./azurebs/... | grep -v integration)
+```
 
 ### Integration Tests
 - To run the integration tests with your existing container

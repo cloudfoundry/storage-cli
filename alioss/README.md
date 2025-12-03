@@ -1,11 +1,14 @@
-# Ali Storage CLI
+# Alibaba Cloud OSS Client
 
-The Ali Storage CLI is for uploading, fetching and deleting content to and from an Ali OSS.
-It is highly inspired by the [storage-cli/s3](https://github.com/cloudfoundry/storage-cli/blob/6058f516e9b81471b64a50b01e228158a05731f0/s3)
+Alibaba Cloud OSS (Object Storage Service) client implementation for the unified storage-cli tool. This module provides Alibaba Cloud OSS operations through the main storage-cli binary.
 
-## Usage
+**Note:** This is not a standalone CLI. Use the main `storage-cli` binary with `-s alioss` flag to access AliOSS functionality.
 
-Given a JSON config file (`config.json`)...
+For general usage and build instructions, see the [main README](../README.md).
+
+## AliOSS-Specific Configuration
+
+The AliOSS client requires a JSON configuration file with the following structure:
 
 ``` json
 {
@@ -16,46 +19,40 @@ Given a JSON config file (`config.json`)...
 }
 ```
 
+**Usage examples:**
 ``` bash
-# Command: "put"
-# Upload a blob to the blobstore.
-./alioss-cli -c config.json put <path/to/file> <remote-blob>
+# Upload a blob
+storage-cli -s alioss -c alioss-config.json put local-file.txt remote-blob
 
-# Command: "get"
-# Fetch a blob from the blobstore.
-# Destination file will be overwritten if exists.
-./alioss-cli -c config.json get <remote-blob> <path/to/file>
+# Fetch a blob (destination file will be overwritten if exists)
+storage-cli -s alioss -c alioss-config.json get remote-blob local-file.txt
 
-# Command: "delete"
-# Remove a blob from the blobstore.
-./alioss-cli -c config.json delete <remote-blob>
+# Delete a blob
+storage-cli -s alioss -c alioss-config.json delete remote-blob
 
-# Command: "exists"
-# Checks if blob exists in the blobstore.
-./alioss-cli -c config.json exists <remote-blob>
+# Check if blob exists
+storage-cli -s alioss -c alioss-config.json exists remote-blob
 
-# Command: "sign"
-# Create a self-signed url for a blob in the blobstore.
-./alioss-cli -c config.json sign <remote-blob> <get|put> <seconds-to-expiration>
+# Generate a signed URL (e.g., GET for 3600 seconds)
+storage-cli -s alioss -c alioss-config.json sign remote-blob get 3600s
 ```
 
-### Using signed urls with curl
+### Using Signed URLs with curl
 ``` bash
 # Uploading a blob:
-curl -X PUT -T path/to/file <signed url>
+curl -X PUT -T path/to/file <signed-url>
 
 # Downloading a blob:
-curl -X GET <signed url>
+curl -X GET <signed-url>
 ```
-## Running Tests
+
+## Testing
 
 ### Unit Tests
-**Note:** Run the following commands from the repository root directory.
+Run from the repository root directory:
 
 ```bash
-go install github.com/onsi/ginkgo/v2/ginkgo
-
-ginkgo --skip-package=integration --randomize-all --cover -v -r ./alioss/...
+ginkgo --skip-package=integration --cover -v -r ./alioss/...
 ```
 ### Integration Tests
 

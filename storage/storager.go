@@ -11,7 +11,6 @@ type Storager interface {
 	DeleteRecursive(prefix string) error
 	Exists(dest string) (bool, error)
 	Sign(dest string, action string, expiration time.Duration) (string, error)
-	//getMD5(filePath string) ([]byte, error)
 	List(prefix string) ([]string, error)
 	Copy(srcBlob string, dstBlob string) error
 	Properties(dest string) error
