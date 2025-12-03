@@ -17,19 +17,22 @@ on:
           - minor
           - major
 
-
 jobs:
   tests: 
     name: Run Unit Tests
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v5
+
       - name: Set up Go    
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+
       - name: Lint code
         uses: golangci/golangci-lint-action@v8
+
       - name: Run Unit Tests
         run: |
               export CGO_ENABLED=0
@@ -102,7 +105,7 @@ jobs:
               sha1sum "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
       
-      - name: Create Release
+      - name: Create Github Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
@@ -113,7 +116,7 @@ jobs:
             storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Configure AWS credentials
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -125,8 +128,4 @@ jobs:
             aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64" \
               "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64"
             aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" \
-            "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"
-          
-          
-        
-      
+            "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"   
