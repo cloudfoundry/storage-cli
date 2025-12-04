@@ -2,9 +2,11 @@ package integration_test
 
 import (
 	"bytes"
+	"fmt"
 
 	"os"
 
+	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/cloudfoundry/storage-cli/alioss/config"
 	"github.com/cloudfoundry/storage-cli/alioss/integration"
 
@@ -210,13 +212,16 @@ var _ = Describe("General testing for all Ali regions", func() {
 			destBlob := blobName + "-dest"
 
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", srcBlob)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(cliSession.ExitCode()).To(BeZero())
-
-				cliSession, err = integration.RunCli(cliPath, configPath, "delete", destBlob)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(cliSession.ExitCode()).To(BeZero())
+				for _, b := range []string{srcBlob, destBlob} {
+					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					if err != nil {
+						GinkgoWriter.Printf("cleanup: error deleting %s: %v\n", b, err)
+						continue
+					}
+					if cliSession.ExitCode() != 0 && cliSession.ExitCode() != 3 {
+						GinkgoWriter.Printf("cleanup: delete %s exited with code %d\n", b, cliSession.ExitCode())
+					}
+				}
 			}()
 
 			contentFile = integration.MakeContentFile("copied content")
@@ -347,9 +352,81 @@ var _ = Describe("General testing for all Ali regions", func() {
 			Expect(output).To(ContainSubstring(blob2))
 			Expect(output).NotTo(ContainSubstring(otherBlob))
 		})
+
+		It("lists all blobs across multiple pages", func() {
+			prefix := integration.GenerateRandomString()
+			const totalObjects = 120
+
+			var blobNames []string
+			var contentFiles []string
+
+			for i := 0; i < totalObjects; i++ {
+				blobName := fmt.Sprintf("%s/%03d", prefix, i)
+				blobNames = append(blobNames, blobName)
+
+				contentFile := integration.MakeContentFile(fmt.Sprintf("content-%d", i))
+				contentFiles = append(contentFiles, contentFile)
+
+				cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cliSession.ExitCode()).To(BeZero())
+			}
+
+			defer func() {
+				for _, f := range contentFiles {
+					_ = os.Remove(f) //nolint:errcheck
+				}
+
+				for _, b := range blobNames {
+					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					if err == nil && (cliSession.ExitCode() == 0 || cliSession.ExitCode() == 3) {
+						continue
+					}
+				}
+			}()
+
+			cliSession, err := integration.RunCli(cliPath, configPath, "list", prefix)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			output := bytes.NewBuffer(cliSession.Out.Contents()).String()
+
+			for _, b := range blobNames {
+				Expect(output).To(ContainSubstring(b))
+			}
+		})
 	})
 
 	Describe("Invoking `ensure-bucket-exists`", func() {
+		It("creates a bucket that can be observed via the OSS API", func() {
+			newBucketName := bucketName + "-bommel"
+
+			cfg := defaultConfig
+			cfg.BucketName = newBucketName
+
+			configPath = integration.MakeConfigFile(&cfg)
+			defer func() { _ = os.Remove(configPath) }() //nolint:errcheck
+
+			ossClient, err := oss.New(cfg.Endpoint, cfg.AccessKeyID, cfg.AccessKeySecret)
+			Expect(err).ToNot(HaveOccurred())
+
+			defer func() {
+				if err := ossClient.DeleteBucket(newBucketName); err != nil {
+					if _, ferr := fmt.Fprintf(GinkgoWriter, "cleanup: failed to delete bucket %s: %v\n", newBucketName, err); ferr != nil {
+						GinkgoWriter.Printf("cleanup: failed to write cleanup message: %v\n", ferr)
+					}
+				}
+			}()
+
+			s1, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(s1.ExitCode()).To(BeZero())
+
+			exists, err := ossClient.IsBucketExist(newBucketName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(exists).To(BeTrue())
+		})
+
 		It("is idempotent", func() {
 			s1, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
 			Expect(err).ToNot(HaveOccurred())

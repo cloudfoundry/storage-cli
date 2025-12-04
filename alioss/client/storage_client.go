@@ -36,7 +36,7 @@ type StorageClient interface {
 	) error
 
 	DeleteRecursive(
-		dest string,
+		objects string,
 	) error
 
 	Exists(
@@ -54,11 +54,11 @@ type StorageClient interface {
 	) (string, error)
 
 	List(
-		prefix string,
+		bucketPrefix string,
 	) ([]string, error)
 
 	Properties(
-		dest string,
+		object string,
 	) error
 
 	EnsureBucketExists() error
@@ -137,13 +137,13 @@ func (dsc DefaultStorageClient) Download(
 }
 
 func (dsc DefaultStorageClient) Copy(
-	srcObject string,
-	destObject string,
+	sourceObject string,
+	destinationObject string,
 ) error {
-	log.Printf("Copying object from %s to %s", srcObject, destObject)
+	log.Printf("Copying object from %s to %s", sourceObject, destinationObject)
 
-	if _, err := dsc.bucket.CopyObject(srcObject, destObject); err != nil {
-		return fmt.Errorf("failed to copy object from %s to %s: %w", srcObject, destObject, err)
+	if _, err := dsc.bucket.CopyObject(sourceObject, destinationObject); err != nil {
+		return fmt.Errorf("failed to copy object from %s to %s: %w", sourceObject, destinationObject, err)
 	}
 
 	return nil
@@ -168,11 +168,11 @@ func (dsc DefaultStorageClient) Delete(
 }
 
 func (dsc DefaultStorageClient) DeleteRecursive(
-	prefix string,
+	objectPrefix string,
 ) error {
-	if prefix != "" {
+	if objectPrefix != "" {
 		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
-			dsc.storageConfig.BucketName, prefix)
+			dsc.storageConfig.BucketName, objectPrefix)
 	} else {
 		log.Printf("Deleting all objects in bucket %s\n",
 			dsc.storageConfig.BucketName)
@@ -182,8 +182,8 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 
 	for {
 		var listOptions []oss.Option
-		if prefix != "" {
-			listOptions = append(listOptions, oss.Prefix(prefix))
+		if objectPrefix != "" {
+			listOptions = append(listOptions, oss.Prefix(objectPrefix))
 		}
 		if marker != "" {
 			listOptions = append(listOptions, oss.Marker(marker))
@@ -326,12 +326,12 @@ type BlobProperties struct {
 }
 
 func (dsc DefaultStorageClient) Properties(
-	dest string,
+	bucketObject string,
 ) error {
 	log.Printf("Getting properties for object %s/%s\n",
-		dsc.storageConfig.BucketName, dest)
+		dsc.storageConfig.BucketName, bucketObject)
 
-	meta, err := dsc.bucket.GetObjectDetailedMeta(dest)
+	meta, err := dsc.bucket.GetObjectDetailedMeta(bucketObject)
 	if err != nil {
 		var ossErr oss.ServiceError
 		if errors.As(err, &ossErr) && ossErr.StatusCode == 404 {
@@ -339,7 +339,7 @@ func (dsc DefaultStorageClient) Properties(
 			return nil
 		}
 
-		return fmt.Errorf("failed to get properties for object %s: %w", dest, err)
+		return fmt.Errorf("failed to get properties for object %s: %w", bucketObject, err)
 	}
 
 	eTag := meta.Get("ETag")
