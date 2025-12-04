@@ -42,7 +42,6 @@ func (client *AliBlobstore) Delete(object string) error {
 }
 
 func (client *AliBlobstore) DeleteRecursive(prefix string) error {
-
 	return client.storageClient.DeleteRecursive(prefix)
 }
 
@@ -86,16 +85,13 @@ func (client *AliBlobstore) List(prefix string) ([]string, error) {
 }
 
 func (client *AliBlobstore) Copy(srcBlob string, dstBlob string) error {
-
 	return client.storageClient.Copy(srcBlob, dstBlob)
 }
 
 func (client *AliBlobstore) Properties(dest string) error {
-
 	return client.storageClient.Properties(dest)
 }
 
 func (client *AliBlobstore) EnsureBucketExists() error {
-
 	return client.storageClient.EnsureBucketExists()
 }
