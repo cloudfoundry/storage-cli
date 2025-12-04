@@ -41,6 +41,10 @@ func (client *AliBlobstore) Delete(object string) error {
 	return client.storageClient.Delete(object)
 }
 
+func (client *AliBlobstore) DeleteRecursive(prefix string) error {
+	return client.storageClient.DeleteRecursive(prefix)
+}
+
 func (client *AliBlobstore) Exists(object string) (bool, error) {
 	return client.storageClient.Exists(object)
 }
@@ -74,4 +78,20 @@ func (client *AliBlobstore) getMD5(filePath string) (string, error) {
 	md5 := base64.StdEncoding.EncodeToString(hash.Sum(nil))
 
 	return md5, nil
+}
+
+func (client *AliBlobstore) List(prefix string) ([]string, error) {
+	return client.storageClient.List(prefix)
+}
+
+func (client *AliBlobstore) Copy(srcBlob string, dstBlob string) error {
+	return client.storageClient.Copy(srcBlob, dstBlob)
+}
+
+func (client *AliBlobstore) Properties(dest string) error {
+	return client.storageClient.Properties(dest)
+}
+
+func (client *AliBlobstore) EnsureBucketExists() error {
+	return client.storageClient.EnsureBucketExists()
 }
