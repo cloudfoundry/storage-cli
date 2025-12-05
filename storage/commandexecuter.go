@@ -13,19 +13,19 @@ func (e *NotExistsError) Error() string {
 	return "object does not exist"
 }
 
-type Strategy struct {
+type CommandExecuter struct {
 	str Storager
 }
 
-func NewStrategy(s Storager) *Strategy {
-	return &Strategy{str: s}
+func NewCommandExecuter(s Storager) *CommandExecuter {
+	return &CommandExecuter{str: s}
 }
 
-func (sty *Strategy) SetStorager(s Storager) {
+func (sty *CommandExecuter) SetStorager(s Storager) {
 	sty.str = s
 }
 
-func (sty *Strategy) ExecuteCommand(cmd string, nonFlagArgs []string) error {
+func (sty *CommandExecuter) Execute(cmd string, nonFlagArgs []string) error {
 
 	switch cmd {
 	case "put":

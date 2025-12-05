@@ -48,7 +48,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	sty := storage.NewStrategy(client)
+	cex := storage.NewCommandExecuter(client)
 
 	nonFlagArgs := flag.Args()
 	if len(nonFlagArgs) < 1 {
@@ -56,7 +56,7 @@ func main() {
 	}
 
 	cmd := nonFlagArgs[0]
-	err = sty.ExecuteCommand(cmd, nonFlagArgs[1:])
+	err = cex.Execute(cmd, nonFlagArgs[1:])
 	fatalLog(cmd, err)
 
 }

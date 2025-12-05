@@ -10,14 +10,14 @@ import (
 )
 
 var _ = Describe("Execute Command", func() {
-	var sourceFileName = "some-source-file-strategy"
-	var strategy *Strategy
+	var sourceFileName = "some-source-file-command-executer"
+	var commandExecuter *CommandExecuter
 	var fakeStorager *FakeStorager
 	var tempFile *os.File
 
 	BeforeEach(func() {
 		fakeStorager = &FakeStorager{}
-		strategy = &Strategy{str: fakeStorager}
+		commandExecuter = &CommandExecuter{str: fakeStorager}
 	})
 
 	Context("Put", func() {
@@ -27,19 +27,19 @@ var _ = Describe("Execute Command", func() {
 			DeferCleanup(func() {
 				os.Remove(tempFile.Name()) //nolint:errcheck
 			})
-			err := strategy.ExecuteCommand("put", []string{tempFile.Name(), "destination"})
+			err := commandExecuter.Execute("put", []string{tempFile.Name(), "destination"})
 			Expect(fakeStorager.PutCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("No Source File", func() {
-			err := strategy.ExecuteCommand("put", []string{"source", "destination"})
+			err := commandExecuter.Execute("put", []string{"source", "destination"})
 			Expect(errors.Unwrap(err).Error()).To(ContainSubstring("no such file or directory"))
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("put", []string{"source"})
+			err := commandExecuter.Execute("put", []string{"source"})
 			Expect(err.Error()).To(ContainSubstring("put method expected 2 arguments got"))
 		})
 
@@ -47,14 +47,14 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Get", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("get", []string{"source", "destination"})
+			err := commandExecuter.Execute("get", []string{"source", "destination"})
 			Expect(fakeStorager.GetCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("get", []string{"source"})
+			err := commandExecuter.Execute("get", []string{"source"})
 			Expect(err.Error()).To(ContainSubstring("get method expected 2 arguments got"))
 		})
 
@@ -62,14 +62,14 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Copy", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("copy", []string{"source", "destination"})
+			err := commandExecuter.Execute("copy", []string{"source", "destination"})
 			Expect(fakeStorager.CopyCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("copy", []string{"source"})
+			err := commandExecuter.Execute("copy", []string{"source"})
 			Expect(err.Error()).To(ContainSubstring("copy method expected 2 arguments got"))
 		})
 
@@ -77,14 +77,14 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Delete", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("delete", []string{"destination"})
+			err := commandExecuter.Execute("delete", []string{"destination"})
 			Expect(fakeStorager.DeleteCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("delete", []string{})
+			err := commandExecuter.Execute("delete", []string{})
 			Expect(err.Error()).To(ContainSubstring("delete method expected 1 argument got"))
 		})
 
@@ -92,7 +92,7 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Delete-Recursive", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("delete-recursive", []string{})
+			err := commandExecuter.Execute("delete-recursive", []string{})
 			Expect(fakeStorager.DeleteRecursiveCallCount()).To(BeEquivalentTo(1))
 			Expect(fakeStorager.deleteRecursiveArgsForCall[0].arg1).To(Equal(""))
 			Expect(err).ToNot(HaveOccurred())
@@ -100,7 +100,7 @@ var _ = Describe("Execute Command", func() {
 		})
 
 		It("Successfull With Prefix", func() {
-			err := strategy.ExecuteCommand("delete-recursive", []string{"prefix"})
+			err := commandExecuter.Execute("delete-recursive", []string{"prefix"})
 			Expect(fakeStorager.DeleteRecursiveCallCount()).To(BeEquivalentTo(1))
 			Expect(fakeStorager.deleteRecursiveArgsForCall[0].arg1).To(Equal("prefix"))
 			Expect(err).ToNot(HaveOccurred())
@@ -108,7 +108,7 @@ var _ = Describe("Execute Command", func() {
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("delete-recursive", []string{"prefix", "extra-prefix"})
+			err := commandExecuter.Execute("delete-recursive", []string{"prefix", "extra-prefix"})
 			Expect(err.Error()).To(ContainSubstring("delete-recursive takes at most 1 argument (prefix) got"))
 		})
 
@@ -119,7 +119,7 @@ var _ = Describe("Execute Command", func() {
 			fakeStorager.ExistsStub = func(file string) (bool, error) {
 				return true, nil
 			}
-			err := strategy.ExecuteCommand("exists", []string{"object"})
+			err := commandExecuter.Execute("exists", []string{"object"})
 
 			Expect(fakeStorager.ExistsCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
@@ -131,14 +131,14 @@ var _ = Describe("Execute Command", func() {
 				return false, nil
 			}
 
-			err := strategy.ExecuteCommand("exists", []string{"object"})
+			err := commandExecuter.Execute("exists", []string{"object"})
 			Expect(fakeStorager.ExistsCallCount()).To(BeEquivalentTo(1))
 			Expect(err).To(BeAssignableToTypeOf(&NotExistsError{}))
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("exists", []string{"object", "extra-object"})
+			err := commandExecuter.Execute("exists", []string{"object", "extra-object"})
 			Expect(err.Error()).To(ContainSubstring("exists method expected 1 argument got"))
 		})
 
@@ -146,7 +146,7 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Sign", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("sign", []string{"object", "put", "10s"})
+			err := commandExecuter.Execute("sign", []string{"object", "put", "10s"})
 
 			Expect(fakeStorager.SignCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
@@ -154,19 +154,19 @@ var _ = Describe("Execute Command", func() {
 		})
 
 		It("Wrong action", func() {
-			err := strategy.ExecuteCommand("sign", []string{"object", "delete", "10s"})
+			err := commandExecuter.Execute("sign", []string{"object", "delete", "10s"})
 			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("action not implemented: %s. Available actions are 'get' and 'put'", "delete")))
 
 		})
 
 		It("Wrong time format", func() {
-			err := strategy.ExecuteCommand("sign", []string{"object", "put", "10"})
+			err := commandExecuter.Execute("sign", []string{"object", "put", "10"})
 			Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", "10")))
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("sign", []string{"object", "put"})
+			err := commandExecuter.Execute("sign", []string{"object", "put"})
 			Expect(err.Error()).To(ContainSubstring("sign method expects 3 arguments got"))
 
 		})
@@ -175,7 +175,7 @@ var _ = Describe("Execute Command", func() {
 
 	Context("List", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("list", []string{})
+			err := commandExecuter.Execute("list", []string{})
 
 			Expect(fakeStorager.ListCallCount()).To(BeEquivalentTo(1))
 			Expect(fakeStorager.listArgsForCall[0].arg1).To(Equal(""))
@@ -184,7 +184,7 @@ var _ = Describe("Execute Command", func() {
 		})
 
 		It("With Prefix", func() {
-			err := strategy.ExecuteCommand("exists", []string{"prefix"})
+			err := commandExecuter.Execute("exists", []string{"prefix"})
 			Expect(fakeStorager.ExistsCallCount()).To(BeEquivalentTo(1))
 			Expect(fakeStorager.existsArgsForCall[0].arg1).To(Equal("prefix"))
 			Expect(err).To(BeAssignableToTypeOf(&NotExistsError{}))
@@ -192,7 +192,7 @@ var _ = Describe("Execute Command", func() {
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("list", []string{"prefix-1", "prefix-2"})
+			err := commandExecuter.Execute("list", []string{"prefix-1", "prefix-2"})
 			Expect(err.Error()).To(ContainSubstring("list method takes at most 1 argument (prefix) got"))
 		})
 
@@ -200,14 +200,14 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Properties", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("properties", []string{"object"})
+			err := commandExecuter.Execute("properties", []string{"object"})
 			Expect(fakeStorager.PropertiesCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("properties", []string{})
+			err := commandExecuter.Execute("properties", []string{})
 			Expect(err.Error()).To(ContainSubstring("properties method expected 1 argument got"))
 		})
 
@@ -215,14 +215,14 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Ensure storage exists", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("ensure-storage-exists", []string{})
+			err := commandExecuter.Execute("ensure-storage-exists", []string{})
 			Expect(fakeStorager.EnsureStorageExistsCallCount()).To(BeEquivalentTo(1))
 			Expect(err).ToNot(HaveOccurred())
 
 		})
 
 		It("Wrong number of parameters", func() {
-			err := strategy.ExecuteCommand("ensure-storage-exists", []string{"extra-parameter"})
+			err := commandExecuter.Execute("ensure-storage-exists", []string{"extra-parameter"})
 			Expect(err.Error()).To(ContainSubstring("ensureStorageExists method expected 0 argument got"))
 		})
 
@@ -230,7 +230,7 @@ var _ = Describe("Execute Command", func() {
 
 	Context("Unsupported command", func() {
 		It("Successfull", func() {
-			err := strategy.ExecuteCommand("unsupported-command", []string{})
+			err := commandExecuter.Execute("unsupported-command", []string{})
 			Expect(err.Error()).To(ContainSubstring("unknown command: '%s'", "unsupported-command"))
 
 		})
