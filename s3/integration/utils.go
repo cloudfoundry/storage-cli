@@ -55,14 +55,16 @@ func MakeContentFile(content string) string {
 }
 
 // RunS3CLI runs the s3cli and outputs the session after waiting for it to finish
-func RunS3CLI(s3CLIPath string, configPath string, subcommand string, args ...string) (*gexec.Session, error) {
+func RunS3CLI(cliPath string, configPath string, storageType string, subcommand string, args ...string) (*gexec.Session, error) {
 	cmdArgs := []string{
 		"-c",
 		configPath,
+		"-s",
+		storageType,
 		subcommand,
 	}
 	cmdArgs = append(cmdArgs, args...)
-	command := exec.Command(s3CLIPath, cmdArgs...)
+	command := exec.Command(cliPath, cmdArgs...)
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		return nil, err

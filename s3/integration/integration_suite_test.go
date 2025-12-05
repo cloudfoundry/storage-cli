@@ -27,7 +27,7 @@ var _ = BeforeSuite(func() {
 
 	if len(s3CLIPath) == 0 {
 		var err error
-		s3CLIPath, err = gexec.Build("github.com/cloudfoundry/storage-cli/s3")
+		s3CLIPath, err = gexec.Build("github.com/cloudfoundry/storage-cli")
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 })

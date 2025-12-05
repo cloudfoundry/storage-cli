@@ -17,6 +17,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 	var blobName string
 	var configPath string
 	var contentFile string
+	var storageType = "alioss"
 
 	BeforeEach(func() {
 		blobName = integration.GenerateRandomString()
@@ -32,16 +33,16 @@ var _ = Describe("General testing for all Ali regions", func() {
 	Describe("Invoking `put`", func() {
 		It("uploads a file", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -50,7 +51,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 		It("overwrites an existing file", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
@@ -60,11 +61,11 @@ var _ = Describe("General testing for all Ali regions", func() {
 			defer func() { _ = os.Remove(tmpLocalFile.Name()) }()            //nolint:errcheck
 
 			contentFile = integration.MakeContentFile("initial content")
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", blobName, tmpLocalFile.Name())
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", blobName, tmpLocalFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -72,11 +73,11 @@ var _ = Describe("General testing for all Ali regions", func() {
 			Expect(string(gottenBytes)).To(Equal("initial content"))
 
 			contentFile = integration.MakeContentFile("updated content")
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", blobName, tmpLocalFile.Name())
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", blobName, tmpLocalFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -94,7 +95,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 			configPath = integration.MakeConfigFile(cfg)
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(1))
 
@@ -108,18 +109,18 @@ var _ = Describe("General testing for all Ali regions", func() {
 			outputFilePath := "/tmp/" + integration.GenerateRandomString()
 
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 
 				_ = os.Remove(outputFilePath) //nolint:errcheck
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", blobName, outputFilePath)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", blobName, outputFilePath)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -131,20 +132,20 @@ var _ = Describe("General testing for all Ali regions", func() {
 	Describe("Invoking `delete`", func() {
 		It("deletes a file", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "delete", blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(3))
 		})
@@ -153,22 +154,22 @@ var _ = Describe("General testing for all Ali regions", func() {
 	Describe("Invoking `exists`", func() {
 		It("returns 0 for an existing blob", func() {
 			defer func() {
-				cliSession, err := integration.RunCli(cliPath, configPath, "delete", blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(0))
 		})
 
 		It("returns 3 for a not existing blob", func() {
-			cliSession, err := integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(3))
 		})
@@ -176,14 +177,14 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 	Describe("Invoking `sign`", func() {
 		It("returns 0 for an existing blob", func() {
-			cliSession, err := integration.RunCli(cliPath, configPath, "sign", "some-blob", "get", "60s")
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "sign", "some-blob", "get", "60s")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
 			getUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
 			Expect(getUrl).To(MatchRegexp("http://" + bucketName + "." + endpoint + "/some-blob"))
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "sign", "some-blob", "put", "60s")
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "sign", "some-blob", "put", "60s")
 			Expect(err).ToNot(HaveOccurred())
 
 			putUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
@@ -191,7 +192,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 		})
 
 		It("returns 3 for a not existing blob", func() {
-			cliSession, err := integration.RunCli(cliPath, configPath, "exists", blobName)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(3))
 		})
@@ -202,7 +203,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 			configPath := integration.MakeConfigFile(&defaultConfig)
 			defer func() { _ = os.Remove(configPath) }() //nolint:errcheck
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "-v")
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "-v")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(0))
 

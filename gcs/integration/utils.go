@@ -71,12 +71,13 @@ func MakeContentFile(content string) string {
 
 // RunGCSCLI run the gcscli and outputs the session
 // after waiting for it to finish
-func RunGCSCLI(gcsCLIPath, configPath, subcommand string,
-	args ...string) (*gexec.Session, error) {
+func RunGCSCLI(gcsCLIPath, configPath, storageType, subcommand string, args ...string) (*gexec.Session, error) {
 
 	cmdArgs := []string{
 		"-c",
 		configPath,
+		"-s",
+		storageType,
 		subcommand,
 	}
 	cmdArgs = append(cmdArgs, args...)

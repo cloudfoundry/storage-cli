@@ -1,7 +1,7 @@
 package cmd_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestCmd(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Davcli Cmd Suite")
+	RunSpecs(t, "Dav Cmd Suite")
 }

@@ -1,7 +1,7 @@
 package signer_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSigner(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "DavCli Signer Suite")
+	RunSpecs(t, "Dav Signer Suite")
 }

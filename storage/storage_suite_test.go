@@ -1,13 +1,13 @@
-package config_test
+package storage
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
-func TestConfig(t *testing.T) {
+func TestStorage(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Dav Config Suite")
+	RunSpecs(t, "Storage Suite")
 }

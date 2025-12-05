@@ -1,7 +1,7 @@
 package app_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestApp(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Davcli App Suite")
+	RunSpecs(t, "Dav App Suite")
 }
