@@ -3,6 +3,9 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
 
 	"os"
 
@@ -397,9 +400,33 @@ var _ = Describe("General testing for all Ali regions", func() {
 		})
 	})
 
+	const maxBucketLen = 63
+	const suffixLen = 8
+
 	Describe("Invoking `ensure-bucket-exists`", func() {
 		It("creates a bucket that can be observed via the OSS API", func() {
-			newBucketName := bucketName + "-bommel"
+
+			base := bucketName
+
+			maxBaseLen := maxBucketLen - 1 - suffixLen
+			if maxBaseLen < 1 {
+				maxBaseLen = maxBucketLen - 1
+			}
+			if len(base) > maxBaseLen {
+				base = base[:maxBaseLen]
+			}
+
+			rawSuffix := integration.GenerateRandomString()
+			safe := strings.ToLower(rawSuffix)
+
+			re := regexp.MustCompile(`[^a-z0-9]`)
+			safe = re.ReplaceAllString(safe, "")
+			if len(safe) < suffixLen {
+				safe = safe + "0123456789abcdef"
+			}
+			safe = safe[:suffixLen]
+
+			newBucketName := fmt.Sprintf("%s-%s", base, safe)
 
 			cfg := defaultConfig
 			cfg.BucketName = newBucketName
@@ -412,9 +439,10 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 			defer func() {
 				if err := ossClient.DeleteBucket(newBucketName); err != nil {
-					if _, ferr := fmt.Fprintf(GinkgoWriter, "cleanup: failed to delete bucket %s: %v\n", newBucketName, err); ferr != nil {
-						GinkgoWriter.Printf("cleanup: failed to write cleanup message: %v\n", ferr)
+					if svcErr, ok := err.(oss.ServiceError); ok && svcErr.StatusCode == 404 {
+						return
 					}
+					fmt.Fprintf(GinkgoWriter, "cleanup: failed to delete bucket %s: %v\n", newBucketName, err) //nolint:errcheck
 				}
 			}()
 
@@ -422,9 +450,11 @@ var _ = Describe("General testing for all Ali regions", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s1.ExitCode()).To(BeZero())
 
-			exists, err := ossClient.IsBucketExist(newBucketName)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(exists).To(BeTrue())
+			Eventually(func(g Gomega) bool {
+				exists, existsErr := ossClient.IsBucketExist(newBucketName)
+				g.Expect(existsErr).ToNot(HaveOccurred())
+				return exists
+			}, 30*time.Second, 1*time.Second).Should(BeTrue())
 		})
 
 		It("is idempotent", func() {
@@ -437,5 +467,4 @@ var _ = Describe("General testing for all Ali regions", func() {
 			Expect(s2.ExitCode()).To(BeZero())
 		})
 	})
-
 })

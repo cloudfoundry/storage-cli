@@ -141,9 +141,21 @@ func (dsc DefaultStorageClient) Copy(
 	destinationObject string,
 ) error {
 	log.Printf("Copying object from %s to %s", sourceObject, destinationObject)
+	srcURL := fmt.Sprintf("%s/%s", dsc.bucketURL, sourceObject)
+	destURL := fmt.Sprintf("%s/%s", dsc.bucketURL, destinationObject)
 
-	if _, err := dsc.bucket.CopyObject(sourceObject, destinationObject); err != nil {
-		return fmt.Errorf("failed to copy object from %s to %s: %w", sourceObject, destinationObject, err)
+	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+	if err != nil {
+		return err
+	}
+
+	if _, err := bucket.CopyObject(sourceObject, destinationObject); err != nil {
+		return fmt.Errorf("failed to copy object from %s to %s: %w", srcURL, destURL, err)
 	}
 
 	return nil
@@ -168,11 +180,11 @@ func (dsc DefaultStorageClient) Delete(
 }
 
 func (dsc DefaultStorageClient) DeleteRecursive(
-	objectPrefix string,
+	prefix string,
 ) error {
-	if objectPrefix != "" {
+	if prefix != "" {
 		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
-			dsc.storageConfig.BucketName, objectPrefix)
+			dsc.storageConfig.BucketName, prefix)
 	} else {
 		log.Printf("Deleting all objects in bucket %s\n",
 			dsc.storageConfig.BucketName)
@@ -182,20 +194,29 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 
 	for {
 		var listOptions []oss.Option
-		if objectPrefix != "" {
-			listOptions = append(listOptions, oss.Prefix(objectPrefix))
+		if prefix != "" {
+			listOptions = append(listOptions, oss.Prefix(prefix))
 		}
 		if marker != "" {
 			listOptions = append(listOptions, oss.Marker(marker))
 		}
+		client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+		if err != nil {
+			return err
+		}
 
-		resp, err := dsc.bucket.ListObjects(listOptions...)
+		bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+		if err != nil {
+			return err
+		}
+
+		resp, err := bucket.ListObjects(listOptions...)
 		if err != nil {
 			return fmt.Errorf("error listing objects: %w", err)
 		}
 
 		for _, object := range resp.Objects {
-			if err := dsc.bucket.DeleteObject(object.Key); err != nil {
+			if err := bucket.DeleteObject(object.Key); err != nil {
 				log.Printf("Failed to delete object %s: %v\n", object.Key, err)
 			}
 		}
@@ -301,7 +322,17 @@ func (dsc DefaultStorageClient) List(
 			opts = append(opts, oss.Marker(marker))
 		}
 
-		resp, err := dsc.bucket.ListObjects(opts...)
+		client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+		if err != nil {
+			return nil, err
+		}
+
+		bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := bucket.ListObjects(opts...)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving page of objects: %w", err)
 		}
@@ -326,12 +357,22 @@ type BlobProperties struct {
 }
 
 func (dsc DefaultStorageClient) Properties(
-	bucketObject string,
+	object string,
 ) error {
 	log.Printf("Getting properties for object %s/%s\n",
-		dsc.storageConfig.BucketName, bucketObject)
+		dsc.storageConfig.BucketName, object)
 
-	meta, err := dsc.bucket.GetObjectDetailedMeta(bucketObject)
+	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+	if err != nil {
+		return err
+	}
+
+	meta, err := bucket.GetObjectDetailedMeta(object)
 	if err != nil {
 		var ossErr oss.ServiceError
 		if errors.As(err, &ossErr) && ossErr.StatusCode == 404 {
@@ -339,7 +380,7 @@ func (dsc DefaultStorageClient) Properties(
 			return nil
 		}
 
-		return fmt.Errorf("failed to get properties for object %s: %w", bucketObject, err)
+		return fmt.Errorf("failed to get properties for object %s: %w", object, err)
 	}
 
 	eTag := meta.Get("ETag")
@@ -383,7 +424,12 @@ func (dsc DefaultStorageClient) Properties(
 func (dsc DefaultStorageClient) EnsureBucketExists() error {
 	log.Printf("Ensuring bucket '%s' exists\n", dsc.storageConfig.BucketName)
 
-	exists, err := dsc.client.IsBucketExist(dsc.storageConfig.BucketName)
+	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	if err != nil {
+		return err
+	}
+
+	exists, err := client.IsBucketExist(dsc.storageConfig.BucketName)
 	if err != nil {
 		return fmt.Errorf("failed to check if bucket exists: %w", err)
 	}
@@ -393,7 +439,7 @@ func (dsc DefaultStorageClient) EnsureBucketExists() error {
 		return nil
 	}
 
-	if err := dsc.client.CreateBucket(dsc.storageConfig.BucketName); err != nil {
+	if err := client.CreateBucket(dsc.storageConfig.BucketName); err != nil {
 		return fmt.Errorf("failed to create bucket '%s': %w", dsc.storageConfig.BucketName, err)
 	}
 
