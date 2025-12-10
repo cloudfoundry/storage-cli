@@ -97,7 +97,7 @@ Follow these steps to make a contribution to the project:
   ```
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
 - Push changes to your fork
-  Before writing commit message check [release section](#automated-release-process) and [commit message examples](#commit-message-examples)
+- **IMPORTANT:** Before writing commit message check [release section](#automated-release-process) and [commit message examples](#commit-message-examples)
   ``` bash
   git add .
   git commit -m "Commit message"
