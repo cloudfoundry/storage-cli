@@ -97,6 +97,7 @@ Follow these steps to make a contribution to the project:
   ```
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
 - Push changes to your fork
+- **IMPORTANT:** Before writing commit message check [release section](#automated-release-process) and [commit message examples](#commit-message-examples)
   ``` bash
   git add .
   git commit -m "Commit message"
@@ -104,6 +105,50 @@ Follow these steps to make a contribution to the project:
   ```
 - Create a GitHub pull request, selecting `main` as the target branch
 
+
+## Release
+
+Releases are automatically created for Windows and Linux platforms through the `release.yml` GitHub Actions workflow.
+
+### Automated Release Process
+
+When changes are merged into the `main` branch, a new release is automatically triggered. The version number is determined using **semantic versioning** based on conventional commit message prefixes:
+
+**Version Bump Rules:**
+- `feat:` - New feature → **Minor version bump** (v1.2.0 → v1.3.0)
+- `BREAKING CHANGE:` - Breaking changes → **Major version bump** (v1.2.0 → v2.0.0)
+- Patch version bump (v1.2.0 → v1.2.1)
+    - `fix:` - Bug fix
+    - `docs:` - Documentation changes
+    - `chore:` - Maintenance tasks (dependencies, build config, tooling)
+    - `refactor:` - Code restructuring without behavior changes
+    - `test:` - Test updates
+    - `style:` - Formatting and whitespace
+    - `ci:` - CI/CD configuration changes
+    - `perf:` - Performance improvements
+    - `build:` - Dependabot commits
+    - `no conventional commits` - text without specifying any of above
+
+### Manual Release
+
+For manual releases (e.g., major version updates or hotfixes), use the GitHub Actions **workflow_dispatch** trigger with a version bump type selector (patch/minor/major).
+
+### Commit Message Examples
+
+```bash
+# Major release (v1.2.3 → v2.0.0)
+git commit -m "feat: redesign upload API
+
+BREAKING CHANGE: Upload() signature changed to return structured error"
+
+# Minor release (v1.2.3 → v1.3.0)
+git commit -m "feat: add retry logic for failed uploads"
+
+# Patch release (v1.2.3 → v1.2.4)
+git commit -m "docs: update Azure Blob Storage usage examples"
+git commit -m "chore: upgrade dependencies"
+git commit -m "class x moved to another folder"
+```
 
 ## Notes
 These commit IDs represent the last migration checkpoint from each provider's original repository, marking the final commit that was copied during the consolidation process.
