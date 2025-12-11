@@ -172,38 +172,38 @@ var _ = Describe("General testing for all Ali regions", func() {
 				_ = os.Remove(contentFileOther) //nolint:errcheck
 
 				for _, b := range []string{blob1, blob2, otherBlob} {
-					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", b)
 					if err == nil && (cliSession.ExitCode() == 0 || cliSession.ExitCode() == 3) {
 						continue
 					}
 				}
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile1, blob1)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile1, blob1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile2, blob2)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFile2, blob2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFileOther, otherBlob)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFileOther, otherBlob)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "delete-recursive", prefix)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "delete-recursive", prefix)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blob1)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blob1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(3))
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", blob2)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blob2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(3))
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "exists", otherBlob)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", otherBlob)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(Equal(0))
 		})
@@ -216,7 +216,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 			defer func() {
 				for _, b := range []string{srcBlob, destBlob} {
-					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", b)
 					if err != nil {
 						GinkgoWriter.Printf("cleanup: error deleting %s: %v\n", b, err)
 						continue
@@ -228,11 +228,11 @@ var _ = Describe("General testing for all Ali regions", func() {
 			}()
 
 			contentFile = integration.MakeContentFile("copied content")
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, srcBlob)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, srcBlob)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "copy", srcBlob, destBlob)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "copy", srcBlob, destBlob)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -240,7 +240,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 			tmpLocalFile.Close()                                         //nolint:errcheck
 			defer func() { _ = os.Remove(tmpLocalFile.Name()) }()        //nolint:errcheck
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "get", destBlob, tmpLocalFile.Name())
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "get", destBlob, tmpLocalFile.Name())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -319,7 +319,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 
 			defer func() {
 				for _, b := range []string{blob1, blob2, otherBlob} {
-					_, err := integration.RunCli(cliPath, configPath, "delete", b)
+					_, err := integration.RunCli(cliPath, configPath, storageType, "delete", b)
 					Expect(err).ToNot(HaveOccurred())
 				}
 			}()
@@ -333,19 +333,19 @@ var _ = Describe("General testing for all Ali regions", func() {
 				_ = os.Remove(contentFileOther) //nolint:errcheck
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile1, blob1)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile1, blob1)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFile2, blob2)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFile2, blob2)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "put", contentFileOther, otherBlob)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "put", contentFileOther, otherBlob)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
-			cliSession, err = integration.RunCli(cliPath, configPath, "list", prefix)
+			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "list", prefix)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -370,7 +370,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 				contentFile := integration.MakeContentFile(fmt.Sprintf("content-%d", i))
 				contentFiles = append(contentFiles, contentFile)
 
-				cliSession, err := integration.RunCli(cliPath, configPath, "put", contentFile, blobName)
+				cliSession, err := integration.RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 			}
@@ -381,14 +381,14 @@ var _ = Describe("General testing for all Ali regions", func() {
 				}
 
 				for _, b := range blobNames {
-					cliSession, err := integration.RunCli(cliPath, configPath, "delete", b)
+					cliSession, err := integration.RunCli(cliPath, configPath, storageType, "delete", b)
 					if err == nil && (cliSession.ExitCode() == 0 || cliSession.ExitCode() == 3) {
 						continue
 					}
 				}
 			}()
 
-			cliSession, err := integration.RunCli(cliPath, configPath, "list", prefix)
+			cliSession, err := integration.RunCli(cliPath, configPath, storageType, "list", prefix)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
 
@@ -446,7 +446,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 				}
 			}()
 
-			s1, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			s1, err := integration.RunCli(cliPath, configPath, storageType, "ensure-storage-exists")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s1.ExitCode()).To(BeZero())
 
@@ -458,11 +458,11 @@ var _ = Describe("General testing for all Ali regions", func() {
 		})
 
 		It("is idempotent", func() {
-			s1, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			s1, err := integration.RunCli(cliPath, configPath, storageType, "ensure-storage-exists")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s1.ExitCode()).To(BeZero())
 
-			s2, err := integration.RunCli(cliPath, configPath, "ensure-bucket-exists")
+			s2, err := integration.RunCli(cliPath, configPath, storageType, "ensure-storage-exists")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s2.ExitCode()).To(BeZero())
 		})

@@ -54,7 +54,7 @@ type StorageClient interface {
 	) (string, error)
 
 	List(
-		bucketPrefix string,
+		prefix string,
 	) ([]string, error)
 
 	Properties(
