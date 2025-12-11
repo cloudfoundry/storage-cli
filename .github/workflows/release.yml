@@ -56,7 +56,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # DEFAULT_BUMP is used when there are no MAJOR_STRING_TOKEN or MINOR_STRING_TOKEN, 
-          # or for manual workflow_dispatch override
+          # or for manual workflow_dispatch
           DEFAULT_BUMP: ${{ github.event.inputs.version_bump || 'patch'}}
           WITH_V: true
           MAJOR_STRING_TOKEN: "BREAKING CHANGE:"
@@ -119,16 +119,16 @@ jobs:
             storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe
           token: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Configure AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+      # - name: Configure AWS
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
 
-      - name: Upload Artifacts to S3
-        run: |
-            aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64" \
-              "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64"
-            aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" \
-            "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"   
+      # - name: Upload Artifacts to S3
+      #   run: |
+      #       aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64" \
+      #         "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64"
+      #       aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" \
+      #       "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"   
