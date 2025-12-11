@@ -116,19 +116,18 @@ When changes are merged into the `main` branch, a new release is automatically t
 
 **Version Bump Rules:**
 - `feat:` - New feature → **Minor version bump** (v1.2.0 → v1.3.0)
-- `fix:` - Bug fix → **Patch version bump** (v1.2.0 → v1.2.1)
 - `BREAKING CHANGE:` - Breaking changes → **Major version bump** (v1.2.0 → v2.0.0)
-- 
-
-**No Release Triggered:**
-- `docs:` - Documentation changes
-- `chore:` - Maintenance tasks (dependencies, build config, tooling)
-- `refactor:` - Code restructuring without behavior changes
-- `test:` - Test updates
-- `style:` - Formatting and whitespace
-- `ci:` - CI/CD configuration changes
-- `perf:` - Performance improvements
-- `build:` - Dependabot commits
+- Patch version bump (v1.2.0 → v1.2.1)
+    - `fix:` - Bug fix
+    - `docs:` - Documentation changes
+    - `chore:` - Maintenance tasks (dependencies, build config, tooling)
+    - `refactor:` - Code restructuring without behavior changes
+    - `test:` - Test updates
+    - `style:` - Formatting and whitespace
+    - `ci:` - CI/CD configuration changes
+    - `perf:` - Performance improvements
+    - `build:` - Dependabot commits
+    - `no conventional commits` - text without specifying any of above
 
 ### Manual Release
 
@@ -137,20 +136,18 @@ For manual releases (e.g., major version updates or hotfixes), use the GitHub Ac
 ### Commit Message Examples
 
 ```bash
-# Patch release (v1.2.3 → v1.2.4)
-git commit -m "fix: resolve upload timeout issue"
-
-# Minor release (v1.2.3 → v1.3.0)
-git commit -m "feat: add retry logic for failed uploads"
-
 # Major release (v1.2.3 → v2.0.0)
 git commit -m "feat: redesign upload API
 
 BREAKING CHANGE: Upload() signature changed to return structured error"
 
-# No release
+# Minor release (v1.2.3 → v1.3.0)
+git commit -m "feat: add retry logic for failed uploads"
+
+# Patch release (v1.2.3 → v1.2.4)
 git commit -m "docs: update Azure Blob Storage usage examples"
 git commit -m "chore: upgrade dependencies"
+git commit -m "class x moved to another folder"
 ```
 
 ## Notes

@@ -55,13 +55,12 @@ jobs:
         uses: anothrNick/github-tag-action@1.70.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # DEFAULT_BUMP is used when no conventional commit tokens are found, or for manual workflow_dispatch override
+          # DEFAULT_BUMP is used when there are no MAJOR_STRING_TOKEN or MINOR_STRING_TOKEN, 
+          # or for manual workflow_dispatch override
           DEFAULT_BUMP: ${{ github.event.inputs.version_bump || 'patch'}}
           WITH_V: true
-          MAJOR_STRING_TOKEN: "BREAKING CHANGE:,breaking change:,Breaking Change:"
-          MINOR_STRING_TOKEN: "feat:,Feat:,FEAT:"
-          PATCH_STRING_TOKEN: "fix:,Fix:,FIX:"
-          NONE_STRING_TOKEN: "chore:,docs:,test:,ci:,refactor:,style:,build:,Chore:,Docs:,Test:,CI:,Refactor:,Style:,Build:"
+          MAJOR_STRING_TOKEN: "BREAKING CHANGE:"
+          MINOR_STRING_TOKEN: "feat:"
           PRERELEASE: false
 
       - name: Export Version Variable
