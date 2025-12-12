@@ -19,7 +19,7 @@ jobs:
             - name: Lint code
               uses: golangci/golangci-lint-action@v8
             - name: Cache Go modules
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                 path: ~/go/pkg/mod
                 key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
