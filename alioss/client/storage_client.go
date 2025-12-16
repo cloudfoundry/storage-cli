@@ -169,45 +169,61 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
 			dsc.storageConfig.BucketName, prefix)
 	} else {
-		log.Printf("Deleting all objects in bucket %s\n",
-			dsc.storageConfig.BucketName)
+		log.Printf("Deleting all objects in bucket %s\n", dsc.storageConfig.BucketName)
 	}
 
-	marker := ""
+	client, err := oss.New(
+		dsc.storageConfig.Endpoint,
+		dsc.storageConfig.AccessKeyID,
+		dsc.storageConfig.AccessKeySecret,
+	)
+	if err != nil {
+		return err
+	}
+
+	bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+	if err != nil {
+		return err
+	}
+
+	var marker string
 
 	for {
-		var listOptions []oss.Option
+		opts := []oss.Option{
+			oss.MaxKeys(1000),
+		}
 		if prefix != "" {
-			listOptions = append(listOptions, oss.Prefix(prefix))
+			opts = append(opts, oss.Prefix(prefix))
 		}
 		if marker != "" {
-			listOptions = append(listOptions, oss.Marker(marker))
-		}
-		client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
-		if err != nil {
-			return err
+			opts = append(opts, oss.Marker(marker))
 		}
 
-		bucket, err := client.Bucket(dsc.storageConfig.BucketName)
+		resp, err := bucket.ListObjects(opts...)
 		if err != nil {
-			return err
+			return fmt.Errorf("error listing objects for delete: %w", err)
 		}
 
-		resp, err := bucket.ListObjects(listOptions...)
-		if err != nil {
-			return fmt.Errorf("error listing objects: %w", err)
+		if len(resp.Objects) == 0 && !resp.IsTruncated {
+			return nil
 		}
 
-		for _, object := range resp.Objects {
-			if err := bucket.DeleteObject(object.Key); err != nil {
-				log.Printf("Failed to delete object %s: %v\n", object.Key, err)
+		keys := make([]string, 0, len(resp.Objects))
+		for _, obj := range resp.Objects {
+			keys = append(keys, obj.Key)
+		}
+
+		if len(keys) > 0 {
+			quiet := true
+			_, err := bucket.DeleteObjects(keys, oss.DeleteObjectsQuiet(quiet))
+			if err != nil {
+				return fmt.Errorf("failed to batch delete %d objects (prefix=%q): %w", len(keys), prefix, err)
 			}
 		}
 
 		if !resp.IsTruncated {
 			break
 		}
-
 		marker = resp.NextMarker
 	}
 
