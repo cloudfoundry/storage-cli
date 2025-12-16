@@ -65,25 +65,10 @@ type StorageClient interface {
 }
 type DefaultStorageClient struct {
 	storageConfig config.AliStorageConfig
-	client        *oss.Client
-	bucket        *oss.Bucket
 	bucketURL     string
 }
 
 func NewStorageClient(storageConfig config.AliStorageConfig) (StorageClient, error) {
-	client, err := oss.New(
-		storageConfig.Endpoint,
-		storageConfig.AccessKeyID,
-		storageConfig.AccessKeySecret,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	bucket, err := client.Bucket(storageConfig.BucketName)
-	if err != nil {
-		return nil, err
-	}
 
 	endpoint := strings.TrimPrefix(storageConfig.Endpoint, "https://")
 	endpoint = strings.TrimPrefix(endpoint, "http://")
@@ -91,8 +76,6 @@ func NewStorageClient(storageConfig config.AliStorageConfig) (StorageClient, err
 
 	return DefaultStorageClient{
 		storageConfig: storageConfig,
-		client:        client,
-		bucket:        bucket,
 		bucketURL:     bucketURL,
 	}, nil
 }
