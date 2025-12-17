@@ -54,13 +54,14 @@ jobs:
             INPUT_VERSION="${{ github.event.release.tag_name }}"
           fi
           
-          # Ensure version starts with 'v'
-          if [[ "$INPUT_VERSION" == v* ]]; then
-            VERSION="$INPUT_VERSION"
-          else
-            VERSION="v$INPUT_VERSION"
+          # Validate version starts with 'v'
+          if [[ ! "$INPUT_VERSION" == v* ]]; then
+            echo "Error: Version must start with 'v' (e.g., v1.2.3)"
+            echo "Provided: $INPUT_VERSION"
+            exit 1
           fi
           
+          VERSION="$INPUT_VERSION"
           VERSION_NUMBER=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "VERSION_NUMBER=$VERSION_NUMBER" >> $GITHUB_OUTPUT
