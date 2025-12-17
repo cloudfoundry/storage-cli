@@ -107,8 +107,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.version.outputs.VERSION }}
-          name: ${{ github.event_name == 'workflow_dispatch' && format('Release {0}', steps.version.outputs.VERSION) || '' }}
-          body: ${{ github.event_name == 'workflow_dispatch' && format('Release {0}', steps.version.outputs.VERSION) || '' }}
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body: Release ${{ steps.version.outputs.VERSION }}
           artifacts: |
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe
