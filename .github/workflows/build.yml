@@ -53,4 +53,4 @@ jobs:
             path: |
               storage-cli-linux-amd64
               storage-cli-windows-amd64.exe
-            retention-days: 30
+            retention-days: 1
