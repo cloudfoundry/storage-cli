@@ -1,7 +1,7 @@
 name: Build
 on:
   push:
-    branches: [ main ]
+    branches: [ '**' ]  # Trigger on all branches
   pull_request:
     branches: [ main ]
       
@@ -24,7 +24,8 @@ jobs:
             CGO_ENABLED: 0
           run: |
                 echo "Building Storage CLI for Linux"
-                go build -o "storage-cli-linux-amd64"
+                go build -ldflags "-X main.version=0.0.0" \
+                -o "storage-cli-linux-amd64"
                 sha1sum "storage-cli-linux-amd64"
         
         - name: Storage-CLI Build for Windows
@@ -34,5 +35,15 @@ jobs:
             CGO_ENABLED: 0
           run: |
                 echo "Building Storage CLI for Windows"
-                go build -o "storage-cli-windows-amd64.exe"
+                go build -ldflags "-X main.version=0.0.0" \
+                -o "storage-cli-windows-amd64.exe"
                 sha1sum "storage-cli-windows-amd64.exe"
+        
+        - name: Upload Build Artifacts
+          uses: actions/upload-artifact@v4
+          with:
+            name: storage-cli-${{ github.ref_name }}-${{ github.sha }}
+            path: |
+              storage-cli-linux-amd64
+              storage-cli-windows-amd64.exe
+            retention-days: 30
