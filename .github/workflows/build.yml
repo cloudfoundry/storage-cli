@@ -1,7 +1,7 @@
 name: Build
 on:
   push:
-    branches: [ '**' ]  # Trigger on all branches
+    branches: [ '**' ]
   pull_request:
     branches: [ main ]
       

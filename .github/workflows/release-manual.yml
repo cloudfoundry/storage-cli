@@ -1,6 +1,8 @@
-name: Manual Release
+name: Release Manual
 
 on:
+  push:
+    branches: ['**']
   workflow_dispatch:
     inputs:
       version:
