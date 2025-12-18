@@ -3,7 +3,6 @@ package client
 import (
 	"crypto/md5"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -80,21 +79,21 @@ func (client *AliBlobstore) getMD5(filePath string) (string, error) {
 }
 
 func (client *AliBlobstore) List(prefix string) ([]string, error) {
-	return nil, errors.New("not implemented")
+	return client.storageClient.List(prefix)
 }
 
 func (client *AliBlobstore) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("not implemented")
+	return client.storageClient.Copy(srcBlob, dstBlob)
 }
 
 func (client *AliBlobstore) Properties(dest string) error {
-	return errors.New("not implemented")
+	return client.storageClient.Properties(dest)
 }
 
 func (client *AliBlobstore) EnsureStorageExists() error {
-	return errors.New("not implemented")
+	return client.storageClient.EnsureBucketExists()
 }
 
 func (client *AliBlobstore) DeleteRecursive(prefix string) error {
-	return errors.New("not implemented")
+	return client.storageClient.DeleteRecursive(prefix)
 }
