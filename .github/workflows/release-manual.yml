@@ -24,7 +24,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Lint code
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
 
       - name: Run Unit Tests
         run: |
