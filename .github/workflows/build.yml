@@ -47,7 +47,7 @@ jobs:
         echo "branch=$SAFE_BRANCH" >> $GITHUB_OUTPUT
     
     - name: Upload Build Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: storage-cli-${{ steps.sanitize.outputs.branch }}-${{ github.sha }}
         path: |
