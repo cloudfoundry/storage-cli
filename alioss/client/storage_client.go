@@ -65,18 +65,12 @@ type StorageClient interface {
 }
 type DefaultStorageClient struct {
 	storageConfig config.AliStorageConfig
-	bucketURL     string
 }
 
 func NewStorageClient(storageConfig config.AliStorageConfig) (StorageClient, error) {
 
-	endpoint := strings.TrimPrefix(storageConfig.Endpoint, "https://")
-	endpoint = strings.TrimPrefix(endpoint, "http://")
-	bucketURL := fmt.Sprintf("https://%s.%s", storageConfig.BucketName, endpoint)
-
 	return DefaultStorageClient{
 		storageConfig: storageConfig,
-		bucketURL:     bucketURL,
 	}, nil
 }
 
@@ -124,8 +118,8 @@ func (dsc DefaultStorageClient) Copy(
 	destinationObject string,
 ) error {
 	log.Printf("Copying object from %s to %s", sourceObject, destinationObject)
-	srcURL := fmt.Sprintf("%s/%s", dsc.bucketURL, sourceObject)
-	destURL := fmt.Sprintf("%s/%s", dsc.bucketURL, destinationObject)
+	srcOut := fmt.Sprintf("%s/%s", dsc.storageConfig.BucketName, sourceObject)
+	destOut := fmt.Sprintf("%s/%s", dsc.storageConfig.BucketName, destinationObject)
 
 	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
@@ -138,7 +132,7 @@ func (dsc DefaultStorageClient) Copy(
 	}
 
 	if _, err := bucket.CopyObject(sourceObject, destinationObject); err != nil {
-		return fmt.Errorf("failed to copy object from %s to %s: %w", srcURL, destURL, err)
+		return fmt.Errorf("failed to copy object from %s to %s: %w", srcOut, destOut, err)
 	}
 
 	return nil
