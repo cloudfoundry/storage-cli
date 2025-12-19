@@ -24,9 +24,11 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/iterator"
 
 	"cloud.google.com/go/storage"
 
@@ -42,6 +44,7 @@ type GCSBlobstore struct {
 	authenticatedGCS *storage.Client
 	publicGCS        *storage.Client
 	config           *config.GCSCli
+	projectID        string
 }
 
 // validateRemoteConfig determines if the configuration of the client matches
@@ -68,6 +71,11 @@ func (client *GCSBlobstore) getObjectHandle(gcs *storage.Client, src string) *st
 	return handle
 }
 
+func (client *GCSBlobstore) getBucketHandle(gcs *storage.Client) *storage.BucketHandle {
+	handle := gcs.Bucket(client.config.BucketName)
+	return handle
+}
+
 // New returns a GCSBlobstore configured to operate using the given config
 //
 // non-nil error is returned on invalid Client or config. If the configuration
@@ -82,7 +90,12 @@ func New(ctx context.Context, cfg *config.GCSCli) (*GCSBlobstore, error) {
 		return nil, fmt.Errorf("creating storage client: %v", err)
 	}
 
-	return &GCSBlobstore{authenticatedGCS: authenticatedGCS, publicGCS: publicGCS, config: cfg}, nil
+	projectID, err := extractProjectID(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("extracting project ID: %v", err)
+	}
+
+	return &GCSBlobstore{authenticatedGCS: authenticatedGCS, publicGCS: publicGCS, config: cfg, projectID: projectID}, nil
 }
 
 // Get fetches a blob from the GCS blobstore.
@@ -246,7 +259,30 @@ func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration)
 }
 
 func (client *GCSBlobstore) List(prefix string) ([]string, error) {
-	return nil, errors.New("not implemented")
+	if client.readOnly() {
+		return nil, ErrInvalidROWriteOperation
+	}
+
+	bh := client.getBucketHandle(client.authenticatedGCS)
+
+	it := bh.Objects(context.Background(), &storage.Query{Prefix: prefix})
+
+	var names []string
+	for {
+		attr, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		names = append(names, attr.Name)
+	}
+
+	return names, nil
+
 }
 
 func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
@@ -258,9 +294,66 @@ func (client *GCSBlobstore) Properties(dest string) error {
 }
 
 func (client *GCSBlobstore) EnsureStorageExists() error {
-	return errors.New("not implemented")
+	if client.readOnly() {
+		return ErrInvalidROWriteOperation
+	}
+	ctx := context.Background()
+	bh := client.getBucketHandle(client.authenticatedGCS)
+
+	_, err := bh.Attrs(ctx)
+	if err == storage.ErrBucketNotExist {
+
+		battr := &storage.BucketAttrs{Name: client.config.BucketName}
+		if client.config.StorageClass != "" {
+			battr.StorageClass = client.config.StorageClass
+		}
+		err = bh.Create(ctx, client.projectID, battr)
+		if err != nil {
+			return fmt.Errorf("creating bucket: %w", err)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("checking bucket: %w", err)
+	}
+
+	return nil
 }
 
 func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
-	return errors.New("not implemented")
+	if client.readOnly() {
+		return ErrInvalidROWriteOperation
+	}
+
+	names, err := client.List(prefix)
+	if err != nil {
+		return fmt.Errorf("listing objects: %w", err)
+	}
+
+	errChan := make(chan error, len(names))
+	wg := &sync.WaitGroup{}
+	for _, n := range names {
+		name := n
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := client.getObjectHandle(client.authenticatedGCS, name).Delete(context.Background())
+			if err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
+				errChan <- fmt.Errorf("deleting object %s: %w", name, err)
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	var errs []error
+	for err := range errChan {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
 }

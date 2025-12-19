@@ -18,7 +18,9 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"golang.org/x/oauth2/google"
 
@@ -51,4 +53,39 @@ func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client
 		return nil, nil, errors.New("unknown credentials_source in configuration")
 	}
 	return authenticatedClient, publicClient, err
+}
+
+// extractProjectID extracts the GCP project ID from credentials
+func extractProjectID(ctx context.Context, cfg *config.GCSCli) (string, error) {
+	switch cfg.CredentialsSource {
+	case config.ServiceAccountFileCredentialsSource:
+		// Parse service account JSON to extract project_id
+		var serviceAccount struct {
+			ProjectID string `json:"project_id"`
+		}
+		if err := json.Unmarshal([]byte(cfg.ServiceAccountFile), &serviceAccount); err != nil {
+			return "", fmt.Errorf("parsing service account JSON: %w", err)
+		}
+		if serviceAccount.ProjectID == "" {
+			return "", errors.New("project_id not found in service account JSON")
+		}
+		return serviceAccount.ProjectID, nil
+		
+	case config.DefaultCredentialsSource:
+		// Try to get project ID from default credentials
+		creds, err := google.FindDefaultCredentials(ctx, storage.ScopeFullControl)
+		if err != nil {
+			return "", fmt.Errorf("finding default credentials: %w", err)
+		}
+		if creds.ProjectID == "" {
+			return "", errors.New("project_id not found in default credentials")
+		}
+		return creds.ProjectID, nil
+		
+	case config.NoneCredentialsSource:
+		return "", errors.New("cannot create bucket with read-only credentials")
+		
+	default:
+		return "", errors.New("unknown credentials_source")
+	}
 }
