@@ -293,7 +293,19 @@ func (client *GCSBlobstore) List(prefix string) ([]string, error) {
 }
 
 func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("not implemented")
+	log.Printf("copying an object from %s to %s", srcBlob, dstBlob)
+	if client.readOnly() {
+		return ErrInvalidROWriteOperation
+	}
+
+	srcHandle := client.getObjectHandle(client.authenticatedGCS, srcBlob)
+	dstHandle := client.getObjectHandle(client.authenticatedGCS, dstBlob)
+
+	_, err := dstHandle.CopierFrom(srcHandle).Run(context.Background())
+	if err != nil {
+		return fmt.Errorf("copying object: %w", err)
+	}
+	return nil
 }
 
 func (client *GCSBlobstore) Properties(dest string) error {
