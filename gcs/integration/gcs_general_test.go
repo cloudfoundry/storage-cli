@@ -17,15 +17,16 @@
 package integration
 
 import (
+	context "context"
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 
 	"github.com/cloudfoundry/storage-cli/gcs/client"
 	"github.com/cloudfoundry/storage-cli/gcs/config"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Integration", func() {
@@ -125,5 +126,46 @@ var _ = Describe("Integration", func() {
 				Expect(session.Err.Contents()).To(ContainSubstring("object doesn't exist"))
 			},
 			configurations)
+
+		DescribeTable("copying will create same content with different name", func(config *config.GCSCli) {
+			env.AddConfig(config)
+			AssertCopyLifecycle(gcsCLIPath, env)
+		}, configurations)
+
+		Context("when bucket is not exist", func() {
+			DescribeTable("ensure storage exist will create a new bucket", func(cfg *config.GCSCli) {
+				cfg.BucketName = strings.ToLower(GenerateRandomString())
+				env.AddConfig(cfg)
+
+				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "ensure-storage-exists")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(session.ExitCode()).To(BeZero())
+
+				deleteBucket(context.Background(), cfg.BucketName, env.ConfigPath)
+			}, configurations)
+		})
+
+		Context("when bucket exists", func() {
+			DescribeTable("ensure storage exist will not create a new bucket", func(cfg *config.GCSCli) {
+				env.AddConfig(cfg)
+				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "ensure-storage-exists")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(session.ExitCode()).To(BeZero())
+
+			}, configurations)
+		})
+
+		Context("when working with multiple objects", func() {
+			FDescribeTable("recursive deleting will delete only the objects that have same prefix", func(config *config.GCSCli) {
+				env.AddConfig(config)
+				AssertDeleteRecursiveWithPrefixLifecycle(gcsCLIPath, env)
+			},
+				configurations)
+			DescribeTable("list will output only the objects that have same prefix", func(config *config.GCSCli) {
+				env.AddConfig(config)
+				AssertListMultipleWithPrefixLifecycle(gcsCLIPath, env)
+			}, configurations)
+
+		})
 	})
 })

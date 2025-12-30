@@ -27,6 +27,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck
 	"github.com/onsi/gomega/gexec"
+	"golang.org/x/net/context"
 )
 
 const alphanum = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -67,6 +68,17 @@ func MakeContentFile(content string) string {
 	err = tmpFile.Close()
 	Expect(err).ToNot(HaveOccurred())
 	return tmpFile.Name()
+}
+
+func deleteBucket(ctx context.Context, bucketName string, configPath string) {
+	cfgFile, err := os.Open(configPath)
+	Expect(err).ToNot(HaveOccurred())
+	gcsConfig, err := config.NewFromReader(cfgFile)
+	Expect(err).ToNot(HaveOccurred())
+	gcsClient, err := newSDK(ctx, gcsConfig)
+	Expect(err).ToNot(HaveOccurred())
+	err = gcsClient.Bucket(bucketName).Delete(ctx)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 // RunGCSCLI run the gcscli and outputs the session

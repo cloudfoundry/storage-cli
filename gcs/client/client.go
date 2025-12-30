@@ -266,6 +266,11 @@ func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration)
 }
 
 func (client *GCSBlobstore) List(prefix string) ([]string, error) {
+	if prefix != "" {
+		log.Printf("Listing objects in bucket %s with prefix '%s'\n", client.config.BucketName, prefix)
+	} else {
+		log.Printf("Listing objects in bucket %s\n", client.config.BucketName)
+	}
 	if client.readOnly() {
 		return nil, ErrInvalidROWriteOperation
 	}
@@ -293,7 +298,7 @@ func (client *GCSBlobstore) List(prefix string) ([]string, error) {
 }
 
 func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
-	log.Printf("copying an object from %s to %s", srcBlob, dstBlob)
+	log.Printf("copying an object from %s to %s\n", srcBlob, dstBlob)
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -309,6 +314,7 @@ func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
 }
 
 func (client *GCSBlobstore) Properties(dest string) error {
+	log.Printf("Getting properties for object %s/%s\n", client.config.BucketName, dest)
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -335,6 +341,7 @@ func (client *GCSBlobstore) Properties(dest string) error {
 }
 
 func (client *GCSBlobstore) EnsureStorageExists() error {
+	log.Printf("Ensuring bucket '%s' exists\n", client.config.BucketName)
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -342,8 +349,7 @@ func (client *GCSBlobstore) EnsureStorageExists() error {
 	bh := client.getBucketHandle(client.authenticatedGCS)
 
 	_, err := bh.Attrs(ctx)
-	if err == storage.ErrBucketNotExist {
-
+	if errors.Is(err, storage.ErrBucketNotExist) {
 		battr := &storage.BucketAttrs{Name: client.config.BucketName}
 		if client.config.StorageClass != "" {
 			battr.StorageClass = client.config.StorageClass
@@ -361,6 +367,13 @@ func (client *GCSBlobstore) EnsureStorageExists() error {
 }
 
 func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
+	if prefix != "" {
+		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
+			client.config.BucketName, prefix)
+	} else {
+		log.Printf("Deleting all objects in bucket %s\n", client.config.BucketName)
+	}
+
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}

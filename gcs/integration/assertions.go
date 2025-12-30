@@ -17,6 +17,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/onsi/gomega" //nolint:staticcheck
@@ -46,6 +47,14 @@ func AssertLifecycleWorks(gcsCLIPath string, ctx AssertContext) {
 	Expect(session.ExitCode()).To(BeZero())
 	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))
 
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "properties", ctx.GCSFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+	output := string(session.Out.Contents())
+	Expect(output).To(MatchRegexp(`"etag":\s*".+?"`))
+	Expect(output).To(MatchRegexp(`"last_modified":\s*".+?"`))
+	Expect(output).To(MatchRegexp(`"content_length":\s*\d+`))
+
 	tmpLocalFileName := "gcscli-download"
 	defer os.Remove(tmpLocalFileName) //nolint:errcheck
 
@@ -65,4 +74,135 @@ func AssertLifecycleWorks(gcsCLIPath string, ctx AssertContext) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(Equal(3))
 	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))
+}
+
+func AssertDeleteRecursiveWithPrefixLifecycle(gcsCLIPath string, ctx AssertContext) {
+	storageType := "gcs"
+
+	fileName1 := MakeContentFile(GenerateRandomString())
+	fileName2 := MakeContentFile(GenerateRandomString())
+	fileName3 := MakeContentFile(GenerateRandomString())
+	prefix := fmt.Sprintf("%s-%s/", "test-prefix-delete-recursive", GenerateRandomString(10))
+	dstObject1 := fmt.Sprintf("%s%s", prefix, GenerateRandomString())
+	dstObject2 := fmt.Sprintf("%s%s", prefix, GenerateRandomString())
+	dstObject3 := GenerateRandomString()
+	defer os.Remove(fileName1) //nolint:errcheck
+	defer os.Remove(fileName2) //nolint:errcheck
+	defer os.Remove(fileName3) //nolint:errcheck
+
+	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName1, dstObject1)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName2, dstObject2)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName3, dstObject3)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete-recursive", prefix)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "exists", dstObject3)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "exists", dstObject1)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(Equal(3))
+	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "exists", dstObject1)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(Equal(3))
+	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))
+
+	//cleanup artifact
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstObject3)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+}
+
+func AssertCopyLifecycle(gcsCLIPath string, ctx AssertContext) {
+	storageType := "gcs"
+
+	dstNameToPut := GenerateRandomString()
+	dstNameToCopy := GenerateRandomString()
+
+	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", ctx.ContentFile, dstNameToPut)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "copy", dstNameToPut, dstNameToCopy)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	tmpFileName := "copy-lifecycle"
+	defer os.Remove(tmpFileName) //nolint:errcheck
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "get", dstNameToCopy, tmpFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	contentGet, err := os.ReadFile(tmpFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(string(contentGet)).To(Equal(ctx.ExpectedString))
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstNameToPut)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstNameToCopy)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+}
+
+func AssertListMultipleWithPrefixLifecycle(gcsCLIPath string, ctx AssertContext) {
+	storageType := "gcs"
+	fileName1 := MakeContentFile(GenerateRandomString())
+	fileName2 := MakeContentFile(GenerateRandomString())
+	fileName3 := MakeContentFile(GenerateRandomString())
+	prefix := fmt.Sprintf("%s-%s/", "test-prefix-list", GenerateRandomString(10))
+	dstObject1 := fmt.Sprintf("%s%s", prefix, GenerateRandomString())
+	dstObject2 := fmt.Sprintf("%s%s", prefix, GenerateRandomString())
+	dstObject3 := GenerateRandomString()
+	defer os.Remove(fileName1) //nolint:errcheck
+	defer os.Remove(fileName2) //nolint:errcheck
+	defer os.Remove(fileName3) //nolint:errcheck
+
+	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName1, dstObject1)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName2, dstObject2)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", fileName3, dstObject3)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "list", prefix)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	objs := string(session.Out.Contents())
+	Expect(objs).To(ContainSubstring(dstObject1))
+	Expect(objs).To(ContainSubstring(dstObject2))
+	Expect(objs).ToNot(ContainSubstring(dstObject3))
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstObject1)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstObject2)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstObject3)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
 }
