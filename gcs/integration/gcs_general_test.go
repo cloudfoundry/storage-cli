@@ -134,14 +134,18 @@ var _ = Describe("Integration", func() {
 
 		Context("when bucket is not exist", func() {
 			DescribeTable("ensure storage exist will create a new bucket", func(cfg *config.GCSCli) {
-				cfg.BucketName = strings.ToLower(GenerateRandomString())
-				env.AddConfig(cfg)
+				// create new a newCfg instead of modifying shared cfg accross all tests
+				newCfg := &config.GCSCli{
+					BucketName: strings.ToLower(GenerateRandomString()),
+				}
+
+				env.AddConfig(newCfg)
 
 				session, err := RunGCSCLI(gcsCLIPath, env.ConfigPath, storageType, "ensure-storage-exists")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(session.ExitCode()).To(BeZero())
 
-				deleteBucket(context.Background(), cfg.BucketName, env.ConfigPath)
+				deleteBucket(context.Background(), newCfg.BucketName, env.ConfigPath)
 			}, configurations)
 		})
 
@@ -156,7 +160,7 @@ var _ = Describe("Integration", func() {
 		})
 
 		Context("when working with multiple objects", func() {
-			FDescribeTable("recursive deleting will delete only the objects that have same prefix", func(config *config.GCSCli) {
+			DescribeTable("recursive deleting will delete only the objects that have same prefix", func(config *config.GCSCli) {
 				env.AddConfig(config)
 				AssertDeleteRecursiveWithPrefixLifecycle(gcsCLIPath, env)
 			},

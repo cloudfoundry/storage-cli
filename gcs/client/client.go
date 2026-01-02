@@ -51,7 +51,6 @@ type GCSBlobstore struct {
 	authenticatedGCS *storage.Client
 	publicGCS        *storage.Client
 	config           *config.GCSCli
-	projectID        string
 }
 
 // validateRemoteConfig determines if the configuration of the client matches
@@ -97,12 +96,7 @@ func New(ctx context.Context, cfg *config.GCSCli) (*GCSBlobstore, error) {
 		return nil, fmt.Errorf("creating storage client: %v", err)
 	}
 
-	projectID, err := extractProjectID(ctx, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("extracting project ID: %v", err)
-	}
-
-	return &GCSBlobstore{authenticatedGCS: authenticatedGCS, publicGCS: publicGCS, config: cfg, projectID: projectID}, nil
+	return &GCSBlobstore{authenticatedGCS: authenticatedGCS, publicGCS: publicGCS, config: cfg}, nil
 }
 
 // Get fetches a blob from the GCS blobstore.
@@ -354,10 +348,17 @@ func (client *GCSBlobstore) EnsureStorageExists() error {
 		if client.config.StorageClass != "" {
 			battr.StorageClass = client.config.StorageClass
 		}
-		err = bh.Create(ctx, client.projectID, battr)
+
+		projectID, err := extractProjectID(ctx, client.config)
+		if err != nil {
+			return fmt.Errorf("extracting project ID: %w", err)
+		}
+
+		err = bh.Create(ctx, projectID, battr)
 		if err != nil {
 			return fmt.Errorf("creating bucket: %w", err)
 		}
+		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("checking bucket: %w", err)

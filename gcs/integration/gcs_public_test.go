@@ -93,21 +93,56 @@ var _ = Describe("GCS Public Bucket", func() {
 			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "get", setupEnv.GCSFileName, "/dev/null")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
-			Expect(session.Err.Contents()).To(ContainSubstring("object doesn't exist"))
+			Expect(string(session.Err.Contents())).To(ContainSubstring("object doesn't exist"))
 		})
 
 		It("fails to put", func() {
 			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "put", publicEnv.ContentFile, publicEnv.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
-			Expect(session.Err.Contents()).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
 		})
 
 		It("fails to delete", func() {
 			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "delete", publicEnv.GCSFileName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
-			Expect(session.Err.Contents()).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+		})
+
+		It("fails to list", func() {
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "list", "prefix")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).ToNot(BeZero())
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+		})
+
+		It("fails to get properties", func() {
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "properties", publicEnv.GCSFileName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).ToNot(BeZero())
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+		})
+
+		It("fails to delete-recursive", func() {
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "delete-recursive", "prefix")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).ToNot(BeZero())
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+		})
+
+		It("fails to copy", func() {
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "copy", publicEnv.GCSFileName, "destination-object")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).ToNot(BeZero())
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
+		})
+
+		It("fails to create bucket", func() {
+			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "ensure-storage-exists")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).ToNot(BeZero())
+			Expect(string(session.Err.Contents())).To(ContainSubstring(client.ErrInvalidROWriteOperation.Error()))
 		})
 	})
 })
