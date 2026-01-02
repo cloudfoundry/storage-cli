@@ -69,6 +69,12 @@ var _ = Describe("Integration", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resp.StatusCode).To(Equal(200))
 			defer resp.Body.Close() //nolint:errcheck
+
+			//delete test artifact
+			session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", ctx.GCSFileName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).To(BeZero())
+
 		})
 
 		Context("encryption key is set", func() {
@@ -123,6 +129,11 @@ var _ = Describe("Integration", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.StatusCode).To(Equal(200))
 				resp.Body.Close() //nolint:errcheck
+
+				//delete test artifact
+				session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", ctx.GCSFileName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(session.ExitCode()).To(BeZero())
 			})
 		})
 	})
