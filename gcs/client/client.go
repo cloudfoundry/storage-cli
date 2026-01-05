@@ -40,6 +40,9 @@ import (
 // client disallow an attempted write operation.
 var ErrInvalidROWriteOperation = errors.New("the client operates in read only mode. Change 'credentials_source' parameter value ")
 
+// To enforce concurent go routine numbers during delete-recursive operation
+const maxConcurrency = 10
+
 type BlobProperties struct {
 	ETag          string    `json:"etag,omitempty"`
 	LastModified  time.Time `json:"last_modified,omitempty"`
@@ -385,12 +388,17 @@ func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
 	}
 
 	errChan := make(chan error, len(names))
+	semaphore := make(chan struct{}, maxConcurrency)
 	wg := &sync.WaitGroup{}
 	for _, n := range names {
 		name := n
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
 			err := client.getObjectHandle(client.authenticatedGCS, name).Delete(context.Background())
 			if err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
 				errChan <- fmt.Errorf("deleting object %s: %w", name, err)
