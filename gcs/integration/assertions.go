@@ -47,14 +47,6 @@ func AssertLifecycleWorks(gcsCLIPath string, ctx AssertContext) {
 	Expect(session.ExitCode()).To(BeZero())
 	Expect(session.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))
 
-	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "properties", ctx.GCSFileName)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(session.ExitCode()).To(BeZero())
-	output := string(session.Out.Contents())
-	Expect(output).To(MatchRegexp(`"etag":\s*".+?"`))
-	Expect(output).To(MatchRegexp(`"last_modified":\s*".+?"`))
-	Expect(output).To(MatchRegexp(`"content_length":\s*\d+`))
-
 	tmpLocalFileName := "gcscli-download"
 	defer os.Remove(tmpLocalFileName) //nolint:errcheck
 
@@ -205,4 +197,29 @@ func AssertListMultipleWithPrefixLifecycle(gcsCLIPath string, ctx AssertContext)
 	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", dstObject3)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session.ExitCode()).To(BeZero())
+}
+
+func AssertPropertiesLifecycle(gcsCLIPath string, ctx AssertContext) {
+	storageType := "gcs"
+	session, err := RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "put", ctx.ContentFile, ctx.GCSFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "properties", ctx.GCSFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+	output := string(session.Out.Contents())
+	Expect(output).To(MatchRegexp(`"etag":\s*".+?"`))
+	Expect(output).To(MatchRegexp(`"last_modified":\s*".+?"`))
+	Expect(output).To(MatchRegexp(`"content_length":\s*\d+`))
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "delete", ctx.GCSFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	session, err = RunGCSCLI(gcsCLIPath, ctx.ConfigPath, storageType, "properties", ctx.GCSFileName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+	Expect(string(session.Out.Contents())).To(MatchRegexp("{}"))
+
 }

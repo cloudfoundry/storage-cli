@@ -142,6 +142,11 @@ var _ = Describe("Integration", func() {
 
 		}, configurations)
 
+		DescribeTable("properties should print json", func(config *config.GCSCli) {
+			env.AddConfig(config)
+			AssertPropertiesLifecycle(gcsCLIPath, env)
+		}, configurations)
+
 		Context("when bucket is not exist", func() {
 			DescribeTable("ensure storage exist will create a new bucket", func(cfg *config.GCSCli) {
 				// create new a newCfg instead of modifying shared cfg accross all tests

@@ -137,7 +137,6 @@ func (client *GCSBlobstore) getReader(gcs *storage.Client, src string) (*storage
 const retryAttempts = 3
 
 func (client *GCSBlobstore) Put(sourceFilePath string, dest string) error {
-
 	src, err := os.Open(sourceFilePath)
 	if err != nil {
 		return err
@@ -319,6 +318,10 @@ func (client *GCSBlobstore) Properties(dest string) error {
 	attr, err := oh.Attrs(context.Background())
 
 	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotExist) {
+			fmt.Println(`{}`)
+			return nil
+		}
 		return fmt.Errorf("getting attributes: %w", err)
 	}
 
