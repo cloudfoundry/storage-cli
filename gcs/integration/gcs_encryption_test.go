@@ -18,6 +18,8 @@ package integration
 
 import (
 	"crypto/sha256"
+	"io"
+	"log"
 	"os"
 
 	"github.com/cloudfoundry/storage-cli/gcs/client"
@@ -42,6 +44,7 @@ var _ = Describe("Integration", func() {
 			cfg *config.GCSCli
 		)
 		BeforeEach(func() {
+			log.SetOutput(io.Discard) // Suppress all log output
 			cfg = getMultiRegionConfig()
 			cfg.EncryptionKey = encryptionKeyBytes
 

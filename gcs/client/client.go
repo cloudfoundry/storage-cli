@@ -105,6 +105,8 @@ func New(ctx context.Context, cfg *config.GCSCli) (*GCSBlobstore, error) {
 // Get fetches a blob from the GCS blobstore.
 // Destination will be overwritten if it already exists.
 func (client *GCSBlobstore) Get(src string, dest string) error {
+	log.Printf("Getting object from '%s/%s' into file '%s'\n", client.config.BucketName, src, dest)
+
 	dstFile, err := os.Create(dest)
 	if err != nil {
 		return err
@@ -137,6 +139,8 @@ func (client *GCSBlobstore) getReader(gcs *storage.Client, src string) (*storage
 const retryAttempts = 3
 
 func (client *GCSBlobstore) Put(sourceFilePath string, dest string) error {
+	log.Printf("Putting file '%s' into '%s/%s'\n", sourceFilePath, client.config.BucketName, dest)
+
 	src, err := os.Open(sourceFilePath)
 	if err != nil {
 		return err
@@ -193,6 +197,8 @@ func (client *GCSBlobstore) putOnce(src io.ReadSeeker, dest string) error {
 //
 // If the object does not exist, Delete returns a nil error.
 func (client *GCSBlobstore) Delete(dest string) error {
+	log.Printf("Deleting object '%s' in bucket '%s' \n", dest, client.config.BucketName)
+
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -206,6 +212,8 @@ func (client *GCSBlobstore) Delete(dest string) error {
 
 // Exists checks if a blob exists in the GCS blobstore.
 func (client *GCSBlobstore) Exists(dest string) (exists bool, err error) {
+	log.Printf("Checking object '%s' exist in bucket '%s'\n", dest, client.config.BucketName)
+
 	if exists, err = client.exists(client.publicGCS, dest); err == nil {
 		return exists, nil
 	}
@@ -235,6 +243,8 @@ func (client *GCSBlobstore) readOnly() bool {
 }
 
 func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration) (string, error) {
+	log.Printf("Signing object '%s' with method '%s' for '%s' minutes\n", id, action, expiry.String())
+
 	action = strings.ToUpper(action)
 	token, err := google.JWTConfigFromJSON([]byte(client.config.ServiceAccountFile), storage.ScopeFullControl)
 	if err != nil {
@@ -263,9 +273,9 @@ func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration)
 
 func (client *GCSBlobstore) List(prefix string) ([]string, error) {
 	if prefix != "" {
-		log.Printf("Listing objects in bucket %s with prefix '%s'\n", client.config.BucketName, prefix)
+		log.Printf("Listing objects in bucket '%s' with prefix '%s'\n", client.config.BucketName, prefix)
 	} else {
-		log.Printf("Listing objects in bucket %s\n", client.config.BucketName)
+		log.Printf("Listing objects in bucket '%s'\n", client.config.BucketName)
 	}
 	if client.readOnly() {
 		return nil, ErrInvalidROWriteOperation
@@ -294,7 +304,7 @@ func (client *GCSBlobstore) List(prefix string) ([]string, error) {
 }
 
 func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
-	log.Printf("copying an object from %s to %s\n", srcBlob, dstBlob)
+	log.Printf("Copying an object from '%s/%s' to '%s/%s'\n", srcBlob, client.config.BucketName, dstBlob, client.config.BucketName)
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -310,7 +320,7 @@ func (client *GCSBlobstore) Copy(srcBlob string, dstBlob string) error {
 }
 
 func (client *GCSBlobstore) Properties(dest string) error {
-	log.Printf("Getting properties for object %s/%s\n", client.config.BucketName, dest)
+	log.Printf("Getting properties for object '%s' in bucket '%s'\n", dest, client.config.BucketName)
 	if client.readOnly() {
 		return ErrInvalidROWriteOperation
 	}
@@ -375,10 +385,10 @@ func (client *GCSBlobstore) EnsureStorageExists() error {
 
 func (client *GCSBlobstore) DeleteRecursive(prefix string) error {
 	if prefix != "" {
-		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
+		log.Printf("Deleting all objects in bucket '%s' with prefix '%s'\n",
 			client.config.BucketName, prefix)
 	} else {
-		log.Printf("Deleting all objects in bucket %s\n", client.config.BucketName)
+		log.Printf("Deleting all objects in bucket '%s'\n", client.config.BucketName)
 	}
 
 	if client.readOnly() {
