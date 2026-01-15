@@ -243,7 +243,7 @@ func (client *GCSBlobstore) readOnly() bool {
 }
 
 func (client *GCSBlobstore) Sign(id string, action string, expiry time.Duration) (string, error) {
-	log.Printf("Signing object '%s' with method '%s' for '%s' minutes\n", id, action, expiry.String())
+	log.Printf("Signing object '%s' with method '%s' for '%s'\n", id, action, expiry.String())
 
 	action = strings.ToUpper(action)
 	token, err := google.JWTConfigFromJSON([]byte(client.config.ServiceAccountFile), storage.ScopeFullControl)
