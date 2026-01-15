@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
 	"google.golang.org/api/option"
@@ -29,6 +30,8 @@ import (
 	"net/http"
 
 	"cloud.google.com/go/storage"
+	"github.com/cloudfoundry/storage-cli/common"
+	"github.com/cloudfoundry/storage-cli/gcs/client/middleware"
 	"github.com/cloudfoundry/storage-cli/gcs/config"
 )
 
@@ -40,14 +43,33 @@ func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client
 
 	switch cfg.CredentialsSource {
 	case config.NoneCredentialsSource:
-		// no-op
+		if common.IsDebug() {
+			httpClient := &http.Client{
+				Transport: middleware.NewLoggingTransport(http.DefaultTransport),
+			}
+			publicClient, err = storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithHTTPClient(httpClient))
+		}
 	case config.DefaultCredentialsSource:
 		if tokenSource, err := google.DefaultTokenSource(ctx, storage.ScopeFullControl); err == nil {
-			authenticatedClient, err = storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithTokenSource(tokenSource)) //nolint:ineffassign,staticcheck
+			if common.IsDebug() {
+				baseClient := oauth2.NewClient(ctx, tokenSource)
+				baseClient.Transport = middleware.NewLoggingTransport(baseClient.Transport)
+				authenticatedClient, err = storage.NewClient(ctx, option.WithHTTPClient(baseClient), option.WithUserAgent(uaString))
+
+			} else {
+				authenticatedClient, err = storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithTokenSource(tokenSource)) //nolint:ineffassign,staticcheck
+			}
 		}
 	case config.ServiceAccountFileCredentialsSource:
 		if token, err := google.JWTConfigFromJSON([]byte(cfg.ServiceAccountFile), storage.ScopeFullControl); err == nil {
-			authenticatedClient, err = storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithTokenSource(token.TokenSource(ctx))) //nolint:ineffassign,staticcheck
+			if common.IsDebug() {
+				tokenSource := token.TokenSource(ctx)
+				baseClient := oauth2.NewClient(ctx, tokenSource)
+				baseClient.Transport = middleware.NewLoggingTransport(baseClient.Transport)
+				authenticatedClient, err = storage.NewClient(ctx, option.WithHTTPClient(baseClient), option.WithUserAgent(uaString))
+			} else {
+				authenticatedClient, err = storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithTokenSource(token.TokenSource(ctx))) //nolint:ineffassign,staticcheck
+			}
 		}
 	default:
 		return nil, nil, errors.New("unknown credentials_source in configuration")

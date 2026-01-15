@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cloudfoundry/storage-cli/common"
 	storage "github.com/cloudfoundry/storage-cli/storage"
 )
 
@@ -46,7 +47,7 @@ func createOrUseProvided(logFile string) *os.File {
 
 // Configure slog to be json formated, set log level and
 // stream to file if provided, by default it streams to os.Stderr
-func configureSlog(debug bool, m io.Writer) {
+func configureSlog(m io.Writer, debug bool) {
 	hOpt := &slog.HandlerOptions{Level: slog.LevelInfo}
 	if debug {
 		hOpt.Level = slog.LevelDebug
@@ -79,10 +80,14 @@ func main() {
 	writers := []io.Writer{os.Stderr}
 	if *logFile != "" {
 		f := createOrUseProvided(*logFile)
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 		writers = append(writers, f)
 	}
-	configureSlog(*debug, io.MultiWriter(writers...))
+	configureSlog(io.MultiWriter(writers...), *debug)
+
+	if *debug {
+		common.InitConfig(*debug)
+	}
 
 	client, err := storage.NewStorageClient(*storageType, configFile)
 	if err != nil {
