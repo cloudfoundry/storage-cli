@@ -50,7 +50,7 @@ var _ = Describe("Client", func() {
 			Expect(err.Error()).To(Equal(expectedError))
 		})
 
-		FIt("fails if the source file md5 does not match the responded md5", func() {
+		It("fails if the source file md5 does not match the responded md5", func() {
 			storageClient := clientfakes.FakeStorageClient{}
 			storageClient.UploadReturns([]byte{1, 2, 3}, nil)
 
