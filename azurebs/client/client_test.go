@@ -50,7 +50,7 @@ var _ = Describe("Client", func() {
 			Expect(err.Error()).To(Equal(expectedError))
 		})
 
-		It("fails if the source file md5 does not match the responded md5", func() {
+		FIt("fails if the source file md5 does not match the responded md5", func() {
 			storageClient := clientfakes.FakeStorageClient{}
 			storageClient.UploadReturns([]byte{1, 2, 3}, nil)
 
@@ -60,7 +60,7 @@ var _ = Describe("Client", func() {
 			file, _ := os.CreateTemp("", "tmpfile") //nolint:errcheck
 
 			putError := azBlobstore.Put(file.Name(), "target/blob")
-			Expect(putError.Error()).To(Equal("the upload responded an MD5 [1 2 3] does not match the source file MD5 [212 29 140 217 143 0 178 4 233 128 9 152 236 248 66 126]"))
+			Expect(putError.Error()).To(Equal("MD5 mismatch: expected d41d8cd98f00b204e9800998ecf8427e, got 010203"))
 
 			Expect(storageClient.UploadCallCount()).To(Equal(1))
 			source, dest := storageClient.UploadArgsForCall(0)

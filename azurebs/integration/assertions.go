@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudfoundry/storage-cli/azurebs/config"
 	. "github.com/onsi/gomega" //nolint:staticcheck
+	"github.com/onsi/gomega/gbytes"
 )
 
 var storageType = "azurebs"
@@ -23,8 +24,8 @@ func AssertPutUsesNoTimeout(cliPath string, cfg *config.AZStorageConfig) {
 	sess, err := RunCli(cliPath, configPath, storageType, "put", content, blob)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).To(BeZero())
-	Expect(string(sess.Err.Contents())).To(ContainSubstring("Uploading ")) // stderr has log.Println
-	Expect(string(sess.Err.Contents())).To(ContainSubstring("with no timeout"))
+	Expect(sess.Err).Should(gbytes.Say(`"msg":"Uploading blob to container`))
+	Expect(sess.Err).ShouldNot(gbytes.Say(`"timeout":"*"`))
 
 	sess, err = RunCli(cliPath, configPath, storageType, "delete", blob)
 	Expect(err).ToNot(HaveOccurred())
@@ -44,7 +45,8 @@ func AssertPutHonorsCustomTimeout(cliPath string, cfg *config.AZStorageConfig) {
 	sess, err := RunCli(cliPath, configPath, storageType, "put", content, blob)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).To(BeZero())
-	Expect(string(sess.Err.Contents())).To(ContainSubstring("with a timeout of 3s"))
+	Expect(sess.Err).Should(gbytes.Say(`"msg":"Uploading blob to container`))
+	Expect(sess.Err).Should(gbytes.Say(`"timeout":"3s"`))
 
 	sess, err = RunCli(cliPath, configPath, storageType, "delete", blob)
 	Expect(err).ToNot(HaveOccurred())
@@ -82,7 +84,7 @@ func AssertInvalidTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
 	sess, err := RunCli(cliPath, configPath, storageType, "put", content, blob)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).ToNot(BeZero())
-	Expect(string(sess.Err.Contents())).To(ContainSubstring(`Invalid timeout format "bananas"`))
+	Expect(sess.Err).Should(gbytes.Say(`"error":"upload failure: invalid timeout format: strconv.Atoi: parsing \\"bananas\\": invalid syntax"`))
 }
 
 func AssertZeroTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
@@ -98,8 +100,7 @@ func AssertZeroTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
 	sess, err := RunCli(cliPath, configPath, storageType, "put", content, blob)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).ToNot(BeZero())
-
-	Expect(string(sess.Err.Contents())).To(ContainSubstring(`Invalid time "0", need at least 1 second`))
+	Expect(sess.Err).Should(gbytes.Say(`"msg":"Invalid time, need at least 1 second"`))
 }
 
 func AssertNegativeTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
@@ -116,7 +117,7 @@ func AssertNegativeTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).ToNot(BeZero())
 
-	Expect(string(sess.Err.Contents())).To(ContainSubstring(`Invalid time "-1", need at least 1 second`))
+	Expect(sess.Err).Should(gbytes.Say(`"msg":"Invalid time, need at least 1 second"`))
 }
 
 func AssertSignedURLTimeouts(cliPath string, cfg *config.AZStorageConfig) {
@@ -198,7 +199,7 @@ func AssertLifecycleWorks(cliPath string, cfg *config.AZStorageConfig) {
 	cliSession, err = RunCli(cliPath, configPath, storageType, "exists", blobName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cliSession.ExitCode()).To(BeZero())
-	Expect(cliSession.Err.Contents()).To(MatchRegexp("File '.*' exists in bucket '.*'"))
+	Expect(cliSession.Err).Should(gbytes.Say(`"msg":"Blob exists in container"`))
 
 	// Check blob properties
 	cliSession, err = RunCli(cliPath, configPath, storageType, "properties", blobName)
@@ -230,7 +231,7 @@ func AssertLifecycleWorks(cliPath string, cfg *config.AZStorageConfig) {
 	cliSession, err = RunCli(cliPath, configPath, storageType, "exists", blobName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cliSession.ExitCode()).To(Equal(3))
-	Expect(cliSession.Err.Contents()).To(MatchRegexp("File '.*' does not exist in bucket '.*'"))
+	Expect(cliSession.Err).Should(gbytes.Say(`"msg":"Blob does not exist in container"`))
 
 	cliSession, err = RunCli(cliPath, configPath, storageType, "properties", blobName)
 	Expect(err).ToNot(HaveOccurred())

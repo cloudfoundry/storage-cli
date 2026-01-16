@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -98,17 +98,18 @@ func (dsc DefaultStorageClient) Upload(
 		timeoutInt, err := strconv.Atoi(dsc.storageConfig.Timeout)
 		timeout := time.Duration(timeoutInt) * time.Second
 		if timeout < 1 && err == nil {
-			log.Printf("Invalid time \"%s\", need at least 1 second", dsc.storageConfig.Timeout)
+			slog.Info("Invalid time, need at least 1 second", "timeout", dsc.storageConfig.Timeout)
 			return nil, fmt.Errorf("invalid time: %w", err)
 		}
 		if err != nil {
-			log.Printf("Invalid timeout format \"%s\", need \"<seconds in number>\" e.g. 30", dsc.storageConfig.Timeout)
+			slog.Info("Invalid timeout format, need seconds as number e.g. 30s", "timeout", dsc.storageConfig.Timeout)
 			return nil, fmt.Errorf("invalid timeout format: %w", err)
 		}
-		log.Println(fmt.Sprintf("Uploading %s with a timeout of %s", blobURL, timeout)) //nolint:staticcheck
+		slog.Info("Uploading blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL, "timeout", timeout.String())
+
 		ctx, cancel = context.WithTimeout(context.Background(), timeout)
 	} else {
-		log.Println(fmt.Sprintf("Uploading %s with no timeout", blobURL)) //nolint:staticcheck
+		slog.Info("Uploading blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
 		ctx, cancel = context.WithCancel(context.Background())
 	}
 	defer cancel()
@@ -124,6 +125,8 @@ func (dsc DefaultStorageClient) Upload(
 		}
 		return nil, fmt.Errorf("upload failure: %w", err)
 	}
+
+	slog.Info("Successfully uploaded blob", "container", dsc.storageConfig.ContainerName, "blob", dest)
 	return uploadResponse.ContentMD5, err
 }
 
@@ -131,10 +134,8 @@ func (dsc DefaultStorageClient) Download(
 	source string,
 	dest *os.File,
 ) error {
-
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, source)
-
-	log.Println(fmt.Sprintf("Downloading %s", blobURL)) //nolint:staticcheck
+	slog.Info("Downloading blob from container", "container", dsc.storageConfig.ContainerName, "blob", source, "local_file", dest.Name())
 	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 	if err != nil {
 		return err
@@ -149,7 +150,7 @@ func (dsc DefaultStorageClient) Download(
 		return err
 	}
 	if blobSize != info.Size() {
-		log.Printf("Truncating file according to the blob size %v", blobSize)
+		slog.Debug("Truncating file to blob size", "blob_size", blobSize)
 		dest.Truncate(blobSize) //nolint:errcheck
 	}
 
@@ -160,7 +161,7 @@ func (dsc DefaultStorageClient) Copy(
 	srcBlob string,
 	destBlob string,
 ) error {
-	log.Printf("Copying blob from %s to %s", srcBlob, destBlob)
+	slog.Info("Copying blob within container", "container", dsc.storageConfig.ContainerName, "source_blob", srcBlob, "dest_blob", destBlob)
 
 	srcURL := fmt.Sprintf("%s/%s", dsc.serviceURL, srcBlob)
 	destURL := fmt.Sprintf("%s/%s", dsc.serviceURL, destBlob)
@@ -176,7 +177,7 @@ func (dsc DefaultStorageClient) Copy(
 	}
 
 	copyID := *resp.CopyID
-	log.Printf("Copy started with CopyID: %s", copyID)
+	slog.Debug("Copy started", "copy_id", copyID)
 
 	// Wait for completion
 	for {
@@ -186,11 +187,11 @@ func (dsc DefaultStorageClient) Copy(
 		}
 
 		copyStatus := *props.CopyStatus
-		log.Printf("Copy status: %s", copyStatus)
+		slog.Debug("Copy status", "status", copyStatus)
 
 		switch copyStatus {
 		case "success":
-			log.Println("Copy completed successfully")
+			slog.Info("Copy completed successfully", "container", dsc.storageConfig.ContainerName, "source_blob", srcBlob, "dest_blob", destBlob)
 			return nil
 		case "pending":
 			time.Sleep(200 * time.Millisecond)
@@ -206,7 +207,7 @@ func (dsc DefaultStorageClient) Delete(
 
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
-	log.Println(fmt.Sprintf("Deleting %s", blobURL)) //nolint:staticcheck
+	slog.Info("Deleting blob from container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
 	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 	if err != nil {
 		return err
@@ -229,9 +230,9 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 	prefix string,
 ) error {
 	if prefix != "" {
-		log.Printf("Deleting all blobs in container %s with prefix '%s'\n", dsc.storageConfig.ContainerName, prefix)
+		slog.Info("Deleting all blobs in container", "container", dsc.storageConfig.ContainerName, "prefix", prefix)
 	} else {
-		log.Printf("Deleting all blobs in container %s\n", dsc.storageConfig.ContainerName)
+		slog.Info("Deleting all blobs in container", "container", dsc.storageConfig.ContainerName)
 	}
 
 	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
@@ -256,13 +257,13 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 			blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, *blob.Name)
 			blobClient, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 			if err != nil {
-				log.Printf("Failed to create blob client for %s: %v\n", *blob.Name, err)
+				slog.Error("Failed to create blob client", "blob", *blob.Name, "error", err)
 				continue
 			}
 
 			_, err = blobClient.BlobClient().Delete(context.Background(), nil)
 			if err != nil && !strings.Contains(err.Error(), "RESPONSE 404") {
-				log.Printf("Failed to delete blob %s: %v\n", *blob.Name, err)
+				slog.Error("Failed to delete blob", "blob", *blob.Name, "error", err)
 			}
 		}
 	}
@@ -276,7 +277,7 @@ func (dsc DefaultStorageClient) Exists(
 
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
-	log.Println(fmt.Sprintf("Checking if blob: %s exists", blobURL)) //nolint:staticcheck
+	slog.Info("Checking if blob exists", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
 	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 	if err != nil {
 		return false, err
@@ -284,11 +285,11 @@ func (dsc DefaultStorageClient) Exists(
 
 	_, err = client.BlobClient().GetProperties(context.Background(), nil)
 	if err == nil {
-		log.Printf("File '%s' exists in bucket '%s'\n", dest, dsc.storageConfig.ContainerName)
+		slog.Info("Blob exists in container", "container", dsc.storageConfig.ContainerName, "blob", dest)
 		return true, nil
 	}
 	if strings.Contains(err.Error(), "RESPONSE 404") {
-		log.Printf("File '%s' does not exist in bucket '%s'\n", dest, dsc.storageConfig.ContainerName)
+		slog.Info("Blob does not exist in container", "container", dsc.storageConfig.ContainerName, "blob", dest)
 		return false, nil
 	}
 
@@ -303,7 +304,7 @@ func (dsc DefaultStorageClient) SignedUrl(
 
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
-	log.Println(fmt.Sprintf("Getting signed url for blob %s", blobURL)) //nolint:staticcheck
+	slog.Info("Generating SAS URL for blob", "container", dsc.storageConfig.ContainerName, "blob", dest, "request_type", requestType, "expiration", expiration)
 	client, err := azBlob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 	if err != nil {
 		return "", err
@@ -332,9 +333,9 @@ func (dsc DefaultStorageClient) List(
 ) ([]string, error) {
 
 	if prefix != "" {
-		log.Println(fmt.Sprintf("Listing blobs in container %s with prefix '%s'", dsc.storageConfig.ContainerName, prefix)) //nolint:staticcheck
+		slog.Info("Listing blobs in container", "container", dsc.storageConfig.ContainerName, "prefix", prefix)
 	} else {
-		log.Println(fmt.Sprintf("Listing blobs in container %s", dsc.storageConfig.ContainerName)) //nolint:staticcheck
+		slog.Info("Listing blobs in container", "container", dsc.storageConfig.ContainerName)
 	}
 
 	client, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
@@ -375,7 +376,7 @@ func (dsc DefaultStorageClient) Properties(
 ) error {
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
-	log.Println(fmt.Sprintf("Getting properties for blob %s", blobURL)) //nolint:staticcheck
+	slog.Info("Getting properties for blob", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
 	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
 	if err != nil {
 		return err
@@ -406,7 +407,7 @@ func (dsc DefaultStorageClient) Properties(
 }
 
 func (dsc DefaultStorageClient) EnsureContainerExists() error {
-	log.Printf("Ensuring container '%s' exists\n", dsc.storageConfig.ContainerName)
+	slog.Info("Ensuring container exists", "container", dsc.storageConfig.ContainerName)
 
 	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
 	if err != nil {
@@ -417,12 +418,12 @@ func (dsc DefaultStorageClient) EnsureContainerExists() error {
 	if err != nil {
 		var respErr *azcore.ResponseError
 		if errors.As(err, &respErr) && respErr.ErrorCode == string(bloberror.ContainerAlreadyExists) {
-			log.Printf("Container '%s' already exists", dsc.storageConfig.ContainerName)
+			slog.Info("Container already exists", "container", dsc.storageConfig.ContainerName)
 			return nil
 		}
 		return fmt.Errorf("failed to create container: %w", err)
 	}
 
-	log.Printf("Container '%s' created successfully", dsc.storageConfig.ContainerName)
+	slog.Info("Container created successfully", "container", dsc.storageConfig.ContainerName)
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -37,24 +37,24 @@ func (client *AzBlobstore) Put(sourceFilePath string, dest string) error {
 	}
 
 	if !bytes.Equal(sourceMD5, md5) {
-		log.Println("The upload failed because of an MD5 inconsistency. Triggering blob deletion ...")
+		slog.Error("Upload failed due to MD5 mismatch, deleting blob", "blob", dest, "expected_md5", fmt.Sprintf("%x", sourceMD5), "received_md5", fmt.Sprintf("%x", md5))
 
 		err := client.storageClient.Delete(dest)
 		if err != nil {
-			log.Println(fmt.Errorf("blob deletion failed: %w", err))
-		}
+			slog.Error("Failed to delete blob after MD5 mismatch", "blob", dest, "error", err)
 
-		return fmt.Errorf("the upload responded an MD5 %v does not match the source file MD5 %v", md5, sourceMD5)
+		}
+		return fmt.Errorf("MD5 mismatch: expected %x, got %x", sourceMD5, md5)
 	}
 
-	log.Println("Successfully uploaded file")
+	slog.Debug("MD5 verification passed", "blob", dest, "md5", fmt.Sprintf("%x", md5))
 	return nil
 }
 
 func (client *AzBlobstore) Get(source string, dest string) error {
 	dstFile, err := os.Create(dest)
 	if err != nil {
-		log.Fatalln(err)
+		return fmt.Errorf("failed to create destination file: %w", err)
 	}
 	defer dstFile.Close() //nolint:errcheck
 

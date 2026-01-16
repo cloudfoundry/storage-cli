@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("General testing for all Azure regions", func() {
@@ -126,7 +127,7 @@ var _ = Describe("General testing for all Azure regions", func() {
 			cliSession, err = integration.RunCli(cliPath, configPath, storageType, "exists", blobName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cliSession.ExitCode()).To(BeZero())
-			Expect(string(cliSession.Err.Contents())).To(MatchRegexp("File '" + blobName + "' exists in bucket '" + defaultConfig.ContainerName + "'"))
+			Expect(cliSession.Err).Should(gbytes.Say(`"msg":"Blob exists in container"`))
 		})
 
 		It("overwrites an existing file", func() {
