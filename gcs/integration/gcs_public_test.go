@@ -93,7 +93,7 @@ var _ = Describe("GCS Public Bucket", func() {
 			session, err := RunGCSCLI(gcsCLIPath, publicEnv.ConfigPath, storageType, "get", setupEnv.GCSFileName, "/dev/null")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(session.ExitCode()).ToNot(BeZero())
-			Expect(string(session.Err.Contents())).To(ContainSubstring("object doesn't exist"))
+			Expect(session.Err.Contents()).To(MatchRegexp("Object does not exist in bucket"))
 		})
 
 		It("fails to put", func() {
