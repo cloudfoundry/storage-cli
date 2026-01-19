@@ -38,7 +38,6 @@ func NewLoggingTransport(base http.RoundTripper) http.RoundTripper {
 				"method", req.Method,
 				"url", req.URL.String(),
 				"status_code", resp.StatusCode,
-				"status", resp.Status,
 				"content_length", resp.ContentLength,
 				"duration_ms", duration.Milliseconds())
 		}
