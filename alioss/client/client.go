@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -29,8 +28,6 @@ func (client *AliBlobstore) Put(sourceFilePath string, destinationObject string)
 	if err != nil {
 		return fmt.Errorf("upload failure: %w", err)
 	}
-
-	log.Println("Successfully uploaded file")
 	return nil
 }
 

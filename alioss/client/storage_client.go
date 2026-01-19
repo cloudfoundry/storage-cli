@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/cloudfoundry/storage-cli/alioss/config"
+	"github.com/cloudfoundry/storage-cli/common"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . StorageClient
@@ -74,14 +75,21 @@ func NewStorageClient(storageConfig config.AliStorageConfig) (StorageClient, err
 	}, nil
 }
 
-func (dsc DefaultStorageClient) Upload(
-	sourceFilePath string,
-	sourceFileMD5 string,
-	destinationObject string,
-) error {
-	log.Printf("Uploading %s/%s\n", dsc.storageConfig.BucketName, destinationObject)
+func newOSSClient(endpoint, accesKeyID, accessKeySecret string) (*oss.Client, error) {
+	if common.IsDebug() {
+		slogLogger := slog.Default()
+		ossLogger := slog.NewLogLogger(slogLogger.Handler(), slog.LevelDebug)
+		return oss.New(endpoint, accesKeyID, accessKeySecret, oss.SetLogLevel(oss.Debug), oss.SetLogger(ossLogger))
+	} else {
+		return oss.New(endpoint, accesKeyID, accessKeySecret)
+	}
+}
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+func (dsc DefaultStorageClient) Upload(sourceFilePath string, sourceFileMD5 string, destinationObject string) error {
+	// log.Printf("Uploading %s/%s\n", dsc.storageConfig.BucketName, destinationObject)
+	slog.Info("Uploading object to OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", destinationObject, "file_path", sourceFilePath)
+
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -94,13 +102,10 @@ func (dsc DefaultStorageClient) Upload(
 	return bucket.PutObjectFromFile(destinationObject, sourceFilePath, oss.ContentMD5(sourceFileMD5))
 }
 
-func (dsc DefaultStorageClient) Download(
-	sourceObject string,
-	destinationFilePath string,
-) error {
-	log.Printf("Downloading %s/%s\n", dsc.storageConfig.BucketName, sourceObject)
+func (dsc DefaultStorageClient) Download(sourceObject string, destinationFilePath string) error {
+	slog.Info("Downloading object from OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", sourceObject, "file_path", destinationFilePath)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -113,15 +118,13 @@ func (dsc DefaultStorageClient) Download(
 	return bucket.GetObjectToFile(sourceObject, destinationFilePath)
 }
 
-func (dsc DefaultStorageClient) Copy(
-	sourceObject string,
-	destinationObject string,
-) error {
-	log.Printf("Copying object from %s to %s", sourceObject, destinationObject)
+func (dsc DefaultStorageClient) Copy(sourceObject string, destinationObject string) error {
+	// log.Printf("Copying object from %s to %s", sourceObject, destinationObject)
+	slog.Info("copying object within OSS bucket", "bucket", dsc.storageConfig.BucketName, "source_object", sourceObject, "destination_object", destinationObject)
 	srcOut := fmt.Sprintf("%s/%s", dsc.storageConfig.BucketName, sourceObject)
 	destOut := fmt.Sprintf("%s/%s", dsc.storageConfig.BucketName, destinationObject)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -138,12 +141,11 @@ func (dsc DefaultStorageClient) Copy(
 	return nil
 }
 
-func (dsc DefaultStorageClient) Delete(
-	object string,
-) error {
-	log.Printf("Deleting %s/%s\n", dsc.storageConfig.BucketName, object)
+func (dsc DefaultStorageClient) Delete(object string) error {
+	// log.Printf("Deleting %s/%s\n", dsc.storageConfig.BucketName, object)
+	slog.Info("Deleting object from OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", object)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -156,21 +158,17 @@ func (dsc DefaultStorageClient) Delete(
 	return bucket.DeleteObject(object)
 }
 
-func (dsc DefaultStorageClient) DeleteRecursive(
-	prefix string,
-) error {
+func (dsc DefaultStorageClient) DeleteRecursive(prefix string) error {
 	if prefix != "" {
-		log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
-			dsc.storageConfig.BucketName, prefix)
+		// log.Printf("Deleting all objects in bucket %s with prefix '%s'\n",
+		// 	dsc.storageConfig.BucketName, prefix)
+		slog.Info("Deleting all objects with prefix from OSS bucket", "bucket", dsc.storageConfig.BucketName, "prefix", prefix)
 	} else {
-		log.Printf("Deleting all objects in bucket %s\n", dsc.storageConfig.BucketName)
+		// log.Printf("Deleting all objects in bucket %s\n", dsc.storageConfig.BucketName)
+		slog.Info("Deleting all objects from OSS bucket", "bucket", dsc.storageConfig.BucketName)
 	}
 
-	client, err := oss.New(
-		dsc.storageConfig.Endpoint,
-		dsc.storageConfig.AccessKeyID,
-		dsc.storageConfig.AccessKeySecret,
-	)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -225,9 +223,10 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 }
 
 func (dsc DefaultStorageClient) Exists(object string) (bool, error) {
-	log.Printf("Checking if blob: %s/%s\n", dsc.storageConfig.BucketName, object)
+	// log.Printf("Checking if blob: %s/%s\n", dsc.storageConfig.BucketName, object)
+	slog.Info("Checking if object exists in OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", object)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return false, err
 	}
@@ -243,22 +242,22 @@ func (dsc DefaultStorageClient) Exists(object string) (bool, error) {
 	}
 
 	if objectExists {
-		log.Printf("File '%s' exists in bucket '%s'\n", object, dsc.storageConfig.BucketName)
+		// log.Printf("File '%s' exists in bucket '%s'\n", object, dsc.storageConfig.BucketName)
+		slog.Info("Object exists in OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", object)
 		return true, nil
 	} else {
-		log.Printf("File '%s' does not exist in bucket '%s'\n", object, dsc.storageConfig.BucketName)
+		// log.Printf("File '%s' does not exist in bucket '%s'\n", object, dsc.storageConfig.BucketName)
+		slog.Info("Object does not exist in OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", object)
 		return false, nil
 	}
 }
 
-func (dsc DefaultStorageClient) SignedUrlPut(
-	object string,
-	expiredInSec int64,
-) (string, error) {
+func (dsc DefaultStorageClient) SignedUrlPut(object string, expiredInSec int64) (string, error) {
 
-	log.Printf("Getting signed PUT url for blob %s/%s\n", dsc.storageConfig.BucketName, object)
+	// log.Printf("Getting signed PUT url for blob %s/%s\n", dsc.storageConfig.BucketName, object)
+	slog.Info("Generating signed PUT URL for OSS object", "bucket", dsc.storageConfig.BucketName, "object_key", object, "expiration_seconds", expiredInSec)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return "", err
 	}
@@ -271,14 +270,12 @@ func (dsc DefaultStorageClient) SignedUrlPut(
 	return bucket.SignURL(object, oss.HTTPPut, expiredInSec)
 }
 
-func (dsc DefaultStorageClient) SignedUrlGet(
-	object string,
-	expiredInSec int64,
-) (string, error) {
+func (dsc DefaultStorageClient) SignedUrlGet(object string, expiredInSec int64) (string, error) {
 
-	log.Printf("Getting signed GET url for blob %s/%s\n", dsc.storageConfig.BucketName, object)
+	// log.Printf("Getting signed GET url for blob %s/%s\n", dsc.storageConfig.BucketName, object)
+	slog.Info("Generating signed GET URL for OSS object", "bucket", dsc.storageConfig.BucketName, "object_key", object, "expiration_seconds", expiredInSec)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return "", err
 	}
@@ -291,14 +288,14 @@ func (dsc DefaultStorageClient) SignedUrlGet(
 	return bucket.SignURL(object, oss.HTTPGet, expiredInSec)
 }
 
-func (dsc DefaultStorageClient) List(
-	prefix string,
-) ([]string, error) {
+func (dsc DefaultStorageClient) List(prefix string) ([]string, error) {
 	if prefix != "" {
-		log.Printf("Listing objects in bucket %s with prefix '%s'\n",
-			dsc.storageConfig.BucketName, prefix)
+		// log.Printf("Listing objects in bucket %s with prefix '%s'\n",
+		// 	dsc.storageConfig.BucketName, prefix)
+		slog.Info("Listing all objects in OSS bucket with prefix", "bucket", dsc.storageConfig.BucketName, "prefix", prefix)
 	} else {
-		log.Printf("Listing objects in bucket %s\n", dsc.storageConfig.BucketName)
+		// log.Printf("Listing objects in bucket %s\n", dsc.storageConfig.BucketName)
+		slog.Info("Listing all objects in OSS bucket", "bucket", dsc.storageConfig.BucketName)
 	}
 
 	var (
@@ -315,7 +312,7 @@ func (dsc DefaultStorageClient) List(
 			opts = append(opts, oss.Marker(marker))
 		}
 
-		client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+		client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 		if err != nil {
 			return nil, err
 		}
@@ -349,13 +346,12 @@ type BlobProperties struct {
 	ContentLength int64     `json:"content_length,omitempty"`
 }
 
-func (dsc DefaultStorageClient) Properties(
-	object string,
-) error {
-	log.Printf("Getting properties for object %s/%s\n",
-		dsc.storageConfig.BucketName, object)
+func (dsc DefaultStorageClient) Properties(object string) error {
+	// log.Printf("Getting properties for object %s/%s\n",
+	// 	dsc.storageConfig.BucketName, object)
+	slog.Info("Getting object properties from OSS bucket", "bucket", dsc.storageConfig.BucketName, "object_key", object)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -415,9 +411,10 @@ func (dsc DefaultStorageClient) Properties(
 }
 
 func (dsc DefaultStorageClient) EnsureBucketExists() error {
-	log.Printf("Ensuring bucket '%s' exists\n", dsc.storageConfig.BucketName)
+	// log.Printf("Ensuring bucket '%s' exists\n", dsc.storageConfig.BucketName)
+	slog.Info("Ensuring OSS bucket exists", "bucket", dsc.storageConfig.BucketName)
 
-	client, err := oss.New(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
+	client, err := newOSSClient(dsc.storageConfig.Endpoint, dsc.storageConfig.AccessKeyID, dsc.storageConfig.AccessKeySecret)
 	if err != nil {
 		return err
 	}
@@ -428,7 +425,8 @@ func (dsc DefaultStorageClient) EnsureBucketExists() error {
 	}
 
 	if exists {
-		log.Printf("Bucket '%s' already exists\n", dsc.storageConfig.BucketName)
+		// log.Printf("Bucket '%s' already exists\n", dsc.storageConfig.BucketName)
+		slog.Info("OSS bucket already exists", "bucket", dsc.storageConfig.BucketName)
 		return nil
 	}
 
@@ -436,6 +434,7 @@ func (dsc DefaultStorageClient) EnsureBucketExists() error {
 		return fmt.Errorf("failed to create bucket '%s': %w", dsc.storageConfig.BucketName, err)
 	}
 
-	log.Printf("Bucket '%s' created successfully\n", dsc.storageConfig.BucketName)
+	// log.Printf("Bucket '%s' created successfully\n", dsc.storageConfig.BucketName)
+	slog.Info("OSS bucket created successfully", "bucket", dsc.storageConfig.BucketName)
 	return nil
 }

@@ -57,6 +57,8 @@ func RunCli(cliPath string, configPath string, storageType string, subcommand st
 		configPath,
 		"-s",
 		storageType,
+		"-log-level",
+		"info",
 		subcommand,
 	}
 	cmdArgs = append(cmdArgs, args...)
