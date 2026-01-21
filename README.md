@@ -18,8 +18,12 @@ Key points
 - [Alioss](./alioss/README.md)
 - [Azurebs](./azurebs/README.md)
 - [Dav](./dav/README.md)
+  - additional endpoints needed by CAPI still missing
 - [Gcs](./gcs/README.md)
 - [S3](./s3/README.md)
+  - additional endpoints needed by CAPI still missing
+  - dev blocked by https://github.com/cloudfoundry/bosh-s3cli/pull/60
+  - integration tests disabled (they fail on logging format changes)
 
 
 ## Build
