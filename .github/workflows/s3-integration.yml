@@ -177,27 +177,26 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
 
-  # TODO: after aws-sdk-go-v2 migration, not working properly. Disabled for now.
-  # s3-compatible-integration:
-  #   name: S3 Compatible Integration
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v6
-    
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v6
-  #       with:
-  #         go-version-file: go.mod
-    
-  #     - name: Install Ginkgo
-  #       run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+  s3-compatible-integration:
+   name: S3 Compatible Integration
+   runs-on: ubuntu-latest
+   steps:
+     - name: Checkout code
+       uses: actions/checkout@v6
 
-  #     - name: Run GCS S3 compatible tests
-  #       run: |
-  #         export access_key_id="${{ secrets.GCP_ACCESS_KEY_ID }}"
-  #         export secret_access_key="${{ secrets.GCP_SECRET_ACCESS_KEY }}"
-  #         export bucket_name="storage-cli-test-aws"
-  #         export s3_endpoint_host="https://storage.googleapis.com"
-  #         export s3_endpoint_port="443"
-  #         ./.github/scripts/s3/run-integration-s3-compat.sh
+     - name: Set up Go
+       uses: actions/setup-go@v6
+       with:
+         go-version-file: go.mod
+
+     - name: Install Ginkgo
+       run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+     - name: Run GCS S3 compatible tests
+       run: |
+         export access_key_id="${{ secrets.GCP_ACCESS_KEY_ID }}"
+         export secret_access_key="${{ secrets.GCP_SECRET_ACCESS_KEY }}"
+         export bucket_name="storage-cli-test-aws"
+         export s3_endpoint_host="https://storage.googleapis.com"
+         export s3_endpoint_port="443"
+         ./.github/scripts/s3/run-integration-s3-compat.sh
