@@ -27,7 +27,6 @@ var _ = Describe("Testing in any AWS region isolated from the US standard region
 			Expect(region).ToNot(BeEmpty(), "REGION must be set")
 
 			cfg := &config.S3Cli{
-				SignatureVersion:  4,
 				CredentialsSource: "static",
 				AccessKeyID:       accessKeyID,
 				SecretAccessKey:   secretAccessKey,

@@ -71,6 +71,13 @@ var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
 			s3CLISession, err = integration.RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(s3CLISession.ExitCode()).To(BeZero())
+
+			// Clean up the uploaded file
+			_, err = s3Client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+				Bucket: &bucketName,
+				Key:    &s3Filename,
+			})
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
