@@ -151,4 +151,4 @@ These commit IDs represent the last migration checkpoint from each provider's or
 - azurebs -> 18667d2a0b5237c38d053238906b4500cfb82ce8
 - dav   -> c64e57857539d0173d46e79093c2e998ec71ab63
 - gcs   -> d4ab2040f37415a559942feb7e264c6b28950f77
-- s3    -> 7ac9468ba8567eaf79828f30007c5a44066ef50f
+- s3    -> 39c1e2a988e3ec0026038cba041d0c2f1fb7dc93
