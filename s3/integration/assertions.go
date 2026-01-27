@@ -167,7 +167,7 @@ func AssertPutOptionsApplied(s3CLIPath string, cfg *config.S3Cli) {
 	}
 
 	// Clean up the uploaded file
-	_, err = RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+	_, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -199,6 +199,7 @@ func AssertOnMultipartUploads(s3CLIPath string, cfg *config.S3Cli, content strin
 	s3Filename := GenerateRandomString()
 	sourceFile := MakeContentFile(content)
 
+	storageType := "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 
@@ -229,7 +230,7 @@ func AssertOnMultipartUploads(s3CLIPath string, cfg *config.S3Cli, content strin
 	}
 
 	// Clean up the uploaded file
-	_, err = RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+	_, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -238,6 +239,7 @@ func AssertOnSignedURLs(s3CLIPath string, cfg *config.S3Cli) {
 	s3Filename := GenerateRandomString()
 	expectedContent := GenerateRandomString()
 
+	storageType := "s3"
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck
 
@@ -258,7 +260,7 @@ func AssertOnSignedURLs(s3CLIPath string, cfg *config.S3Cli) {
 	contentFile := MakeContentFile(expectedContent)
 	defer os.Remove(contentFile) //nolint:errcheck
 
-	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, "put", contentFile, s3Filename)
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
@@ -296,9 +298,9 @@ func AssertOnSignedURLs(s3CLIPath string, cfg *config.S3Cli) {
 	Expect(putResp.StatusCode).To(Equal(200))
 
 	// Clean up the test files
-	_, err = RunS3CLI(s3CLIPath, configPath, "delete", s3Filename)
+	_, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 
-	_, err = RunS3CLI(s3CLIPath, configPath, "delete", s3Filename+"_put_test")
+	_, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename+"_put_test")
 	Expect(err).ToNot(HaveOccurred())
 }
