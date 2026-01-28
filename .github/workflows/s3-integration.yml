@@ -165,7 +165,7 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
           s3_endpoint_host: ${{ env.S3_ENDPOINT_HOST }}
-          focus_regex: 'GENERAL AWS|AWS V4 REGION' # TODO: after aws-sdk-go-v2 migration, AWS V4 ONLY REGION test is failling, Removed temporarily from focus.
+          focus_regex: 'GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION'
           test_type: 'aws'
 
       - name: Teardown AWS infrastructure
