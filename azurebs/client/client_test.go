@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"runtime"
@@ -27,6 +28,29 @@ var _ = Describe("Client", func() {
 
 			Expect(storageClient.UploadCallCount()).To(Equal(1))
 			source, dest := storageClient.UploadArgsForCall(0)
+
+			Expect(source).To(BeAssignableToTypeOf((*os.File)(nil)))
+			Expect(dest).To(Equal("target/blob"))
+		})
+
+		It("uploads a file with UploadStream", func() {
+			storageClient := clientfakes.FakeStorageClient{}
+
+			azBlobstore, err := client.New(&storageClient)
+			Expect(err).ToNot(HaveOccurred())
+
+			file, _ := os.CreateTemp("", "tmpfile-test-upload") //nolint:errcheck
+			defer os.Remove(file.Name())                        //nolint:errcheck
+
+			contentSize := 1024 * 1024 * 64 // 64MB
+
+			content := bytes.Repeat([]byte("x"), contentSize)
+			_, _ = file.Write(content) //nolint:errcheck
+
+			azBlobstore.Put(file.Name(), "target/blob") //nolint:errcheck
+
+			Expect(storageClient.UploadStreamCallCount()).To(Equal(1))
+			source, dest := storageClient.UploadStreamArgsForCall(0)
 
 			Expect(source).To(BeAssignableToTypeOf((*os.File)(nil)))
 			Expect(dest).To(Equal("target/blob"))

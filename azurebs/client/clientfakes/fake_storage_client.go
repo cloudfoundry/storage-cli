@@ -133,6 +133,18 @@ type FakeStorageClient struct {
 		result1 []byte
 		result2 error
 	}
+	UploadStreamStub        func(io.ReadSeekCloser, string) error
+	uploadStreamMutex       sync.RWMutex
+	uploadStreamArgsForCall []struct {
+		arg1 io.ReadSeekCloser
+		arg2 string
+	}
+	uploadStreamReturns struct {
+		result1 error
+	}
+	uploadStreamReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -756,29 +768,71 @@ func (fake *FakeStorageClient) UploadReturnsOnCall(i int, result1 []byte, result
 	}{result1, result2}
 }
 
+func (fake *FakeStorageClient) UploadStream(arg1 io.ReadSeekCloser, arg2 string) error {
+	fake.uploadStreamMutex.Lock()
+	ret, specificReturn := fake.uploadStreamReturnsOnCall[len(fake.uploadStreamArgsForCall)]
+	fake.uploadStreamArgsForCall = append(fake.uploadStreamArgsForCall, struct {
+		arg1 io.ReadSeekCloser
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.UploadStreamStub
+	fakeReturns := fake.uploadStreamReturns
+	fake.recordInvocation("UploadStream", []interface{}{arg1, arg2})
+	fake.uploadStreamMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeStorageClient) UploadStreamCallCount() int {
+	fake.uploadStreamMutex.RLock()
+	defer fake.uploadStreamMutex.RUnlock()
+	return len(fake.uploadStreamArgsForCall)
+}
+
+func (fake *FakeStorageClient) UploadStreamCalls(stub func(io.ReadSeekCloser, string) error) {
+	fake.uploadStreamMutex.Lock()
+	defer fake.uploadStreamMutex.Unlock()
+	fake.UploadStreamStub = stub
+}
+
+func (fake *FakeStorageClient) UploadStreamArgsForCall(i int) (io.ReadSeekCloser, string) {
+	fake.uploadStreamMutex.RLock()
+	defer fake.uploadStreamMutex.RUnlock()
+	argsForCall := fake.uploadStreamArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeStorageClient) UploadStreamReturns(result1 error) {
+	fake.uploadStreamMutex.Lock()
+	defer fake.uploadStreamMutex.Unlock()
+	fake.UploadStreamStub = nil
+	fake.uploadStreamReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeStorageClient) UploadStreamReturnsOnCall(i int, result1 error) {
+	fake.uploadStreamMutex.Lock()
+	defer fake.uploadStreamMutex.Unlock()
+	fake.UploadStreamStub = nil
+	if fake.uploadStreamReturnsOnCall == nil {
+		fake.uploadStreamReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.uploadStreamReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeStorageClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.copyMutex.RLock()
-	defer fake.copyMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.deleteRecursiveMutex.RLock()
-	defer fake.deleteRecursiveMutex.RUnlock()
-	fake.downloadMutex.RLock()
-	defer fake.downloadMutex.RUnlock()
-	fake.ensureContainerExistsMutex.RLock()
-	defer fake.ensureContainerExistsMutex.RUnlock()
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	fake.listMutex.RLock()
-	defer fake.listMutex.RUnlock()
-	fake.propertiesMutex.RLock()
-	defer fake.propertiesMutex.RUnlock()
-	fake.signedUrlMutex.RLock()
-	defer fake.signedUrlMutex.RUnlock()
-	fake.uploadMutex.RLock()
-	defer fake.uploadMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

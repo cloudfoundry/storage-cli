@@ -2,6 +2,8 @@ package integration
 
 import (
 	"bytes"
+	"crypto/md5"
+	"io"
 	"os"
 
 	"github.com/cloudfoundry/storage-cli/azurebs/config"
@@ -46,7 +48,7 @@ func AssertPutHonorsCustomTimeout(cliPath string, cfg *config.AZStorageConfig) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sess.ExitCode()).To(BeZero())
 	Expect(sess.Err).Should(gbytes.Say(`"msg":"Uploading blob to container`))
-	Expect(sess.Err).Should(gbytes.Say(`"timeout":"3s"`))
+	Expect(sess.Err).Should(gbytes.Say(`"timeout":"3"`))
 
 	sess, err = RunCli(cliPath, configPath, storageType, "delete", blob)
 	Expect(err).ToNot(HaveOccurred())
@@ -393,6 +395,67 @@ func AssertOnCopy(cliPath string, cfg *config.AZStorageConfig) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cliSession.ExitCode()).To(BeZero())
 	cliSession, err = RunCli(cliPath, configPath, storageType, "delete", copiedBlobName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cliSession.ExitCode()).To(BeZero())
+}
+
+func AssertOnUploadStream(cliPath string, cfg *config.AZStorageConfig) {
+	configPath := MakeConfigFile(cfg)
+	contentSize := 1024 * 1024 * 64 //64MB
+	defer os.Remove(configPath)     //nolint:errcheck
+
+	// Create a blob to upload
+	blobName := GenerateRandomString()
+	blobContent := GenerateRandomString(contentSize)
+	contentFile := MakeContentFile(blobContent)
+	defer os.Remove(contentFile) //nolint:errcheck
+
+	// Calculate MD5 of original file
+	originalFile, err := os.Open(contentFile)
+	Expect(err).ToNot(HaveOccurred())
+	originalHash := md5.New()
+	_, err = io.Copy(originalHash, originalFile)
+	Expect(err).ToNot(HaveOccurred())
+	originalFile.Close() //nolint:errcheck
+	originalMD5 := originalHash.Sum(nil)
+
+	cliSession, err := RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cliSession.ExitCode()).To(BeZero())
+	Expect(cliSession.Err).Should(gbytes.Say(`"msg":"UploadStreaming blob to container"`))
+
+	// Assert that the copied blob exists
+	cliSession, err = RunCli(cliPath, configPath, storageType, "exists", blobName)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cliSession.ExitCode()).To(BeZero())
+
+	// Compare the content of the original and downloaded blobs
+	tmpLocalFile, err := os.CreateTemp("", "download-big-file")
+	Expect(err).ToNot(HaveOccurred())
+	err = tmpLocalFile.Close()
+	Expect(err).ToNot(HaveOccurred())
+	defer os.Remove(tmpLocalFile.Name()) //nolint:errcheck
+	cliSession, err = RunCli(cliPath, configPath, storageType, "get", blobName, tmpLocalFile.Name())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cliSession.ExitCode()).To(BeZero())
+
+	// Verify file size matches
+	downloadedInfo, err := os.Stat(tmpLocalFile.Name())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(downloadedInfo.Size()).To(Equal(int64(contentSize)))
+
+	// Verify MD5 matches
+	downloadedFile, err := os.Open(tmpLocalFile.Name())
+	Expect(err).ToNot(HaveOccurred())
+	downloadedHash := md5.New()
+	_, err = io.Copy(downloadedHash, downloadedFile)
+	Expect(err).ToNot(HaveOccurred())
+	downloadedFile.Close() //nolint:errcheck
+	downloadedMD5 := downloadedHash.Sum(nil)
+	Expect(downloadedMD5).To(Equal(originalMD5))
+
+	// Clean up
+	cliSession, err = RunCli(cliPath, configPath, storageType, "delete", blobName)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cliSession.ExitCode()).To(BeZero())
 }

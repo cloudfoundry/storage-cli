@@ -31,6 +31,11 @@ type StorageClient interface {
 		dest string,
 	) ([]byte, error)
 
+	UploadStream(
+		source io.ReadSeekCloser,
+		dest string,
+	) error
+
 	Download(
 		source string,
 		dest *os.File,
@@ -68,6 +73,36 @@ type StorageClient interface {
 	EnsureContainerExists() error
 }
 
+// 4 MB of block size
+const blockSize = int64(4 * 1024 * 1024)
+
+// number of go routines
+const maxConcurrency = 5
+
+func createContext(dsc DefaultStorageClient) (context.Context, context.CancelFunc, error) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	if dsc.storageConfig.Timeout != "" {
+		timeoutInt, err := strconv.Atoi(dsc.storageConfig.Timeout)
+		timeout := time.Duration(timeoutInt) * time.Second
+		if timeout < 1 && err == nil {
+			slog.Info("Invalid time, need at least 1 second", "timeout", dsc.storageConfig.Timeout)
+			return nil, nil, fmt.Errorf("invalid time: %w", err)
+		}
+		if err != nil {
+			slog.Info("Invalid timeout format, need seconds as number e.g. 30s", "timeout", dsc.storageConfig.Timeout)
+			return nil, nil, fmt.Errorf("invalid timeout format: %w", err)
+		}
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	} else {
+		ctx, cancel = context.WithCancel(context.Background())
+	}
+
+	return ctx, cancel, nil
+
+}
+
 type DefaultStorageClient struct {
 	credential    *azblob.SharedKeyCredential
 	serviceURL    string
@@ -91,26 +126,15 @@ func (dsc DefaultStorageClient) Upload(
 ) ([]byte, error) {
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
-	var ctx context.Context
-	var cancel context.CancelFunc
-
 	if dsc.storageConfig.Timeout != "" {
-		timeoutInt, err := strconv.Atoi(dsc.storageConfig.Timeout)
-		timeout := time.Duration(timeoutInt) * time.Second
-		if timeout < 1 && err == nil {
-			slog.Info("Invalid time, need at least 1 second", "timeout", dsc.storageConfig.Timeout)
-			return nil, fmt.Errorf("invalid time: %w", err)
-		}
-		if err != nil {
-			slog.Info("Invalid timeout format, need seconds as number e.g. 30s", "timeout", dsc.storageConfig.Timeout)
-			return nil, fmt.Errorf("invalid timeout format: %w", err)
-		}
-		slog.Info("Uploading blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL, "timeout", timeout.String())
-
-		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		slog.Info("Uploading blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL, "timeout", dsc.storageConfig.Timeout)
 	} else {
 		slog.Info("Uploading blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
-		ctx, cancel = context.WithCancel(context.Background())
+	}
+
+	ctx, cancel, err := createContext(dsc)
+	if err != nil {
+		return nil, err
 	}
 	defer cancel()
 
@@ -118,6 +142,7 @@ func (dsc DefaultStorageClient) Upload(
 	if err != nil {
 		return nil, err
 	}
+
 	uploadResponse, err := client.Upload(ctx, source, nil)
 	if err != nil {
 		if dsc.storageConfig.Timeout != "" && errors.Is(err, context.DeadlineExceeded) {
@@ -127,7 +152,42 @@ func (dsc DefaultStorageClient) Upload(
 	}
 
 	slog.Info("Successfully uploaded blob", "container", dsc.storageConfig.ContainerName, "blob", dest)
-	return uploadResponse.ContentMD5, err
+	return uploadResponse.ContentMD5, nil
+}
+
+func (dsc DefaultStorageClient) UploadStream(
+	source io.ReadSeekCloser,
+	dest string,
+) error {
+	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
+
+	if dsc.storageConfig.Timeout != "" {
+		slog.Info("UploadStreaming blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL, "timeout", dsc.storageConfig.Timeout)
+	} else {
+		slog.Info("UploadStreaming blob to container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
+	}
+
+	ctx, cancel, err := createContext(dsc)
+	if err != nil {
+		return err
+	}
+	defer cancel()
+
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.UploadStream(ctx, source, &azblob.UploadStreamOptions{BlockSize: blockSize, Concurrency: maxConcurrency})
+	if err != nil {
+		if dsc.storageConfig.Timeout != "" && errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("upload failed: timeout of %s reached while uploading %s", dsc.storageConfig.Timeout, dest)
+		}
+		return fmt.Errorf("upload failure: %w", err)
+	}
+
+	slog.Info("Successfully uploaded blob", "container", dsc.storageConfig.ContainerName, "blob", dest)
+	return nil
 }
 
 func (dsc DefaultStorageClient) Download(

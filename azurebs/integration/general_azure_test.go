@@ -97,6 +97,11 @@ var _ = Describe("General testing for all Azure regions", func() {
 		configurations,
 	)
 
+	DescribeTable("Invoking `put` with file size bigger than singleBlobPutThreshold(32MB)",
+		func(cfg *config.AZStorageConfig) { integration.AssertOnUploadStream(cliPath, cfg) },
+		configurations,
+	)
+
 	Describe("Invoking `put`", func() {
 		var blobName string
 		var configPath string
