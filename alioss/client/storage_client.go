@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -64,6 +65,24 @@ type StorageClient interface {
 
 	EnsureBucketExists() error
 }
+
+// 4 MB of part size
+const partSize = int64(4 * 1024 * 1024)
+
+// number of go routines
+const maxConcurrency = 5
+
+// Single blob put threshold is 32MB
+const singleBlobPutThreshold = int64(32 * 1024 * 1024)
+
+func getFileSize(fileName string) (int64, error) {
+	fileInfo, err := os.Stat(fileName)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get file stat: %w", err)
+	}
+	return fileInfo.Size(), nil
+}
+
 type DefaultStorageClient struct {
 	storageConfig config.AliStorageConfig
 }
@@ -98,7 +117,16 @@ func (dsc DefaultStorageClient) Upload(sourceFilePath string, sourceFileMD5 stri
 		return err
 	}
 
-	return bucket.PutObjectFromFile(destinationObject, sourceFilePath, oss.ContentMD5(sourceFileMD5))
+	fileSize, err := getFileSize(sourceFilePath)
+	if err != nil {
+		return err
+	}
+	if fileSize <= singleBlobPutThreshold {
+		return bucket.PutObjectFromFile(destinationObject, sourceFilePath, oss.ContentMD5(sourceFileMD5))
+
+	} else {
+		return bucket.UploadFile(destinationObject, sourceFilePath, partSize, oss.Routines(maxConcurrency))
+	}
 }
 
 func (dsc DefaultStorageClient) Download(sourceObject string, destinationFilePath string) error {
@@ -114,7 +142,7 @@ func (dsc DefaultStorageClient) Download(sourceObject string, destinationFilePat
 		return err
 	}
 
-	return bucket.GetObjectToFile(sourceObject, destinationFilePath)
+	return bucket.DownloadFile(sourceObject, destinationFilePath, partSize, oss.Routines(maxConcurrency))
 }
 
 func (dsc DefaultStorageClient) Copy(sourceObject string, destinationObject string) error {
