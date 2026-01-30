@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -84,18 +84,16 @@ func (b *awsS3Client) Put(src io.ReadSeeker, dest string) error {
 		if err != nil {
 			if _, ok := err.(manager.MultiUploadFailure); ok {
 				if retry == maxRetries {
-					log.Println("Upload retry limit exceeded:", err.Error())
 					return fmt.Errorf("upload retry limit exceeded: %s", err.Error())
 				}
 				retry++
 				time.Sleep(time.Second * time.Duration(retry))
 				continue
 			}
-			log.Println("Upload failed:", err.Error())
 			return fmt.Errorf("upload failure: %s", err.Error())
 		}
 
-		log.Println("Successfully uploaded file to", putResult.Location)
+		slog.Info("Successfully uploaded file", "location", putResult.Location)
 		return nil
 	}
 }
@@ -134,13 +132,13 @@ func (b *awsS3Client) Exists(dest string) (bool, error) {
 	_, err := b.s3Client.HeadObject(context.TODO(), existsParams)
 
 	if err == nil {
-		log.Printf("File '%s' exists in bucket '%s'\n", dest, b.s3cliConfig.BucketName)
+		slog.Info("Blob exists in bucket", "bucket", b.s3cliConfig.BucketName, "blob", dest)
 		return true, nil
 	}
 
 	var apiErr smithy.APIError
 	if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotFound" {
-		log.Printf("File '%s' does not exist in bucket '%s'\n", dest, b.s3cliConfig.BucketName)
+		slog.Info("Blob does not exist in bucket", "bucket", b.s3cliConfig.BucketName, "blob", dest)
 		return false, nil
 	}
 	return false, err

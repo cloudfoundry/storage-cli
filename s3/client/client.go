@@ -2,7 +2,6 @@ package client
 
 import (
 	"errors"
-	"log"
 	"os"
 	"time"
 
@@ -43,7 +42,7 @@ func (c *S3CompatibleClient) Get(src string, dest string) error {
 func (c *S3CompatibleClient) Put(src string, dest string) error {
 	sourceFile, err := os.Open(src)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 	defer sourceFile.Close() //nolint:errcheck
 	return c.awsS3BlobstoreClient.Put(sourceFile, dest)
