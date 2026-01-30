@@ -43,11 +43,7 @@ func NewAwsS3ClientWithApiOptions(
 	}
 
 	if common.IsDebug() {
-		if t, ok := httpClient.Transport.(http.RoundTripper); ok {
-			httpClient.Transport = s3middleware.NewS3LoggingTransport(t)
-		} else {
-			httpClient.Transport = s3middleware.NewS3LoggingTransport(http.DefaultTransport)
-		}
+		httpClient.Transport = s3middleware.NewS3LoggingTransport(httpClient.Transport)
 	}
 
 	options := []func(*config.LoadOptions) error{
