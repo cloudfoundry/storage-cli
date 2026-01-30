@@ -2,15 +2,13 @@ name: S3 Integration Tests
 
 on:
   workflow_dispatch:
-  # temporarily disabled until S3 implementation uses new structured logging format
-  # blocked by https://github.com/cloudfoundry/bosh-s3cli/pull/60 which needs to be integrated first 
-  # pull_request:
-  #   paths:
-  #   - ".github/workflows/s3-integration.yml"
-  #   - "s3/**"
-  # push:
-  #   branches:
-  #     - main
+  pull_request:
+    paths:
+    - ".github/workflows/s3-integration.yml"
+    - "s3/**"
+  push:
+    branches:
+      - main
 
 jobs:
   # AWS S3 US Integration Tests
