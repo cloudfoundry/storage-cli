@@ -27,7 +27,11 @@ The S3 client requires a JSON configuration file with the following structure:
   "signature_version":      "<string> (optional)",
   "server_side_encryption": "<string> (optional)",
   "sse_kms_key_id":         "<string> (optional)",
-  "multipart_upload":       <bool> (optional - default: true)
+  "multipart_upload":       <bool> (optional - default: true),
+  "download_concurrency":   "<string> (optional - default: '5')",
+  "download_part_size":     "<string> (optional - default: '5242880')", # 5 MB
+  "upload_concurrency":     "<string> (optional - default: '5')",
+  "upload_part_size":       "<string> (optional - default: '5242880')" # 5 MB
 }
 ```
 > Note: **multipart_upload** is not supported by Google - it's automatically set to false by parsing the provided 'host'
@@ -79,12 +83,12 @@ Run `./.github/scripts/s3/setup-aws-infrastructure.sh` and `./.github/scripts/s3
 #### Setup for GCP
 1. Create a bucket in GCP
 2. Create access keys 
-   1. Navigate to **IAM & Admin > Service Accounts**.
-   2. Select your service account or create a new one if needed.
-   3. Ensure your service account has necessary permissions (like `Storage Object Creator`, `Storage Object Viewer`, `Storage Admin`) depending on what access you want.
-   4. Go to **Cloud Storage** and select **Settings**.
-   5. In the **Interoperability** section, create an HMAC key for your service account. This generates an "access key ID" and a "secret access key".
-3. Export the following variables into your environment:
+3. Navigate to **IAM & Admin > Service Accounts**.
+4. Select your service account or create a new one if needed.
+5. Ensure your service account has necessary permissions (like `Storage Object Creator`, `Storage Object Viewer`, `Storage Admin`) depending on what access you want.
+6. Go to **Cloud Storage** and select **Settings**.
+7. In the **Interoperability** section, create an HMAC key for your service account. This generates an "access key ID" and a "secret access key".
+8. Export the following variables into your environment:
 ```
 export access_key_id=<YOUR_ACCESS_KEY>
 export secret_access_key=<YOUR_SECRET_ACCESS_KEY>
