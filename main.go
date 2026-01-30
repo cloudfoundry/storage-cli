@@ -23,7 +23,6 @@ func fatalLog(cmd string, err error) {
 	// If the object exists the exit status is 0, otherwise it is 3
 	// We are using `3` since `1` and `2` have special meanings
 	if _, ok := err.(*storage.NotExistsError); ok {
-		slog.Error("performing operation", "command", cmd, "error", err)
 		os.Exit(3)
 	}
 	slog.Error("performing operation", "command", cmd, "error", err)

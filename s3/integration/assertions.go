@@ -10,13 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry/storage-cli/s3/client"
-	"github.com/cloudfoundry/storage-cli/s3/config"
-	"github.com/onsi/gomega/gbytes"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/cloudfoundry/storage-cli/s3/client"
+	"github.com/cloudfoundry/storage-cli/s3/config"
 	. "github.com/onsi/gomega" //nolint:staticcheck
 )
 
@@ -99,7 +97,6 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(Equal(3))
-	Expect(s3CLISession.Err).Should(gbytes.Say(`"error":"object does not exist"`))
 }
 
 func AssertOnPutFailures(cfg *config.S3Cli, content, errorMessage string) {
