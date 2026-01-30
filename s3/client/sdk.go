@@ -25,7 +25,7 @@ func NewAwsS3Client(c *s3cli_config.S3Cli) (*s3.Client, error) {
 		// Setup middleware fixing request to Google - they expect the 'accept-encoding' header
 		// to not be included in the signature of the request. Not needed for "sign" commands
 		// since they only generate pre-signed URLs without making actual HTTP requests.
-		apiOptions = append(apiOptions, AddFixAcceptEncodingMiddleware)
+		apiOptions = append(apiOptions, s3middleware.AddFixAcceptEncodingMiddleware)
 	}
 	return NewAwsS3ClientWithApiOptions(c, apiOptions)
 }

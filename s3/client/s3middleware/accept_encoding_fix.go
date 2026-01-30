@@ -1,4 +1,4 @@
-package client
+package s3middleware
 
 import (
 	"context"
