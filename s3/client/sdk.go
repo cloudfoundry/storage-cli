@@ -13,6 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go/middleware"
 	boshhttp "github.com/cloudfoundry/bosh-utils/httpclient"
+	"github.com/cloudfoundry/storage-cli/common"
+	"github.com/cloudfoundry/storage-cli/s3/client/s3middleware"
 
 	s3cli_config "github.com/cloudfoundry/storage-cli/s3/config"
 )
@@ -38,6 +40,14 @@ func NewAwsS3ClientWithApiOptions(
 		httpClient = boshhttp.CreateDefaultClient(nil)
 	} else {
 		httpClient = boshhttp.CreateDefaultClientInsecureSkipVerify()
+	}
+
+	if common.IsDebug() {
+		if t, ok := httpClient.Transport.(http.RoundTripper); ok {
+			httpClient.Transport = s3middleware.NewS3LoggingTransport(t)
+		} else {
+			httpClient.Transport = s3middleware.NewS3LoggingTransport(http.DefaultTransport)
+		}
 	}
 
 	options := []func(*config.LoadOptions) error{
