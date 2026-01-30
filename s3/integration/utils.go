@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go/middleware"
 	"github.com/cloudfoundry/storage-cli/s3/client"
+	"github.com/cloudfoundry/storage-cli/s3/client/s3middleware"
 	"github.com/cloudfoundry/storage-cli/s3/config"
 
 	. "github.com/onsi/ginkgo/v2" //nolint:staticcheck
@@ -98,7 +99,7 @@ func CreateTracingS3Client(s3Config *config.S3Cli, calls *[]string) (*s3.Client,
 	var apiOptions []func(stack *middleware.Stack) error
 	// Setup middleware fixing request to Google - they expect the 'accept-encoding' header
 	// to not be included in the signature of the request.
-	apiOptions = append(apiOptions, client.AddFixAcceptEncodingMiddleware)
+	apiOptions = append(apiOptions, s3middleware.AddFixAcceptEncodingMiddleware)
 	// Use the centralized client creation logic with a custom middleware
 	apiOptions = append(apiOptions, func(stack *middleware.Stack) error {
 		return stack.Initialize.Add(createS3TracingMiddleware(calls), middleware.Before)
