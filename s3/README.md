@@ -13,15 +13,12 @@ The S3 client requires a JSON configuration file with the following structure:
 ``` json
 {
   "bucket_name":            "<string> (required)",
-
   "credentials_source":     "<string> [static|env_or_profile|none]",
   "access_key_id":          "<string> (required if credentials_source = 'static')",
   "secret_access_key":      "<string> (required if credentials_source = 'static')",
-
   "region":                 "<string> (optional - default: 'us-east-1')",
   "host":                   "<string> (optional)",
   "port":                   <int> (optional),
-
   "ssl_verify_peer":        <bool> (optional - default: true),
   "use_ssl":                <bool> (optional - default: true),
   "signature_version":      "<string> (optional)",
