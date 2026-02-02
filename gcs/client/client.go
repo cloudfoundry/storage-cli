@@ -41,8 +41,14 @@ import (
 // client disallow an attempted write operation.
 var ErrInvalidROWriteOperation = errors.New("the client operates in read only mode. Change 'credentials_source' parameter value ")
 
-// 4 MB of block size
+// 4 MB of block size.
+// Used in concurrent download
 const blockSize = int64(4 * 1024 * 1024)
+
+// 100MB of resumable block size
+// No concurrency, sequential upload still
+// see, https://github.com/googleapis/google-api-ruby-client/blob/main/google-apis-core/lib/google/apis/options.rb#L142
+const uploadChunkSize = int(100 * 1024 * 1024)
 
 // number of go routines
 const maxConcurrency = 5
@@ -218,7 +224,7 @@ func (client *GCSBlobstore) Put(sourceFilePath string, dest string) error {
 
 	var errs []error
 	for i := range retryAttempts {
-		err := client.putOnce(src, dest)
+		err := client.putResumable(src, dest)
 		if err == nil {
 			return nil
 		}
@@ -234,12 +240,15 @@ func (client *GCSBlobstore) Put(sourceFilePath string, dest string) error {
 	return fmt.Errorf("upload failed for %s after %d attempts: %v", dest, retryAttempts, errs)
 }
 
-func (client *GCSBlobstore) putOnce(src io.ReadSeeker, dest string) error {
+// putResumable performs a resumable upload in chunks of uploadChunkSize (100MB).
+// Chunks are uploaded sequentially with automatic per-chunk retry on failure.
+func (client *GCSBlobstore) putResumable(src io.ReadSeeker, dest string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Clean up the context after the function completes
 
 	remoteWriter := client.getObjectHandle(client.authenticatedGCS, dest).NewWriter(ctx) //nolint:staticcheck
 	remoteWriter.ObjectAttrs.StorageClass = client.config.StorageClass                   //nolint:staticcheck
+	remoteWriter.ChunkSize = uploadChunkSize
 
 	if _, err := io.Copy(remoteWriter, src); err != nil {
 		remoteWriter.Close() //nolint:errcheck
