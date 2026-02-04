@@ -21,7 +21,6 @@ Key points
   - additional endpoints needed by CAPI still missing
 - [Gcs](./gcs/README.md)
 - [S3](./s3/README.md)
-  - additional endpoints needed by CAPI still missing 
 
 
 ## Build
