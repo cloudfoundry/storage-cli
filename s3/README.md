@@ -25,10 +25,10 @@ The S3 client requires a JSON configuration file with the following structure:
   "server_side_encryption": "<string> (optional)",
   "sse_kms_key_id":         "<string> (optional)",
   "multipart_upload":       <bool> (optional - default: true),
-  "download_concurrency":   "<string> (optional - default: '5')",
-  "download_part_size":     "<string> (optional - default: '5242880')", # 5 MB
-  "upload_concurrency":     "<string> (optional - default: '5')",
-  "upload_part_size":       "<string> (optional - default: '5242880')" # 5 MB
+  "download_concurrency":   <int> (optional - default: 5),
+  "download_part_size":     <int64> (optional - default: 5242880), # 5 MB
+  "upload_concurrency":     <int> (optional - default: 5),
+  "upload_part_size":       <int64> (optional - default: 5242880) # 5 MB
 }
 ```
 > Note: **multipart_upload** is not supported by Google - it's automatically set to false by parsing the provided 'host'
