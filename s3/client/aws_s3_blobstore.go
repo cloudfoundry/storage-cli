@@ -251,8 +251,8 @@ func (b *awsS3Client) EnsureStorageExists() error {
 		Bucket: aws.String(b.s3cliConfig.BucketName),
 	}
 
-	// GCS raises an error if LocationConstraint is set
-	if !b.s3cliConfig.IsGoogle() {
+	// For GCS and AWS region 'us-east-1', LocationConstraint must be omitted
+	if !b.s3cliConfig.IsGoogle() && b.s3cliConfig.Region != "us-east-1" {
 		createBucketInput.CreateBucketConfiguration = &types.CreateBucketConfiguration{
 			LocationConstraint: types.BucketLocationConstraint(b.s3cliConfig.Region),
 		}
