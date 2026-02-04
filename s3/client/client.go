@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"os"
 	"time"
 
@@ -65,25 +64,24 @@ func (c *S3CompatibleClient) Sign(objectID string, action string, expiration tim
 }
 
 func (c *S3CompatibleClient) EnsureStorageExists() error {
-	return errors.New("not implemented")
-
+	return c.awsS3BlobstoreClient.EnsureStorageExists()
 }
 
 func (c *S3CompatibleClient) Copy(srcBlob string, dstBlob string) error {
-	return errors.New("not implemented")
+	return c.awsS3BlobstoreClient.Copy(srcBlob, dstBlob)
 
 }
 
 func (c *S3CompatibleClient) Properties(dest string) error {
-	return errors.New("not implemented")
+	return c.awsS3BlobstoreClient.Properties(dest)
 
 }
 
 func (c *S3CompatibleClient) List(prefix string) ([]string, error) {
-	return nil, errors.New("not implemented")
+	return c.awsS3BlobstoreClient.List(prefix)
 
 }
 
 func (c *S3CompatibleClient) DeleteRecursive(prefix string) error {
-	return errors.New("not implemented")
+	return c.awsS3BlobstoreClient.DeleteRecursive(prefix)
 }

@@ -46,6 +46,14 @@ var _ = Describe("Testing only in us-east-1", func() {
 			func(cfg *config.S3Cli) { integration.AssertLifecycleWorks(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Invoking `ensure-storage-exists` works",
+			func(cfg *config.S3Cli) { integration.AssertOnStorageExists(s3CLIPath, cfg) },
+			configurations,
+		)
+		DescribeTable("Blobstore bulk operations work",
+			func(cfg *config.S3Cli) { integration.AssertOnBulkOperations(s3CLIPath, cfg) },
+			configurations,
+		)
 		DescribeTable("Invoking `s3cli get` on a non-existent-key fails",
 			func(cfg *config.S3Cli) { integration.AssertGetNonexistentFails(s3CLIPath, cfg) },
 			configurations,
