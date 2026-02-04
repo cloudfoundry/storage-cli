@@ -91,7 +91,7 @@ func createContext(dsc DefaultStorageClient) (context.Context, context.CancelFun
 			return nil, nil, fmt.Errorf("invalid time: %w", err)
 		}
 		if err != nil {
-			slog.Info("Invalid timeout format, need seconds as number e.g. 30s", "timeout", dsc.storageConfig.Timeout)
+			slog.Info("Invalid timeout format, need seconds as number e.g. 30", "timeout", dsc.storageConfig.Timeout)
 			return nil, nil, fmt.Errorf("invalid timeout format: %w", err)
 		}
 		ctx, cancel = context.WithTimeout(context.Background(), timeout)
