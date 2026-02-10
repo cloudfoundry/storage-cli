@@ -361,7 +361,7 @@ func (b *awsS3Client) List(prefix string) ([]string, error) {
 	for objectPaginator.HasMorePages() {
 		page, err := objectPaginator.NextPage(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("failed to list objects for deletion: %w", err)
+			return nil, fmt.Errorf("failed to list objects: %w", err)
 		}
 
 		if len(page.Contents) == 0 {
