@@ -241,8 +241,8 @@ func (b *awsS3Client) EnsureStorageExists() error {
 		return nil
 	}
 
-	var notFoundErr *types.NotFound
-	if !errors.As(err, &notFoundErr) {
+	var apiErr smithy.APIError
+	if !errors.As(err, &apiErr) || apiErr.ErrorCode() != "NotFound" {
 		return fmt.Errorf("failed to check if bucket exists: %w", err)
 	}
 
@@ -307,7 +307,7 @@ type BlobProperties struct {
 }
 
 func (b *awsS3Client) Properties(dest string) error {
-	slog.Info("fetching blob properties", "bucket", b.s3cliConfig.BucketName, "blob", dest)
+	slog.Info("Fetching blob properties", "bucket", b.s3cliConfig.BucketName, "blob", dest)
 
 	headObjectOutput, err := b.s3Client.HeadObject(context.TODO(), &s3.HeadObjectInput{
 		Bucket: aws.String(b.s3cliConfig.BucketName),
@@ -361,7 +361,7 @@ func (b *awsS3Client) List(prefix string) ([]string, error) {
 	for objectPaginator.HasMorePages() {
 		page, err := objectPaginator.NextPage(context.TODO())
 		if err != nil {
-			return nil, fmt.Errorf("failed to list objects for deletion: %w", err)
+			return nil, fmt.Errorf("failed to list objects: %w", err)
 		}
 
 		if len(page.Contents) == 0 {
