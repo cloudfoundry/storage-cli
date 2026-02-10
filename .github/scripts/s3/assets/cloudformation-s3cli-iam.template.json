@@ -41,6 +41,20 @@
                   "Resource": "arn:aws:logs:*:*:*"
                 },
                 {
+                  "Action": ["s3:CreateBucket", "s3:HeadBucket", "s3:DeleteBucket"],
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:s3:::",
+                        { "Ref": "S3Bucket" },
+                        "*"
+                      ]
+                    ]
+                  }
+                },
+                {
                   "Action": [
                     "s3:GetObject*",
                     "s3:PutObject*",
@@ -65,6 +79,26 @@
                           "arn:aws:s3:::",
                           { "Ref": "S3Bucket" },
                           "/*"
+                        ]
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          { "Ref": "S3Bucket" },
+                          "*"
+                        ]
+                      ]
+                    },
+                    {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          { "Ref": "S3Bucket" },
+                          "*/*"
                         ]
                       ]
                     }

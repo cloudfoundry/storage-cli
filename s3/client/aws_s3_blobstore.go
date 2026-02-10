@@ -313,7 +313,13 @@ func (b *awsS3Client) Properties(dest string) error {
 		Bucket: aws.String(b.s3cliConfig.BucketName),
 		Key:    b.key(dest),
 	})
+
 	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotFound" {
+			fmt.Println(`{}`)
+			return nil
+		}
 		return fmt.Errorf("failed to fetch blob properties: %w", err)
 	}
 

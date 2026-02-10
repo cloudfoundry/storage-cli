@@ -131,6 +131,12 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(s3CLISession.ExitCode()).To(Equal(3))
+
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "properties", s3Filename)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+	Expect(s3CLISession.Out.Contents()).To(ContainSubstring("{}"))
+
 }
 
 func AssertOnBulkOperations(s3CLIPath string, cfg *config.S3Cli) {
