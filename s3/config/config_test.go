@@ -327,6 +327,93 @@ var _ = Describe("BlobstoreClient configuration", func() {
 			_, err = config.NewFromReader(dummyJSONReader)
 			Expect(err).To(MatchError("download/upload concurrency and part sizes must be non-negative"))
 		})
+
+		Describe("multipart copy tuning fields", func() {
+			It("rejects negative multipart copy threshold", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_threshold": -1
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				_, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).To(MatchError("multipart_copy_threshold must be non-negative (0 means use default)"))
+			})
+
+			It("rejects negative multipart copy part size", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_part_size": -1
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				_, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).To(MatchError("multipart_copy_part_size must be non-negative (0 means use default)"))
+			})
+
+			It("rejects multipart copy part size below AWS minimum", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_part_size": 1048576
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				_, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).To(MatchError("multipart_copy_part_size must be at least 5242880 bytes (5MB - AWS minimum)"))
+			})
+
+			It("accepts zero values (use defaults)", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_threshold": 0,
+					"multipart_copy_part_size": 0
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				c, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(c.MultipartCopyThreshold).To(Equal(int64(0)))
+				Expect(c.MultipartCopyPartSize).To(Equal(int64(0)))
+			})
+
+			It("accepts valid custom values", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_threshold": 1073741824,
+					"multipart_copy_part_size": 104857600
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				c, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(c.MultipartCopyThreshold).To(Equal(int64(1073741824))) // 1GB
+				Expect(c.MultipartCopyPartSize).To(Equal(int64(104857600)))   // 100MB
+			})
+
+			It("accepts threshold above AWS limit for providers with higher limits", func() {
+				dummyJSONBytes := []byte(`{
+					"access_key_id":"id",
+					"secret_access_key":"key",
+					"bucket_name":"some-bucket",
+					"multipart_copy_threshold": 10737418240
+				}`)
+				dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+				c, err := config.NewFromReader(dummyJSONReader)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(c.MultipartCopyThreshold).To(Equal(int64(10737418240))) // 10GB
+			})
+		})
 	})
 
 	Describe("returning the S3 endpoint", func() {

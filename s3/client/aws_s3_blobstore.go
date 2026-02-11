@@ -29,6 +29,10 @@ var oneTB = int64(1000 * 1024 * 1024 * 1024)
 const (
 	defaultTransferConcurrency = 5
 	defaultTransferPartSize    = int64(5 * 1024 * 1024) // 5 MB
+	// For copy operations: use multipart copy only when necessary (>5GB)
+	// AWS CopyObject limit is 5GB, use 100MB parts for multipart copy
+	defaultMultipartCopyThreshold = int64(5 * 1024 * 1024 * 1024) // 5 GB
+	defaultMultipartCopyPartSize  = int64(100 * 1024 * 1024)      // 100 MB
 )
 
 // awsS3Client encapsulates AWS S3 blobstore interactions
@@ -274,29 +278,159 @@ func (b *awsS3Client) EnsureStorageExists() error {
 }
 
 func (b *awsS3Client) Copy(srcBlob string, dstBlob string) error {
-	slog.Info("Copying object within s3 bucket", "bucket", b.s3cliConfig.BucketName, "source_blob", srcBlob, "destination_blob", dstBlob)
+	cfg := b.s3cliConfig
 
-	copySource := fmt.Sprintf("%s/%s", b.s3cliConfig.BucketName, *b.key(srcBlob))
+	copyThreshold := defaultMultipartCopyThreshold
+	if cfg.MultipartCopyThreshold > 0 {
+		copyThreshold = cfg.MultipartCopyThreshold
+	}
+	copyPartSize := defaultMultipartCopyPartSize
+	if cfg.MultipartCopyPartSize > 0 {
+		copyPartSize = cfg.MultipartCopyPartSize
+	}
 
-	_, err := b.s3Client.CopyObject(context.TODO(), &s3.CopyObjectInput{
-		Bucket:     aws.String(b.s3cliConfig.BucketName),
+	headOutput, err := b.s3Client.HeadObject(context.TODO(), &s3.HeadObjectInput{
+		Bucket: aws.String(cfg.BucketName),
+		Key:    b.key(srcBlob),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get object metadata: %w", err)
+	}
+	if headOutput.ContentLength == nil {
+		return errors.New("unable to determine object content length from S3 metadata")
+	}
+
+	objectSize := *headOutput.ContentLength
+	copySource := fmt.Sprintf("%s/%s", cfg.BucketName, *b.key(srcBlob))
+
+	// Use simple copy if file is below threshold or is empty
+	if objectSize < copyThreshold {
+		slog.Info("Copying object", "source", srcBlob, "destination", dstBlob, "size", objectSize)
+		return b.simpleCopy(copySource, dstBlob)
+	}
+
+	// For large files, try multipart copy first (works for AWS, MinIO, Ceph, AliCloud)
+	// Fall back to simple copy if provider doesn't support UploadPartCopy (e.g., GCS)
+	slog.Info("Copying large object using multipart copy", "source", srcBlob, "destination", dstBlob, "size", objectSize)
+
+	err = b.multipartCopy(copySource, dstBlob, objectSize, copyPartSize)
+	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "NotImplemented" {
+			slog.Info("Multipart copy not supported by provider, falling back to simple copy", "source", srcBlob, "destination", dstBlob)
+			return b.simpleCopy(copySource, dstBlob)
+		}
+		return err
+	}
+
+	return nil
+}
+
+// simpleCopy performs a single CopyObject request
+func (b *awsS3Client) simpleCopy(copySource string, dstBlob string) error {
+	cfg := b.s3cliConfig
+
+	copyInput := &s3.CopyObjectInput{
+		Bucket:     aws.String(cfg.BucketName),
 		CopySource: aws.String(copySource),
 		Key:        b.key(dstBlob),
-	})
+	}
+	if cfg.ServerSideEncryption != "" {
+		copyInput.ServerSideEncryption = types.ServerSideEncryption(cfg.ServerSideEncryption)
+	}
+	if cfg.SSEKMSKeyID != "" {
+		copyInput.SSEKMSKeyId = aws.String(cfg.SSEKMSKeyID)
+	}
+
+	_, err := b.s3Client.CopyObject(context.TODO(), copyInput)
 	if err != nil {
 		return fmt.Errorf("failed to copy object: %w", err)
 	}
+	return nil
+}
 
-	waiter := s3.NewObjectExistsWaiter(b.s3Client)
-	err = waiter.Wait(context.TODO(), &s3.HeadObjectInput{
-		Bucket: aws.String(b.s3cliConfig.BucketName),
+// multipartCopy performs a multipart copy using CreateMultipartUpload, UploadPartCopy, and CompleteMultipartUpload
+func (b *awsS3Client) multipartCopy(copySource string, dstBlob string, objectSize int64, copyPartSize int64) error {
+	cfg := b.s3cliConfig
+	// Calculate number of parts using ceiling division (avoids floating-point arithmetic).
+	// Example: objectSize=550MB, partSize=100MB => (550 + 100 - 1) / 100 = 6 parts
+	numParts := int((objectSize + copyPartSize - 1) / copyPartSize)
+
+	createInput := &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(cfg.BucketName),
 		Key:    b.key(dstBlob),
-	}, 15*time.Minute)
-
-	if err != nil {
-		return fmt.Errorf("failed waiting for object to exist after copy: %w", err)
+	}
+	if cfg.ServerSideEncryption != "" {
+		createInput.ServerSideEncryption = types.ServerSideEncryption(cfg.ServerSideEncryption)
+	}
+	if cfg.SSEKMSKeyID != "" {
+		createInput.SSEKMSKeyId = aws.String(cfg.SSEKMSKeyID)
 	}
 
+	createOutput, err := b.s3Client.CreateMultipartUpload(context.TODO(), createInput)
+	if err != nil {
+		return fmt.Errorf("failed to create multipart upload: %w", err)
+	}
+
+	uploadID := *createOutput.UploadId
+
+	var completed bool
+	defer func() {
+		if !completed {
+			_, err := b.s3Client.AbortMultipartUpload(context.TODO(), &s3.AbortMultipartUploadInput{
+				Bucket:   aws.String(cfg.BucketName),
+				Key:      b.key(dstBlob),
+				UploadId: aws.String(uploadID),
+			})
+			if err != nil {
+				slog.Warn("Failed to abort multipart upload", "uploadId", uploadID, "error", err)
+			}
+		}
+	}()
+
+	completedParts := make([]types.CompletedPart, 0, numParts)
+	for i := 0; i < numParts; i++ {
+		partNumber := int32(i + 1)
+		start := int64(i) * copyPartSize
+		end := start + copyPartSize - 1
+		if end >= objectSize {
+			end = objectSize - 1
+		}
+		byteRange := fmt.Sprintf("bytes=%d-%d", start, end)
+
+		output, err := b.s3Client.UploadPartCopy(context.TODO(), &s3.UploadPartCopyInput{
+			Bucket:          aws.String(cfg.BucketName),
+			CopySource:      aws.String(copySource),
+			CopySourceRange: aws.String(byteRange),
+			Key:             b.key(dstBlob),
+			PartNumber:      aws.Int32(partNumber),
+			UploadId:        aws.String(uploadID),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to copy part %d: %w", partNumber, err)
+		}
+
+		completedParts = append(completedParts, types.CompletedPart{
+			ETag:       output.CopyPartResult.ETag,
+			PartNumber: aws.Int32(partNumber),
+		})
+		slog.Debug("Copied part", "part", partNumber, "range", byteRange)
+	}
+
+	_, err = b.s3Client.CompleteMultipartUpload(context.TODO(), &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(cfg.BucketName),
+		Key:      b.key(dstBlob),
+		UploadId: aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to complete multipart upload: %w", err)
+	}
+
+	completed = true
+	slog.Debug("Multipart copy completed successfully", "parts", numParts)
 	return nil
 }
 
