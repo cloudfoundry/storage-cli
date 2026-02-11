@@ -33,11 +33,19 @@ type S3Cli struct {
 	// Optional knobs to tune transfer performance.
 	// If zero, the client will apply sensible defaults (handled by the S3 client layer).
 	// Part size values are provided in bytes.
-	DownloadConcurrency int   `json:"download_concurrency"`
-	DownloadPartSize    int64 `json:"download_part_size"`
-	UploadConcurrency   int   `json:"upload_concurrency"`
-	UploadPartSize      int64 `json:"upload_part_size"`
+	DownloadConcurrency    int   `json:"download_concurrency"`
+	DownloadPartSize       int64 `json:"download_part_size"`
+	UploadConcurrency      int   `json:"upload_concurrency"`
+	UploadPartSize         int64 `json:"upload_part_size"`
+	MultipartCopyThreshold int64 `json:"multipart_copy_threshold"` // Default: 5GB - files larger than this use multipart copy
+	MultipartCopyPartSize  int64 `json:"multipart_copy_part_size"` // Default: 100MB - size of each part in multipart copy
 }
+
+const (
+	// multipartCopyMinPartSize is the AWS minimum part size for multipart operations.
+	// Other providers may have different limits - users should consult their provider's documentation.
+	multipartCopyMinPartSize = 5 * 1024 * 1024 // 5MB - AWS minimum part size
+)
 
 const defaultAWSRegion = "us-east-1" //nolint:unused
 
@@ -96,6 +104,19 @@ func NewFromReader(reader io.Reader) (S3Cli, error) {
 	// Validate numeric fields: disallow negative values (zero means "use defaults")
 	if c.DownloadConcurrency < 0 || c.UploadConcurrency < 0 || c.DownloadPartSize < 0 || c.UploadPartSize < 0 {
 		return S3Cli{}, errors.New("download/upload concurrency and part sizes must be non-negative")
+	}
+
+	// Validate multipart copy settings (0 means "use defaults")
+	// Note: Default threshold is 5GB (AWS limit), but users can configure higher values for providers
+	// that support larger simple copies (e.g., GCS has no limit). Users should consult their provider's documentation.
+	if c.MultipartCopyThreshold < 0 {
+		return S3Cli{}, errors.New("multipart_copy_threshold must be non-negative (0 means use default)")
+	}
+	if c.MultipartCopyPartSize < 0 {
+		return S3Cli{}, errors.New("multipart_copy_part_size must be non-negative (0 means use default)")
+	}
+	if c.MultipartCopyPartSize > 0 && c.MultipartCopyPartSize < multipartCopyMinPartSize {
+		return S3Cli{}, fmt.Errorf("multipart_copy_part_size must be at least %d bytes (5MB - AWS minimum)", multipartCopyMinPartSize)
 	}
 
 	switch c.CredentialsSource {

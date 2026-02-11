@@ -79,6 +79,10 @@ var _ = Describe("General testing for all AWS regions", func() {
 			func(cfg *config.S3Cli) { integration.AssertOnSignedURLs(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Multipart copy works with low threshold",
+			func(cfg *config.S3Cli) { integration.AssertMultipartCopyWorks(s3CLIPath, cfg) },
+			configurations,
+		)
 
 		configurations = []TableEntry{
 			Entry("with encryption", &config.S3Cli{

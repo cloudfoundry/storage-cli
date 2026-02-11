@@ -139,6 +139,75 @@ func AssertLifecycleWorks(s3CLIPath string, cfg *config.S3Cli) {
 
 }
 
+// AssertMultipartCopyWorks tests multipart copy functionality by setting a low threshold
+// This forces a small file to be copied using multipart copy (2 parts)
+func AssertMultipartCopyWorks(s3CLIPath string, cfg *config.S3Cli) {
+	storageType := "s3"
+	s3Filename := GenerateRandomString()
+
+	// Create a 15MB file content (will result in 2-3 parts with 5MB minimum part size)
+	// We use 15MB to ensure we get at least 2 parts when threshold is set to 10MB
+	contentSize := 15 * 1024 * 1024 // 15 MB
+	expectedContent := GenerateRandomString(contentSize)
+
+	// Configure low multipart copy threshold to force multipart copy
+	// Threshold: 10MB - files larger than this use multipart copy
+	// Part size: 5MB (AWS minimum) - so our 15MB file will be split into 3 parts
+	cfg.MultipartCopyThreshold = 10 * 1024 * 1024 // 10 MB
+	cfg.MultipartCopyPartSize = 5 * 1024 * 1024   // 5 MB (AWS minimum)
+
+	configPath := MakeConfigFile(cfg)
+	defer os.Remove(configPath) //nolint:errcheck
+
+	contentFile := MakeContentFile(expectedContent)
+	defer os.Remove(contentFile) //nolint:errcheck
+
+	// Upload the test file
+	s3CLISession, err := RunS3CLI(s3CLIPath, configPath, storageType, "put", contentFile, s3Filename)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+
+	// Copy the file - this should trigger multipart copy since file size (15MB) > threshold (10MB)
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "copy", s3Filename, s3Filename+"_multipart_copy")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+
+	// Verify the copied file exists
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "exists", s3Filename+"_multipart_copy")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+
+	// Download and verify content matches
+	tmpCopiedFile, err := os.CreateTemp("", "s3cli-download-multipart-copy")
+	Expect(err).ToNot(HaveOccurred())
+	err = tmpCopiedFile.Close()
+	Expect(err).ToNot(HaveOccurred())
+	defer os.Remove(tmpCopiedFile.Name()) //nolint:errcheck
+
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "get", s3Filename+"_multipart_copy", tmpCopiedFile.Name())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+
+	copiedBytes, err := os.ReadFile(tmpCopiedFile.Name())
+	Expect(err).ToNot(HaveOccurred())
+	Expect(string(copiedBytes)).To(Equal(expectedContent))
+
+	// Verify file size matches
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "properties", s3Filename+"_multipart_copy")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+	Expect(s3CLISession.Out.Contents()).To(ContainSubstring(fmt.Sprintf("\"content_length\": %d", contentSize)))
+
+	// Clean up
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename+"_multipart_copy")
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+
+	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, storageType, "delete", s3Filename)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(s3CLISession.ExitCode()).To(BeZero())
+}
+
 func AssertOnBulkOperations(s3CLIPath string, cfg *config.S3Cli) {
 	storageType := "s3"
 	numFiles := 5

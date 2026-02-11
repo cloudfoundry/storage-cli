@@ -62,5 +62,9 @@ var _ = Describe("Testing inside an AWS compute resource with an IAM role", func
 			func(cfg *config.S3Cli) { integration.AssertDeleteNonexistentWorks(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Multipart copy works with low threshold",
+			func(cfg *config.S3Cli) { integration.AssertMultipartCopyWorks(s3CLIPath, cfg) },
+			configurations,
+		)
 	})
 })
