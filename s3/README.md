@@ -12,23 +12,25 @@ The S3 client requires a JSON configuration file with the following structure:
 
 ``` json
 {
-  "bucket_name":            "<string> (required)",
-  "credentials_source":     "<string> [static|env_or_profile|none]",
-  "access_key_id":          "<string> (required if credentials_source = 'static')",
-  "secret_access_key":      "<string> (required if credentials_source = 'static')",
-  "region":                 "<string> (optional - default: 'us-east-1')",
-  "host":                   "<string> (optional)",
-  "port":                   <int> (optional),
-  "ssl_verify_peer":        <bool> (optional - default: true),
-  "use_ssl":                <bool> (optional - default: true),
-  "signature_version":      "<string> (optional)",
-  "server_side_encryption": "<string> (optional)",
-  "sse_kms_key_id":         "<string> (optional)",
-  "multipart_upload":       <bool> (optional - default: true),
-  "download_concurrency":   <int> (optional - default: 5),
-  "download_part_size":     <int64> (optional - default: 5242880), # 5 MB
-  "upload_concurrency":     <int> (optional - default: 5),
-  "upload_part_size":       <int64> (optional - default: 5242880) # 5 MB
+  "bucket_name":                "<string> (required)",
+  "credentials_source":         "<string> [static|env_or_profile|none]",
+  "access_key_id":              "<string> (required if credentials_source = 'static')",
+  "secret_access_key":          "<string> (required if credentials_source = 'static')",
+  "region":                     "<string> (optional - default: 'us-east-1')",
+  "host":                       "<string> (optional)",
+  "port":                       <int> (optional),
+  "ssl_verify_peer":            <bool> (optional - default: true),
+  "use_ssl":                    <bool> (optional - default: true),
+  "signature_version":          "<string> (optional)",
+  "server_side_encryption":     "<string> (optional)",
+  "sse_kms_key_id":             "<string> (optional)",
+  "multipart_upload":           <bool> (optional - default: true),
+  "download_concurrency":       <int> (optional - default: 5),
+  "download_part_size":         <int64> (optional - default: 5242880), # 5 MB
+  "upload_concurrency":         <int> (optional - default: 5),
+  "upload_part_size":           <int64> (optional - default: 5242880) # 5 MB
+  "multipart_copy_threshold":   <int64> (optional - default: 5368709120) # default 5 GB
+  "multipart_copy_part_size":   <int64> (optional - default: 104857600) # default 100 MB - must be at least 5 MB
 }
 ```
 > Note: **multipart_upload** is not supported by Google - it's automatically set to false by parsing the provided 'host'

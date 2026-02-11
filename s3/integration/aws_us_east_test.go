@@ -62,5 +62,9 @@ var _ = Describe("Testing only in us-east-1", func() {
 			func(cfg *config.S3Cli) { integration.AssertDeleteNonexistentWorks(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Multipart copy works with low threshold",
+			func(cfg *config.S3Cli) { integration.AssertMultipartCopyWorks(s3CLIPath, cfg) },
+			configurations,
+		)
 	})
 })
