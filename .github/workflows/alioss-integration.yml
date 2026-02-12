@@ -6,6 +6,8 @@ on:
     paths:
     - ".github/workflows/alioss-integration.yml"
     - "alioss/**"
+    - "go.mod"
+    - "go.sum"
   push:
     branches:
       - main
