@@ -4,4 +4,32 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      aws-sdk:
+        patterns:
+          - "github.com/aws/aws-sdk-go-v2*"
+          - "github.com/aws/smithy-go"
+      azure-sdk:
+        patterns:
+          - "github.com/Azure/azure-sdk-for-go*"
+      google-cloud:
+        patterns:
+          - "cloud.google.com/go*"
+          - "google.golang.org/*"
+      opentelemetry:
+        patterns:
+          - "go.opentelemetry.io/*"
+      testing:
+        patterns:
+          - "github.com/onsi/ginkgo*"
+          - "github.com/onsi/gomega"
+          - "github.com/maxbrunsfeld/counterfeiter*"
+      golang-x:
+        patterns:
+          - "golang.org/x/*"
