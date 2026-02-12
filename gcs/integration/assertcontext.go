@@ -17,13 +17,13 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/cloudfoundry/storage-cli/gcs/config"
 
 	. "github.com/onsi/gomega" //nolint:staticcheck
-	"golang.org/x/net/context"
 )
 
 // GoogleAppCredentialsEnv is the environment variable

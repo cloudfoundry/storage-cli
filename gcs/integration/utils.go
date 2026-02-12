@@ -17,6 +17,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"math/rand"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega" //nolint:staticcheck
 	"github.com/onsi/gomega/gexec"
-	"golang.org/x/net/context"
 )
 
 const alphanum = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
