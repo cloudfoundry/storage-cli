@@ -62,7 +62,7 @@ func AssertPutTimesOut(cliPath string, cfg *config.AZStorageConfig) {
 	defer os.Remove(configPath) //nolint:errcheck
 
 	const mb = 1024 * 1024
-	big := bytes.Repeat([]byte("x"), 250*mb)
+	big := bytes.Repeat([]byte("x"), 1000*mb)
 	content := MakeContentFile(string(big))
 	defer os.Remove(content) //nolint:errcheck
 	blob := GenerateRandomString()
