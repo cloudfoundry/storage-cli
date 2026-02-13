@@ -115,6 +115,7 @@ Follow these steps to make a contribution to the project:
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
 - **Note:** Integration tests require access to cloud provider credentials and cannot run on PRs from forks. They will run automatically when a maintainer merges your PR to main.
 - Push changes to your fork
+- **IMPORTANT:** Before writing commit message check [release section](#automated-release-process) and [commit message examples](#commit-message-examples)
   ``` bash
   git add .
   git commit -m "Commit message"
@@ -155,6 +156,44 @@ Option 2: Release via Draft Release
 
 - The release will appear immediately on the Releases page. This action will also trigger the *Release Manual* workflow, which will build the artifacts and upload them to the published release once the workflow finishes.
 
+
+### Automated Release
+
+When changes are merged into the `main` branch, a new release is automatically triggered. The version number is determined using **semantic versioning** based on conventional commit message prefixes:
+
+**Version Bump Rules:**
+- `feat:` - New feature → **Minor version bump** (v1.2.0 → v1.3.0)
+- `BREAKING CHANGE:` - Breaking changes → **Major version bump** (v1.2.0 → v2.0.0)
+- Patch version bump (v1.2.0 → v1.2.1)
+    - `fix:` - Bug fix
+    - `docs:` - Documentation changes
+    - `chore:` - Maintenance tasks (dependencies, build config, tooling)
+    - `refactor:` - Code restructuring without behavior changes
+    - `test:` - Test updates
+    - `style:` - Formatting and whitespace
+    - `ci:` - CI/CD configuration changes
+    - `perf:` - Performance improvements
+    - `build:` - Dependabot commits
+    - `no conventional commits` - text without specifying any of above
+
+**Note: When the repo becomes more stable, we are gonna merge these 2 release logic.**
+
+#### Commit Message Examples
+
+```bash
+# Major release (v1.2.3 → v2.0.0)
+git commit -m "feat: redesign upload API
+
+BREAKING CHANGE: Upload() signature changed to return structured error"
+
+# Minor release (v1.2.3 → v1.3.0)
+git commit -m "feat: add retry logic for failed uploads"
+
+# Patch release (v1.2.3 → v1.2.4)
+git commit -m "docs: update Azure Blob Storage usage examples"
+git commit -m "chore: upgrade dependencies"
+git commit -m "class x moved to another folder"
+```
 
 ## Notes
 These commit IDs represent the last migration checkpoint from each provider's original repository, marking the final commit that was copied during the consolidation process.
