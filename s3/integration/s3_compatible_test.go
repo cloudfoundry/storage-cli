@@ -89,5 +89,9 @@ var _ = Describe("Testing in any non-AWS, S3 compatible storage service", func()
 			func(cfg *config.S3Cli) { integration.AssertOnSignedURLs(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Multipart copy works with low threshold",
+			func(cfg *config.S3Cli) { integration.AssertMultipartCopyWorks(s3CLIPath, cfg) },
+			configurations,
+		)
 	})
 })
