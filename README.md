@@ -1,4 +1,12 @@
 # Storage CLI
+
+[![Unit Tests](https://github.com/cloudfoundry/storage-cli/actions/workflows/unit-test.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/unit-test.yml)
+[![Build](https://github.com/cloudfoundry/storage-cli/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/build.yml)
+[![S3 Integration Tests](https://github.com/cloudfoundry/storage-cli/actions/workflows/s3-integration.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/s3-integration.yml)
+[![GCS Integration Tests](https://github.com/cloudfoundry/storage-cli/actions/workflows/gcs-integration.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/gcs-integration.yml)
+[![Azure Integration Tests](https://github.com/cloudfoundry/storage-cli/actions/workflows/azurebs-integration.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/azurebs-integration.yml)
+[![Alioss Integration Tests](https://github.com/cloudfoundry/storage-cli/actions/workflows/alioss-integration.yml/badge.svg?branch=main)](https://github.com/cloudfoundry/storage-cli/actions/workflows/alioss-integration.yml)
+
 A unified command-line tool for interacting with multiple cloud storage providers through a single binary. The CLI supports five blob-storage providers (Azure Blob Storage, AWS S3, Google Cloud Storage, Alibaba Cloud OSS, and WebDAV), each with its own client implementation while sharing a common command interface.
 
 **Note:** This CLI works with existing storage resources (buckets, containers, etc.) that are already created and configured in your cloud provider. The storage bucket/container name and credentials must be specified in the provider-specific configuration file.
@@ -105,6 +113,7 @@ Follow these steps to make a contribution to the project:
   ginkgo --race --skip-package=integration --cover -v -r ./...
   ```
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
+- **Note:** Integration tests require access to cloud provider credentials and cannot run on PRs from forks. They will run automatically when a maintainer merges your PR to main.
 - Push changes to your fork
   ``` bash
   git add .
@@ -112,6 +121,12 @@ Follow these steps to make a contribution to the project:
   git push origin feature-name
   ```
 - Create a GitHub pull request, selecting `main` as the target branch
+
+## Dependency Updates
+
+This project uses [Dependabot](https://docs.github.com/en/code-security/dependabot) to keep dependencies up to date. Dependencies are grouped (e.g., AWS SDK, Azure SDK, Google Cloud, testing tools) to reduce PR noise.
+
+**Integration tests on Dependabot PRs:** Integration tests are skipped for Dependabot PRs since they don't have access to secrets. If needed, maintainers can manually trigger the integration tests via `workflow_dispatch` before merging. Integration tests will also run automatically after merging to main.
 
 ## Releases
 
