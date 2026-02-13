@@ -17,7 +17,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.560
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.1
 	github.com/onsi/ginkgo/v2 v2.28.1
-	github.com/onsi/gomega v1.39.0
+	github.com/onsi/gomega v1.39.1
 	golang.org/x/oauth2 v0.35.0
 	google.golang.org/api v0.266.0
 )
