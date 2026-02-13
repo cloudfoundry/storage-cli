@@ -433,6 +433,10 @@ func (client *GCSBlobstore) EnsureStorageExists() error {
 			battr.StorageClass = client.config.StorageClass
 		}
 
+		if client.config.UniformBucketLevelAccess {
+			battr.UniformBucketLevelAccess = storage.UniformBucketLevelAccess{Enabled: true}
+		}
+
 		projectID, err := extractProjectID(ctx, client.config)
 		if err != nil {
 			return fmt.Errorf("extracting project ID: %w", err)

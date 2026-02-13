@@ -39,6 +39,11 @@ type GCSCli struct {
 	// StorageClass is the type of storage used for objects added to the bucket
 	// https://cloud.google.com/storage/docs/storage-classes
 	StorageClass string `json:"storage_class"`
+	// UniformBucketLevelAccess enables uniform bucket-level access control.
+	// When true, disables ACLs and uses only IAM for permissions.
+	// When false (default), buckets use fine-grained ACL-based access control.
+	// https://cloud.google.com/storage/docs/uniform-bucket-level-access
+	UniformBucketLevelAccess bool `json:"uniform_bucket_level_access"`
 	// EncryptionKey is a Customer-Supplied encryption key used to
 	// encrypt objects added to the bucket.
 	// If left empty, no explicit encryption key will be used;

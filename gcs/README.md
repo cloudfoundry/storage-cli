@@ -18,6 +18,7 @@ The GCS client requires a JSON configuration file.
   "json_key":               "<string> (required if credentials_source = 'static')",
   "storage_class":          "<string> (optional - default: 'STANDARD', check for more options=https://docs.cloud.google.com/storage/docs/storage-classes)",
   "encryption_key":         "<string> (optional)",
+  "uniform_bucket_level_access": "<boolean> (optional)"
 }
 ```
 
@@ -25,6 +26,12 @@ The GCS client requires a JSON configuration file.
 * **"":** specifies that credentials should be detected. Application Default Credentials will be used if avaliable. A read-only client will be used otherwise.
 * **"none":** specifies that credentials are explicitly empty and that the client should be restricted to a read-only scope.
 * **"static:"** specifies that a service account file included in json_key should be used for authentication.
+
+### Bucket Creation
+The `ensure-storage-exists` command creates a bucket if it does not already exist. The `uniform_bucket_level_access` configuration option controls the access control model:
+* **`true`**: Creates a bucket with uniform bucket-level access (IAM-only, ACLs disabled)
+* **`false` or omitted (default)**: Creates a bucket with fine-grained access control (ACLs enabled)
+
 
 ### Authentication Methods (`credentials_source`)
 * `static`: A [service account](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) key will be provided via the `json_key` field.

@@ -146,4 +146,27 @@ var _ = Describe("BlobstoreClient configuration", func() {
 		})
 	})
 
+	Describe("when uniform_bucket_level_access is set to true", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket", "uniform_bucket_level_access":true}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("it has value true", func() {
+			c, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(BeNil())
+			Expect(c.UniformBucketLevelAccess).To(BeTrue())
+
+		})
+	})
+
+	Describe("when uniform_bucket_level_access is not set", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket"}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("it has value false", func() {
+			c, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(BeNil())
+			Expect(c.UniformBucketLevelAccess).To(BeFalse())
+		})
+	})
+
 })
