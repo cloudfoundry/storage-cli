@@ -16,8 +16,11 @@ jobs:
   gcs-integration-fast-tests:
     name:  GCS Integation Fast Tests
     runs-on: ubuntu-latest
-    # Skip forks and Dependabot (no access to secrets)
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     steps:
       - name: Checkout code
         uses: actions/checkout@v6     
@@ -48,8 +51,11 @@ jobs:
   gcs-integration-all-tests:
     name:  GCS Integation All Tests
     runs-on: ubuntu-latest
-    # Skip forks and Dependabot (no access to secrets)
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     steps:
       - name: Checkout code
         uses: actions/checkout@v6      

@@ -17,8 +17,11 @@ jobs:
   aws-s3-us-integration:
     name: AWS S3 US Integration
     runs-on: ubuntu-latest
-    # Skip forks and Dependabot (no access to secrets)
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-iam
@@ -86,8 +89,11 @@ jobs:
   aws-s3-public-read-integration:
     name: AWS S3 Public Read Integration
     runs-on: ubuntu-latest
-    # Skip forks and Dependabot (no access to secrets)
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-public-bucket
@@ -136,8 +142,11 @@ jobs:
   aws-s3-frankfurt-integration:
     name: AWS S3 Frankfurt Integration
     runs-on: ubuntu-latest
-    # Skip forks and Dependabot (no access to secrets)
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
     env:
       REGION_NAME: eu-central-1
       STACK_NAME: s3cli-private-bucket
@@ -186,8 +195,11 @@ jobs:
   s3-compatible-integration:
    name: S3 Compatible Integration
    runs-on: ubuntu-latest
-   # Skip forks and Dependabot (no access to secrets)
-   if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+   # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+   if: |
+     github.event_name == 'push' ||
+     github.event_name == 'workflow_dispatch' ||
+     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
    steps:
      - name: Checkout code
        uses: actions/checkout@v6
