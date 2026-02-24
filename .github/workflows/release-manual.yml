@@ -76,27 +76,25 @@ jobs:
           git push origin "${{ steps.version.outputs.VERSION }}"
 
       - name: Build for Linux
-        env:
-          GOOS: linux
-          GOARCH: amd64
-          CGO_ENABLED: 0
         run: |
               echo "Building Storage CLI for Linux"
-              go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+              GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
               -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64"
-              echo "### Linux Build Checksums" >> $GITHUB_STEP_SUMMARY
+              echo "### Linux amd64 Build Checksums" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
+              GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+              -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64"
+              echo "### Linux arm64 Build Checksums" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
       
       - name: Build for Windows
-        env:
-          GOOS: windows
-          GOARCH: amd64
-          CGO_ENABLED: 0
         run: |
               echo "Building Storage CLI for Windows"
-              go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+              GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
               -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe"
               echo "### Windows Build Checksums" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
@@ -111,6 +109,7 @@ jobs:
           body: Release ${{ steps.version.outputs.VERSION }}
           artifacts: |
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
