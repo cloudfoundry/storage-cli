@@ -192,6 +192,61 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
 
+  # AWS European Sovereign Cloud Integration
+  aws-s3-esc-integration:
+    name: AWS S3 European Sovereign Cloud Integration
+    runs-on: ubuntu-latest
+    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+    env:
+      REGION_NAME: eusc-de-east-1
+      STACK_NAME: s3cli-private-bucket
+      S3_ENDPOINT_HOST: https://s3.eusc-de-east-1.amazonaws.eu
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Setup AWS infrastructure
+        uses: ./.github/actions/s3-integration-setup
+        with:
+          access_key_id: ${{ secrets.AWS_ESC_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_ESC_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
+
+      - name: Run AWS ESC region tests
+        uses: ./.github/actions/s3-integration-run
+        with:
+          access_key_id: ${{ secrets.AWS_ESC_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_ESC_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
+          s3_endpoint_host: ${{ env.S3_ENDPOINT_HOST }}
+          focus_regex: 'GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION'
+          test_type: 'aws'
+
+      - name: Teardown AWS infrastructure
+        if: always()
+        uses: ./.github/actions/s3-integration-teardown
+        with:
+          access_key_id: ${{ secrets.AWS_ESC_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_ESC_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
+
+
   s3-compatible-integration:
    name: S3 Compatible Integration
    runs-on: ubuntu-latest
