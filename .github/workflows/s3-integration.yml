@@ -234,7 +234,7 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
           s3_endpoint_host: ${{ env.S3_ENDPOINT_HOST }}
-          focus_regex: 'GENERAL AWS|AWS V4 REGION|AWS V4 ONLY REGION'
+          focus_regex: 'AWS ESC'
           test_type: 'aws'
 
       - name: Teardown AWS infrastructure
