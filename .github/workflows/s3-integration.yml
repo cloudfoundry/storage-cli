@@ -12,6 +12,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: s3-integration
+  cancel-in-progress: false
+
 jobs:
   # AWS S3 US Integration Tests
   aws-s3-us-integration:
