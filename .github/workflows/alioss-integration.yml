@@ -12,6 +12,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: alioss-integration
+  cancel-in-progress: false
+
 jobs:
   alioss-general-integration-tests:
     name:  Alioss General Integration Tests
