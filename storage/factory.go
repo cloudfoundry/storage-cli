@@ -72,7 +72,12 @@ var newGcsClient = func(configFile *os.File) (Storager, error) {
 }
 
 var newS3Client = func(configFile *os.File) (Storager, error) {
-	s3Config, err := s3config.NewFromReader(configFile)
+	configReader, err := s3config.NewReader(configFile)
+	if err != nil {
+		return nil, err
+	}
+
+	s3Config, err := s3config.NewFromReader(configReader)
 	if err != nil {
 		return nil, err
 	}

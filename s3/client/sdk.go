@@ -94,6 +94,9 @@ func NewAwsS3ClientWithApiOptions(
 			}
 			o.BaseEndpoint = aws.String(endpoint)
 		}
+		if c.Debug {
+			o.ClientLogMode = aws.LogResponse | aws.LogRequest
+		}
 		// Apply custom middlewares if provided
 		o.APIOptions = append(o.APIOptions, apiOptions...)
 	})

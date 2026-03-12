@@ -99,12 +99,15 @@ func main() {
 	// configure storage-cli config
 	common.InitConfig(parseLogLevel(*logLevel))
 
-	// check client config file exists
-	configFile, err := os.Open(*configPath)
-	if err != nil {
-		fatalLog("", err)
+	// try reading config file. if not provided, env will be tried as source.
+	var configFile *os.File
+	if *configPath != "" {
+		configFile, err := os.Open(*configPath)
+		if err != nil {
+			fatalLog("", err)
+		}
+		defer configFile.Close() //nolint:errcheck
 	}
-	defer configFile.Close() //nolint:errcheck
 
 	// create client
 	client, err := storage.NewStorageClient(*storageType, configFile)
