@@ -110,9 +110,41 @@ Or using go test:
 go test ./dav/client/...
 ```
 
+### Integration Tests
+
+The DAV implementation includes Go-based integration tests that run against a real WebDAV server.
+
+**Prerequisites:**
+- Running WebDAV server (can be set up with Docker - see below)
+- Environment variables configured
+
+**Setup WebDAV server with Docker:**
+```bash
+cd dav
+./setup-webdav-test.sh   # Sets up Apache WebDAV with HTTPS
+```
+
+**Run integration tests:**
+```bash
+# Set environment variables (from the dav/ directory after running setup)
+export DAV_ENDPOINT="https://localhost:8443"
+export DAV_USER="testuser"
+export DAV_PASSWORD="testpass"
+export DAV_CA_CERT="$(cat webdav-test/certs/ca.pem)"
+export DAV_SECRET="test-secret-key"  # Optional, for signed URL tests
+
+# Run integration tests
+ginkgo -v ./integration
+
+# Or using go test
+go test -v ./integration/...
+```
+
+These tests cover all operations: PUT, GET, DELETE, DELETE-RECURSIVE, EXISTS, LIST, COPY, PROPERTIES, and ENSURE-STORAGE-EXISTS.
+
 ### End-to-End Tests
 
-The DAV implementation includes Docker-based end-to-end testing with an Apache WebDAV server.
+The DAV implementation also includes shell-based end-to-end tests using the compiled storage-cli binary.
 
 **Quick start:**
 ```bash
@@ -120,7 +152,5 @@ cd dav
 ./setup-webdav-test.sh   # Sets up Apache WebDAV with HTTPS
 ./test-storage-cli.sh     # Runs complete test suite
 ```
-
-This tests all operations: PUT, GET, DELETE, DELETE-RECURSIVE, EXISTS, LIST, COPY, PROPERTIES, and ENSURE-STORAGE-EXISTS.
 
 **For detailed testing instructions, see [TESTING.md](TESTING.md).**

@@ -1,12 +1,24 @@
 # Testing storage-cli DAV Implementation
 
-This guide helps you test the refactored DAV storage-cli implementation against a real WebDAV server with TLS.
+This guide helps you test the DAV storage-cli implementation against a real WebDAV server with TLS.
+
+## Test Types
+
+### 1. Unit Tests
+Fast, isolated tests for individual components.
+
+### 2. Integration Tests
+Go-based tests that run against a real WebDAV server, testing the full storage-cli binary with all operations.
+
+### 3. End-to-End Tests
+Shell-based tests for manual verification and CI/CD pipelines.
 
 ## Prerequisites
 
 - Docker and docker-compose installed
 - OpenSSL installed
 - Go installed (for building storage-cli)
+- Ginkgo (optional, for running tests): `go install github.com/onsi/ginkgo/v2/ginkgo@latest`
 
 ## Quick Start
 
@@ -24,9 +36,31 @@ This will:
 - Start a WebDAV server on `https://localhost:8443`
 - Configure authentication (user: `testuser`, password: `testpass`)
 
-### 2. Run All Tests
+### 2. Run Unit Tests
 
 ```bash
+cd /Users/I546390/SAPDevelop/membrane_inline/storage-cli
+go test ./dav/client/...
+```
+
+### 3. Run Integration Tests
+
+```bash
+# Set environment variables (run from dav/ directory after setup)
+export DAV_ENDPOINT="https://localhost:8443"
+export DAV_USER="testuser"
+export DAV_PASSWORD="testpass"
+export DAV_CA_CERT="$(cat webdav-test/certs/ca.pem)"
+export DAV_SECRET="test-secret-key"  # Optional, for signed URL tests
+
+# Run integration tests
+ginkgo -v ./integration
+```
+
+### 4. Run End-to-End Tests
+
+```bash
+cd dav
 chmod +x test-storage-cli.sh
 ./test-storage-cli.sh
 ```
@@ -41,6 +75,31 @@ This will test all operations:
 - ✓ DELETE - Delete blob
 - ✓ DELETE-RECURSIVE - Delete with prefix
 - ✓ ENSURE-STORAGE-EXISTS - Initialize storage
+
+## Integration Tests Details
+
+The integration tests in `dav/integration/` are structured like other storage providers (S3, Azure, etc.) and provide:
+
+**Test Coverage:**
+- Full lifecycle testing (PUT → EXISTS → GET → COPY → DELETE)
+- Properties retrieval with JSON validation
+- List and recursive delete operations
+- Signed URL generation (when secret is configured)
+- Error handling (non-existent blobs, etc.)
+- Storage initialization (ensure-storage-exists)
+
+**Test Structure:**
+- `integration_suite_test.go` - Test suite setup
+- `utils.go` - Helper functions (config generation, file creation, CLI execution)
+- `assertions.go` - Test assertions for each operation
+- `general_dav_test.go` - Main test cases with table-driven tests
+
+**Environment Variables:**
+- `DAV_ENDPOINT` - WebDAV server URL (required)
+- `DAV_USER` - Authentication username (required)
+- `DAV_PASSWORD` - Authentication password (required)
+- `DAV_CA_CERT` - PEM-encoded CA certificate for TLS (optional)
+- `DAV_SECRET` - Secret for signed URL generation (optional, skips signed URL tests if not set)
 
 ## Manual Testing
 

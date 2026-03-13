@@ -277,7 +277,7 @@ func (c *storageClient) propfindDirs(urlStr string) ([]string, error) {
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusMultiStatus && resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("PROPFIND request failed: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("PROPFIND request failed: status %d", resp.StatusCode) //nolint:staticcheck
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -344,7 +344,7 @@ func (c *storageClient) propfindBlobs(urlStr string, prefix string) ([]string, e
 	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode != http.StatusMultiStatus && resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("PROPFIND request failed: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("PROPFIND request failed: status %d", resp.StatusCode) //nolint:staticcheck
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -530,6 +530,10 @@ func (c *storageClient) ensurePrefixDirExists(blobID string) error {
 	if !strings.HasPrefix(prefixPath, "/") {
 		prefixPath = "/" + prefixPath
 	}
+	// Add trailing slash for WebDAV collection
+	if !strings.HasSuffix(prefixPath, "/") {
+		prefixPath = prefixPath + "/"
+	}
 
 	blobURL.Path = prefixPath
 
@@ -551,7 +555,7 @@ func (c *storageClient) ensurePrefixDirExists(blobID string) error {
 
 	// Accept 200 (OK - already exists), 201 (Created), 405 (Method Not Allowed - already exists), or 409 (Conflict - already exists)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusMethodNotAllowed && resp.StatusCode != http.StatusConflict {
-		return fmt.Errorf("Creating prefix directory %s: status %d", prefixPath, resp.StatusCode)
+		return fmt.Errorf("creating prefix directory %s: status %d", prefixPath, resp.StatusCode)
 	}
 
 	return nil
