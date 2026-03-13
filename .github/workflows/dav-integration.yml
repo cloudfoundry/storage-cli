@@ -1,0 +1,146 @@
+name: DAV Integration Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+    - ".github/workflows/dav-integration.yml"
+    - "dav/**"
+    - "go.mod"
+    - "go.sum"
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: dav-integration
+  cancel-in-progress: false
+
+jobs:
+  dav-integration:
+    name: DAV Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      webdav:
+        image: httpd:2.4
+        ports:
+          - 8443:443
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install Ginkgo
+        run: go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Setup WebDAV Server Configuration
+        run: |
+          # Create certificates
+          mkdir -p /tmp/webdav-certs
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /tmp/webdav-certs/server.key \
+            -out /tmp/webdav-certs/server.crt \
+            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+
+          # Create WebDAV directory
+          mkdir -p /tmp/webdav-data
+          chmod 777 /tmp/webdav-data
+
+          # Create htpasswd file
+          docker run --rm httpd:2.4 htpasswd -nb testuser testpass > /tmp/webdav.passwd
+
+          # Create Apache config with DAV
+          cat > /tmp/httpd.conf << 'EOF'
+          ServerRoot "/usr/local/apache2"
+          Listen 443
+
+          LoadModule mpm_event_module modules/mod_mpm_event.so
+          LoadModule authn_file_module modules/mod_authn_file.so
+          LoadModule authn_core_module modules/mod_authn_core.so
+          LoadModule authz_host_module modules/mod_authz_host.so
+          LoadModule authz_user_module modules/mod_authz_user.so
+          LoadModule authz_core_module modules/mod_authz_core.so
+          LoadModule auth_basic_module modules/mod_auth_basic.so
+          LoadModule dav_module modules/mod_dav.so
+          LoadModule dav_fs_module modules/mod_dav_fs.so
+          LoadModule setenvif_module modules/mod_setenvif.so
+          LoadModule ssl_module modules/mod_ssl.so
+          LoadModule unixd_module modules/mod_unixd.so
+          LoadModule dir_module modules/mod_dir.so
+
+          User daemon
+          Group daemon
+
+          DAVLockDB /usr/local/apache2/var/DavLock
+
+          <IfModule ssl_module>
+              SSLRandomSeed startup builtin
+              SSLRandomSeed connect builtin
+          </IfModule>
+
+          <VirtualHost *:443>
+              SSLEngine on
+              SSLCertificateFile /usr/local/apache2/certs/server.crt
+              SSLCertificateKeyFile /usr/local/apache2/certs/server.key
+
+              DocumentRoot "/usr/local/apache2/webdav"
+
+              <Directory "/usr/local/apache2/webdav">
+                  Dav On
+                  Options +Indexes
+                  AuthType Basic
+                  AuthName "WebDAV"
+                  AuthUserFile /usr/local/apache2/webdav.passwd
+                  Require valid-user
+
+                  <LimitExcept GET OPTIONS>
+                      Require valid-user
+                  </LimitExcept>
+              </Directory>
+          </VirtualHost>
+          EOF
+
+          # Get the service container ID
+          CONTAINER_ID=$(docker ps --filter "ancestor=httpd:2.4" --format "{{.ID}}")
+          echo "WebDAV container ID: $CONTAINER_ID"
+
+          # Create required directories in container first
+          docker exec $CONTAINER_ID mkdir -p /usr/local/apache2/certs
+          docker exec $CONTAINER_ID mkdir -p /usr/local/apache2/webdav
+          docker exec $CONTAINER_ID mkdir -p /usr/local/apache2/var
+          docker exec $CONTAINER_ID chmod 777 /usr/local/apache2/webdav
+          docker exec $CONTAINER_ID chmod 777 /usr/local/apache2/var
+
+          # Copy files to container
+          docker cp /tmp/httpd.conf $CONTAINER_ID:/usr/local/apache2/conf/httpd.conf
+          docker cp /tmp/webdav.passwd $CONTAINER_ID:/usr/local/apache2/webdav.passwd
+          docker cp /tmp/webdav-certs/server.crt $CONTAINER_ID:/usr/local/apache2/certs/server.crt
+          docker cp /tmp/webdav-certs/server.key $CONTAINER_ID:/usr/local/apache2/certs/server.key
+
+          # Reload Apache
+          docker exec $CONTAINER_ID apachectl graceful
+
+          # Wait for Apache to be ready
+          sleep 5
+
+          # Test connection
+          curl -k -u testuser:testpass -v https://localhost:8443/ || echo "WebDAV server not ready yet"
+
+      - name: Run Integration Tests
+        env:
+          DAV_ENDPOINT: "https://localhost:8443"
+          DAV_USER: "testuser"
+          DAV_PASSWORD: "testpass"
+          DAV_SECRET: "test-secret-key"
+        run: |
+          export DAV_CA_CERT="$(cat /tmp/webdav-certs/server.crt)"
+          cd dav
+          ginkgo -v ./integration
+

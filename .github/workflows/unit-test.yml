@@ -42,7 +42,7 @@ jobs:
               run: |
                     export CGO_ENABLED=0
                     go version
-                    go test -v ./dav/...
+                    go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./dav/...
             
             - name: gcs unit tests
               run: |

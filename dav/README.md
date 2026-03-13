@@ -8,24 +8,67 @@ For general usage and build instructions, see the [main README](../README.md).
 
 ## DAV-Specific Configuration
 
-The DAV client requires a JSON configuration file with WebDAV endpoint details and credentials.
+The DAV client requires a JSON configuration file with the following structure:
+
+``` json
+{
+  "endpoint":        "<string> (required)",
+  "user":            "<string> (optional)",
+  "password":        "<string> (optional)",
+  "retry_attempts":  <uint> (optional - default: 3),
+  "tls": {
+    "cert": {
+      "ca":          "<string> (optional - PEM-encoded CA certificate)"
+    }
+  },
+  "secret":          "<string> (optional - required for pre-signed URLs)"
+}
+```
 
 **Usage examples:**
 ```bash
-# Upload an object
-storage-cli -s dav -c dav-config.json put local-file.txt remote-object
+# Upload a blob
+storage-cli -s dav -c dav-config.json put local-file.txt remote-blob
 
-# Fetch an object
-storage-cli -s dav -c dav-config.json get remote-object local-file.txt
+# Fetch a blob (destination file will be overwritten if exists)
+storage-cli -s dav -c dav-config.json get remote-blob local-file.txt
 
-# Delete an object
-storage-cli -s dav -c dav-config.json delete remote-object
+# Delete a blob
+storage-cli -s dav -c dav-config.json delete remote-blob
 
-# Check if an object exists
-storage-cli -s dav -c dav-config.json exists remote-object
+# Check if blob exists
+storage-cli -s dav -c dav-config.json exists remote-blob
 
-# Generate a signed URL (e.g., GET for 1 hour)
-storage-cli -s dav -c dav-config.json sign remote-object get 60s
+# List all blobs
+storage-cli -s dav -c dav-config.json list
+
+# List blobs with prefix
+storage-cli -s dav -c dav-config.json list my-prefix
+
+# Copy a blob
+storage-cli -s dav -c dav-config.json copy source-blob destination-blob
+
+# Delete blobs by prefix
+storage-cli -s dav -c dav-config.json delete-recursive my-prefix-
+
+# Get blob properties (outputs JSON with ContentLength, ETag, LastModified)
+storage-cli -s dav -c dav-config.json properties remote-blob
+
+# Ensure storage exists (initialize WebDAV storage)
+storage-cli -s dav -c dav-config.json ensure-storage-exists
+
+# Generate a pre-signed URL (e.g., GET for 3600 seconds)
+storage-cli -s dav -c dav-config.json sign remote-blob get 3600s
+```
+
+### Using Signed URLs with curl
+
+```bash
+# Downloading a blob:
+curl -X GET <signed-url>
+
+# Uploading a blob:
+curl -X PUT -T path/to/file <signed-url>
 ```
 
 ## Pre-signed URLs
@@ -38,12 +81,76 @@ The HMAC format is:
 `<HTTP Verb><Object ID><Unix timestamp of the signature time><Unix timestamp of the expiration time>`
 
 The generated URL format:
-`https://blobstore.url/signed/object-id?st=HMACSignatureHash&ts=GenerationTimestamp&e=ExpirationTimestamp`
+`https://blobstore.url/signed/8c/object-id?st=HMACSignatureHash&ts=GenerationTimestamp&e=ExpirationTime`
+
+**Note:** The `/8c/` represents the SHA1 prefix directory where the blob is stored. Pre-signed URLs require the WebDAV server to have signature verification middleware. Standard WebDAV servers don't support this - it's a Cloud Foundry extension.
+
+## Features
+
+### SHA1-Based Prefix Directories
+All blobs are stored in subdirectories based on the first 2 hex characters of their SHA1 hash (e.g., blob `my-file.txt` → path `/8c/my-file.txt`). This distributes files across 256 directories (00-ff) to prevent performance issues with large flat directories.
+
+### Automatic Retry Logic
+All operations automatically retry on transient errors with 1-second delays between attempts. Default is 3 retry attempts, configurable via `retry_attempts` in config.
+
+### TLS/HTTPS Support
+Supports HTTPS connections with custom CA certificates for internal or self-signed certificates.
 
 ## Testing
 
 ### Unit Tests
 Run unit tests from the repository root:
+
 ```bash
-ginkgo --cover -v -r ./dav/...
+ginkgo --cover -v -r ./dav/client
 ```
+
+Or using go test:
+```bash
+go test ./dav/client/...
+```
+
+### Integration Tests
+
+The DAV implementation includes Go-based integration tests that run against a real WebDAV server.
+
+**Prerequisites:**
+- Running WebDAV server (can be set up with Docker - see below)
+- Environment variables configured
+
+**Setup WebDAV server with Docker:**
+```bash
+cd dav
+./setup-webdav-test.sh   # Sets up Apache WebDAV with HTTPS
+```
+
+**Run integration tests:**
+```bash
+# Set environment variables (from the dav/ directory after running setup)
+export DAV_ENDPOINT="https://localhost:8443"
+export DAV_USER="testuser"
+export DAV_PASSWORD="testpass"
+export DAV_CA_CERT="$(cat webdav-test/certs/ca.pem)"
+export DAV_SECRET="test-secret-key"  # Optional, for signed URL tests
+
+# Run integration tests
+ginkgo -v ./integration
+
+# Or using go test
+go test -v ./integration/...
+```
+
+These tests cover all operations: PUT, GET, DELETE, DELETE-RECURSIVE, EXISTS, LIST, COPY, PROPERTIES, and ENSURE-STORAGE-EXISTS.
+
+### End-to-End Tests
+
+The DAV implementation also includes shell-based end-to-end tests using the compiled storage-cli binary.
+
+**Quick start:**
+```bash
+cd dav
+./setup-webdav-test.sh   # Sets up Apache WebDAV with HTTPS
+./test-storage-cli.sh     # Runs complete test suite
+```
+
+**For detailed testing instructions, see [TESTING.md](TESTING.md).**

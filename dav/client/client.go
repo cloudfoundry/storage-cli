@@ -1,16 +1,11 @@
 package client
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
-	"path"
-	"strings"
+	"log/slog"
+	"os"
 	"time"
-
-	URLsigner "github.com/cloudfoundry/storage-cli/dav/signer"
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	"github.com/cloudfoundry/bosh-utils/httpclient"
@@ -19,179 +14,184 @@ import (
 	davconf "github.com/cloudfoundry/storage-cli/dav/config"
 )
 
-type Client interface {
-	Get(path string) (content io.ReadCloser, err error)
-	Put(path string, content io.ReadCloser, contentLength int64) (err error)
-	Exists(path string) (err error)
-	Delete(path string) (err error)
-	Sign(objectID, action string, duration time.Duration) (string, error)
+// DavBlobstore implements the storage.Storager interface for WebDAV
+type DavBlobstore struct {
+	storageClient StorageClient
 }
 
-func NewClient(config davconf.Config, httpClient httpclient.Client, logger boshlog.Logger) (c Client) {
+// New creates a new DavBlobstore instance
+func New(config davconf.Config) (*DavBlobstore, error) {
+	logger := boshlog.NewLogger(boshlog.LevelNone)
+
+	var httpClientBase httpclient.Client
+	var certPool, err = getCertPool(config)
+	if err != nil {
+		return nil, bosherr.WrapErrorf(err, "Failed to create certificate pool")
+	}
+
+	httpClientBase = httpclient.CreateDefaultClient(certPool)
+
 	if config.RetryAttempts == 0 {
 		config.RetryAttempts = 3
 	}
 
-	// @todo should a logger now be passed in to this client?
-	duration := time.Duration(0)
+	// Retry with 1 second delay between attempts
+	duration := time.Duration(1) * time.Second
 	retryClient := httpclient.NewRetryClient(
-		httpClient,
+		httpClientBase,
 		config.RetryAttempts,
 		duration,
 		logger,
 	)
 
-	return client{
-		config:     config,
-		httpClient: retryClient,
-	}
+	storageClient := NewStorageClient(config, retryClient)
+
+	return &DavBlobstore{
+		storageClient: storageClient,
+	}, nil
 }
 
-type client struct {
-	config     davconf.Config
-	httpClient httpclient.Client
+// Put uploads a file to the WebDAV server
+func (d *DavBlobstore) Put(sourceFilePath string, dest string) error {
+	slog.Debug("Uploading file to WebDAV", "source", sourceFilePath, "dest", dest)
+
+	source, err := os.Open(sourceFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer source.Close() //nolint:errcheck
+
+	fileInfo, err := source.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat source file: %w", err)
+	}
+
+	err = d.storageClient.Put(dest, source, fileInfo.Size())
+	if err != nil {
+		return fmt.Errorf("upload failure: %w", err)
+	}
+
+	slog.Debug("Successfully uploaded file", "dest", dest)
+	return nil
 }
 
-func (c client) Get(path string) (io.ReadCloser, error) {
-	req, err := c.createReq("GET", path, nil)
+// Get downloads a file from the WebDAV server
+func (d *DavBlobstore) Get(source string, dest string) error {
+	slog.Debug("Downloading file from WebDAV", "source", source, "dest", dest)
+
+	destFile, err := os.Create(dest)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to create destination file: %w", err)
 	}
+	defer destFile.Close() //nolint:errcheck
 
-	resp, err := c.httpClient.Do(req)
+	content, err := d.storageClient.Get(source)
 	if err != nil {
-		return nil, bosherr.WrapErrorf(err, "Getting dav blob %s", path)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Getting dav blob %s: Wrong response code: %d; body: %s", path, resp.StatusCode, c.readAndTruncateBody(resp)) //nolint:staticcheck
-	}
-
-	return resp.Body, nil
-}
-
-func (c client) Put(path string, content io.ReadCloser, contentLength int64) error {
-	req, err := c.createReq("PUT", path, content)
-	if err != nil {
-		return err
+		return fmt.Errorf("download failure: %w", err)
 	}
 	defer content.Close() //nolint:errcheck
 
-	req.ContentLength = contentLength
-	resp, err := c.httpClient.Do(req)
+	_, err = io.Copy(destFile, content)
 	if err != nil {
-		return bosherr.WrapErrorf(err, "Putting dav blob %s", path)
+		return fmt.Errorf("failed to write to destination file: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Putting dav blob %s: Wrong response code: %d; body: %s", path, resp.StatusCode, c.readAndTruncateBody(resp)) //nolint:staticcheck
-	}
-
+	slog.Debug("Successfully downloaded file", "dest", dest)
 	return nil
 }
 
-func (c client) Exists(path string) error {
-	req, err := c.createReq("HEAD", path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		err := fmt.Errorf("%s not found", path)
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("invalid status: %d", resp.StatusCode)
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	return nil
+// Delete removes a file from the WebDAV server
+func (d *DavBlobstore) Delete(dest string) error {
+	slog.Debug("Deleting file from WebDAV", "dest", dest)
+	return d.storageClient.Delete(dest)
 }
 
-func (c client) Delete(path string) error {
-	req, err := c.createReq("DELETE", path, nil)
+// DeleteRecursive deletes all files matching a prefix
+func (d *DavBlobstore) DeleteRecursive(prefix string) error {
+	slog.Debug("Deleting files recursively from WebDAV", "prefix", prefix)
+
+	// List all blobs with the prefix
+	blobs, err := d.storageClient.List(prefix)
 	if err != nil {
-		return bosherr.WrapErrorf(err, "Creating delete request for blob '%s'", path)
+		return fmt.Errorf("failed to list blobs with prefix '%s': %w", prefix, err)
 	}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return bosherr.WrapErrorf(err, "Deleting blob '%s'", path)
-	}
+	slog.Debug("Found blobs to delete", "count", len(blobs), "prefix", prefix)
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		err := fmt.Errorf("invalid status: %d", resp.StatusCode)
-		return bosherr.WrapErrorf(err, "Deleting blob '%s'", path)
-	}
-
-	return nil
-}
-
-func (c client) Sign(blobID, action string, duration time.Duration) (string, error) {
-	signer := URLsigner.NewSigner(c.config.Secret)
-	signTime := time.Now()
-
-	prefixedBlob := fmt.Sprintf("%s/%s", getBlobPrefix(blobID), blobID)
-
-	signedURL, err := signer.GenerateSignedURL(c.config.Endpoint, prefixedBlob, action, signTime, duration)
-
-	if err != nil {
-		return "", bosherr.WrapErrorf(err, "pre-signing the url")
-	}
-
-	return signedURL, err
-}
-
-func (c client) createReq(method, blobID string, body io.Reader) (*http.Request, error) {
-	blobURL, err := url.Parse(c.config.Endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	blobPrefix := getBlobPrefix(blobID)
-
-	newPath := path.Join(blobURL.Path, blobPrefix, blobID)
-	if !strings.HasPrefix(newPath, "/") {
-		newPath = "/" + newPath
-	}
-
-	blobURL.Path = newPath
-
-	req, err := http.NewRequest(method, blobURL.String(), body)
-	if err != nil {
-		return req, err
-	}
-
-	if c.config.User != "" {
-		req.SetBasicAuth(c.config.User, c.config.Password)
-	}
-	return req, nil
-}
-
-func (c client) readAndTruncateBody(resp *http.Response) string {
-	body := ""
-	if resp.Body != nil {
-		buf := make([]byte, 1024)
-		n, err := resp.Body.Read(buf)
-		if err == io.EOF || err == nil {
-			body = string(buf[0:n])
+	// Delete each blob
+	for _, blob := range blobs {
+		if err := d.storageClient.Delete(blob); err != nil {
+			return fmt.Errorf("failed to delete blob '%s': %w", blob, err)
 		}
+		slog.Debug("Deleted blob", "blob", blob)
 	}
-	return body
+
+	slog.Debug("Successfully deleted all blobs", "prefix", prefix)
+	return nil
 }
 
-func getBlobPrefix(blobID string) string {
-	digester := sha1.New()
-	digester.Write([]byte(blobID))
-	return fmt.Sprintf("%02x", digester.Sum(nil)[0])
+// Exists checks if a file exists on the WebDAV server
+func (d *DavBlobstore) Exists(dest string) (bool, error) {
+	slog.Debug("Checking if file exists on WebDAV", "dest", dest)
+
+	err := d.storageClient.Exists(dest)
+	if err != nil {
+		// Check if it's a "not found" error
+		if bosherr.WrapError(err, "").Error() == fmt.Sprintf("%s not found", dest) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Sign generates a pre-signed URL for the blob
+func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Debug("Signing URL for WebDAV", "dest", dest, "action", action, "expiration", expiration)
+
+	signedURL, err := d.storageClient.Sign(dest, action, expiration)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign URL: %w", err)
+	}
+
+	return signedURL, nil
+}
+
+// List returns a list of blob paths that match the given prefix
+func (d *DavBlobstore) List(prefix string) ([]string, error) {
+	slog.Debug("Listing files on WebDAV", "prefix", prefix)
+
+	blobs, err := d.storageClient.List(prefix)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list blobs: %w", err)
+	}
+
+	slog.Debug("Found blobs", "count", len(blobs), "prefix", prefix)
+	return blobs, nil
+}
+
+// Copy copies a blob from source to destination
+func (d *DavBlobstore) Copy(srcBlob string, dstBlob string) error {
+	slog.Debug("Copying blob on WebDAV", "source", srcBlob, "dest", dstBlob)
+
+	err := d.storageClient.Copy(srcBlob, dstBlob)
+	if err != nil {
+		return fmt.Errorf("copy failure: %w", err)
+	}
+
+	slog.Debug("Successfully copied blob", "source", srcBlob, "dest", dstBlob)
+	return nil
+}
+
+// Properties retrieves metadata for a blob
+func (d *DavBlobstore) Properties(dest string) error {
+	slog.Debug("Getting properties for blob on WebDAV", "dest", dest)
+	return d.storageClient.Properties(dest)
+}
+
+// EnsureStorageExists ensures the WebDAV directory structure exists
+func (d *DavBlobstore) EnsureStorageExists() error {
+	slog.Debug("Ensuring WebDAV storage exists")
+	return d.storageClient.EnsureStorageExists()
 }
