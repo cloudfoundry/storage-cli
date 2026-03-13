@@ -46,7 +46,7 @@ jobs:
           stack_name: ${{ env.STACK_NAME }}
           
       - name: Test Static Credentials
-        uses: ./.github/actions/s3-integration-run
+        uses: ./.github/actions/s3-integration-run-aws
         with:
           access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -54,28 +54,24 @@ jobs:
           stack_name: ${{ env.STACK_NAME }}
           s3_endpoint_host: ${{ env.S3_ENDPOINT_HOST }}
           label_filter: 'aws && static && (general || us-east-1)'
-          test_type: 'aws'
 
       - name: Test IAM Roles
-        uses: ./.github/actions/s3-integration-run
+        uses: ./.github/actions/s3-integration-run-aws-iam
         with:
           access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
           label_filter: 'aws && iam-role'
-          test_type: 'aws-iam'
 
       - name: Test Assume Roles
-        uses: ./.github/actions/s3-integration-run
+        uses: ./.github/actions/s3-integration-run-aws-assume
         with:
           access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region_name: ${{ env.REGION_NAME }}
-          stack_name: ${{ env.STACK_NAME }}
           role_arn: ${{ secrets.AWS_ROLE_ARN }}
           label_filter: 'aws && assume-role'
-          test_type: 'aws-assume'
 
       - name: Teardown AWS infrastructure
         if: always()
@@ -133,7 +129,7 @@ jobs:
           stack_name: ${{ matrix.stack_name }}
 
       - name: Run regional tests
-        uses: ./.github/actions/s3-integration-run
+        uses: ./.github/actions/s3-integration-run-aws
         with:
           access_key_id: ${{ matrix.use_esc_credentials && secrets.AWS_ESC_ACCESS_KEY_ID || secrets.AWS_ACCESS_KEY_ID }}
           secret_access_key: ${{ matrix.use_esc_credentials && secrets.AWS_ESC_SECRET_ACCESS_KEY || secrets.AWS_SECRET_ACCESS_KEY }}
@@ -141,7 +137,6 @@ jobs:
           stack_name: ${{ matrix.stack_name }}
           s3_endpoint_host: ${{ matrix.s3_endpoint_host }}
           label_filter: ${{ matrix.label_filter }}
-          test_type: 'aws'
 
       - name: Teardown AWS infrastructure
         if: always()

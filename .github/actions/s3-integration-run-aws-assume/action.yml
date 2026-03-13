@@ -1,0 +1,34 @@
+name: Run AWS S3 integration tests (assume role)
+description: Runs AWS S3 assume-role integration tests using label-based selection.
+
+inputs:
+  access_key_id:
+    description: 'AWS Access Key ID'
+    required: true
+  secret_access_key:
+    description: 'AWS Secret Access Key'
+    required: true
+  region_name:
+    description: 'AWS Region Name'
+    required: true
+  role_arn:
+    description: 'AWS Role ARN to assume during tests'
+    required: true
+  label_filter:
+    description: 'Ginkgo Label Filter for tests to run'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run AWS S3 assume-role integration tests
+      shell: bash
+      run: |
+        set -e
+        export access_key_id="${{inputs.access_key_id}}"
+        export secret_access_key="${{inputs.secret_access_key}}"
+        export region_name="${{inputs.region_name}}"
+        export assume_role_arn="${{inputs.role_arn}}"
+        export label_filter="${{inputs.label_filter}}"
+        ./.github/scripts/s3/run-integration-aws-assume.sh
+
