@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing inside an AWS compute resource with an IAM role", func() {
+var _ = Describe("Testing inside an AWS compute resource with an IAM role", Label("aws", "iam-role"), func() {
 	Context("with AWS STANDARD IAM ROLE (env_or_profile creds) configurations", func() {
 		bucketName := os.Getenv("BUCKET_NAME")
 		region := os.Getenv("REGION")

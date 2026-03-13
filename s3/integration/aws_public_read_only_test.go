@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing gets against a public AWS S3 bucket", func() {
+var _ = Describe("Testing gets against a public AWS S3 bucket", Label("aws", "public-read"), func() {
 	Context("with PUBLIC READ ONLY (no creds) configuration", func() {
 		It("can successfully get a publicly readable file", func() {
 			storageType := "s3"

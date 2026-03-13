@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing in any AWS region isolated from the US standard regions (i.e., cn-north-1)", func() {
+var _ = Describe("Testing in any AWS region isolated from the US standard regions (i.e., cn-north-1)", Label("aws", "static", "isolated-region"), func() {
 	Context("with AWS ISOLATED REGION (static creds) configurations", func() {
 		It("fails with a config that specifies a valid region but invalid host", func() {
 			storageType := "s3"
