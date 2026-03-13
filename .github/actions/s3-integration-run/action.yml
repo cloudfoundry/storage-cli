@@ -12,7 +12,7 @@ inputs:
     description: 'AWS Region Name'
     required: true
   stack_name:
-    description: 'CloudFormation Stack Name (required for aws and aws-iam tests)'
+    description: 'CloudFormation Stack Name'
     required: false
     default: ''
   test_type:
