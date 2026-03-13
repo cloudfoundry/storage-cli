@@ -2,6 +2,7 @@ import os
 import logging
 import subprocess
 
+
 def test_runner_handler(event, context):
     os.environ['S3_CLI_PATH'] = './s3cli'
     os.environ['BUCKET_NAME'] = event['bucket_name']
@@ -11,9 +12,14 @@ def test_runner_handler(event, context):
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
+    label_filter = event.get('label_filter', 'aws && iam-role')
+
     try:
-        output = subprocess.check_output(['./integration.test', '-ginkgo.focus', 'AWS STANDARD IAM ROLE'],
-                                env=os.environ, stderr=subprocess.STDOUT)
+        output = subprocess.check_output(
+            ['./integration.test', '-ginkgo.label-filter', label_filter],
+            env=os.environ,
+            stderr=subprocess.STDOUT,
+        )
         logger.debug("INTEGRATION TEST OUTPUT:")
         logger.debug(output)
     except subprocess.CalledProcessError as e:

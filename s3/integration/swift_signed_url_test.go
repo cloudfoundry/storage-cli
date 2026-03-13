@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing for working signed URLs all Swift/OpenStack regions", func() {
+var _ = Describe("Testing for working signed URLs all Swift/OpenStack regions", Label("swift", "signed-url"), func() {
 	Context("with GENERAL OpenStack/Swift (static creds) configurations", func() {
 		var configPath string
 		var contentFile string

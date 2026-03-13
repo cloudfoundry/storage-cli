@@ -12,14 +12,15 @@ inputs:
     description: 'AWS Region Name'
     required: true
   stack_name:
-    description: 'CloudFormation Stack Name (required for IAM tests)'
-    required: true
+    description: 'CloudFormation Stack Name (required for aws and aws-iam tests)'
+    required: false
+    default: ''
   test_type:
     description: 'Type of test to run (e.g.,aws, aws-iam, aws-assume)'
     required: true
-  focus_regex:
-    description: 'Ginkgo Focus Regex for tests to run'
-    required: false
+  label_filter:
+    description: 'Ginkgo Label Filter for tests to run'
+    required: true
   s3_endpoint_host:
     description: 'Custom S3 Endpoint Host'
     required: false
@@ -43,15 +44,16 @@ runs:
       if [[ "${{inputs.test_type}}" == "aws" ]]; then
         export role_arn="${{inputs.role_arn}}"
         export s3_endpoint_host="${{inputs.s3_endpoint_host}}"
-        export focus_regex="${{inputs.focus_regex}}"
+        export label_filter="${{inputs.label_filter}}"
         echo "Running standard AWS integration tests..."
         ./.github/scripts/s3/run-integration-aws.sh
       elif [[ "${{inputs.test_type}}" == "aws-iam" ]]; then
+        export label_filter="${{inputs.label_filter}}"
         echo "Running AWS IAM role tests..."
         ./.github/scripts/s3/run-integration-aws-iam.sh
       elif [[ "${{inputs.test_type}}" == "aws-assume" ]]; then
         export assume_role_arn="${{inputs.role_arn}}"
-        export focus_regex="${{inputs.focus_regex}}"
+        export label_filter="${{inputs.label_filter}}"
         echo "Running AWS assume role tests..."
         ./.github/scripts/s3/run-integration-aws-assume.sh
       else

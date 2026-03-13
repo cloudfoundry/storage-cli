@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing for AWS European Sovereign Cloud region", func() {
+var _ = Describe("Testing for AWS European Sovereign Cloud region", Label("aws", "static", "esc"), func() {
 	Context("with AWS ESC (static creds) configurations", func() {
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")

@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing in any non-AWS, S3 compatible storage service", func() {
+var _ = Describe("Testing in any non-AWS, S3 compatible storage service", Label("s3-compatible"), func() {
 	Context("with S3 COMPATIBLE (static creds) configurations", func() {
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")

@@ -13,6 +13,7 @@ source "${script_dir}/utils.sh"
 : "${secret_access_key:?}"
 : "${region_name:?}"
 : "${stack_name:?}"
+: "${label_filter:?}"
 
 # Just need these to get the stack info and to create/invoke the Lambda function
 export AWS_ACCESS_KEY_ID=${access_key_id}
@@ -24,11 +25,11 @@ bucket_name=$(get_stack_info_of "${stack_info}" "BucketName")
 iam_role_arn=$(get_stack_info_of "${stack_info}" "IamRoleArn")
 
 # Create JSON payload and base64 encode it
-lambda_payload_json="{\"region\": \"${region_name}\", \"bucket_name\": \"${bucket_name}\", \"s3_host\": \"s3.amazonaws.com\"}"
+lambda_payload_json="{\"region\": \"${region_name}\", \"bucket_name\": \"${bucket_name}\", \"s3_host\": \"s3.amazonaws.com\", \"label_filter\": \"${label_filter}\"}"
 lambda_payload_base64=$(echo -n "${lambda_payload_json}" | base64)
 
 lambda_log=$(mktemp -t "XXXXXX-lambda.log")
-trap "cat ${lambda_log}" EXIT
+trap 'cat "${lambda_log}"' EXIT
 
 # Go to the repository root (3 levels up from script directory)
 
@@ -95,7 +96,7 @@ pushd "${repo_root}" > /dev/null
   echo "Lambda execution log output for ${log_stream_name}"
 
   tries=0
-  > lambda_output.log
+  : > lambda_output.log
   while [[ ( "$(du lambda_output.log | cut -f 1)" -eq "0" ) && ( $tries -ne 20 ) ]] ; do
     sleep 2
     tries=$((tries + 1))

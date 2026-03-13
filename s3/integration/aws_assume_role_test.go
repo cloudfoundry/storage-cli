@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing AWS assume role ", func() {
+var _ = Describe("Testing AWS assume role ", Label("aws", "assume-role"), func() {
 	Context("with AWS ASSUME ROLE configurations", func() {
 		It("get file from assumed role", func() {
 			storageType := "s3"
