@@ -7,21 +7,29 @@ import (
 	"github.com/cloudfoundry/storage-cli/dav/integration"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("General testing for DAV", func() {
 	Context("with DAV configurations", func() {
-		endpoint := os.Getenv("DAV_ENDPOINT")
-		user := os.Getenv("DAV_USER")
-		password := os.Getenv("DAV_PASSWORD")
-		ca := os.Getenv("DAV_CA_CERT")
-		secret := os.Getenv("DAV_SECRET")
+		var (
+			endpoint string
+			user     string
+			password string
+			ca       string
+			secret   string
+		)
 
 		BeforeEach(func() {
-			Expect(endpoint).ToNot(BeEmpty(), "DAV_ENDPOINT must be set")
-			Expect(user).ToNot(BeEmpty(), "DAV_USER must be set")
-			Expect(password).ToNot(BeEmpty(), "DAV_PASSWORD must be set")
+			endpoint = os.Getenv("DAV_ENDPOINT")
+			user = os.Getenv("DAV_USER")
+			password = os.Getenv("DAV_PASSWORD")
+			ca = os.Getenv("DAV_CA_CERT")
+			secret = os.Getenv("DAV_SECRET")
+
+			// Skip tests if environment variables are not set
+			if endpoint == "" || user == "" || password == "" {
+				Skip("Skipping DAV integration tests - environment variables not set (DAV_ENDPOINT, DAV_USER, DAV_PASSWORD required)")
+			}
 		})
 
 		configurations := []TableEntry{
