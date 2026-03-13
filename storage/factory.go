@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	alioss "github.com/cloudfoundry/storage-cli/alioss/client"
 	aliossconfig "github.com/cloudfoundry/storage-cli/alioss/config"
 	azurebs "github.com/cloudfoundry/storage-cli/azurebs/client"
 	azureconfigbs "github.com/cloudfoundry/storage-cli/azurebs/config"
-	davapp "github.com/cloudfoundry/storage-cli/dav/app"
-	davcmd "github.com/cloudfoundry/storage-cli/dav/cmd"
+	davclient "github.com/cloudfoundry/storage-cli/dav/client"
 	davconfig "github.com/cloudfoundry/storage-cli/dav/config"
 	gcs "github.com/cloudfoundry/storage-cli/gcs/client"
 	gcsconfig "github.com/cloudfoundry/storage-cli/gcs/config"
@@ -92,12 +90,12 @@ var newDavClient = func(configFile *os.File) (Storager, error) {
 		return nil, err
 	}
 
-	logger := boshlog.NewLogger(boshlog.LevelNone)
-	cmdFactory := davcmd.NewFactory(logger)
+	davClient, err := davclient.New(davConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	cmdRunner := davcmd.NewRunner(cmdFactory)
-
-	return davapp.New(cmdRunner, davConfig), nil
+	return davClient, nil
 }
 
 func NewStorageClient(storageType string, configFile *os.File) (Storager, error) {
