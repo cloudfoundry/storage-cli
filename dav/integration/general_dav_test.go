@@ -32,8 +32,8 @@ var _ = Describe("General testing for DAV", func() {
 			}
 		})
 
-		configurations := []TableEntry{
-			Entry("with basic config", &config.Config{
+		It("Blobstore lifecycle works with basic config", func() {
+			cfg := &config.Config{
 				Endpoint: endpoint,
 				User:     user,
 				Password: password,
@@ -42,8 +42,12 @@ var _ = Describe("General testing for DAV", func() {
 						CA: ca,
 					},
 				},
-			}),
-			Entry("with custom retry attempts", &config.Config{
+			}
+			integration.AssertLifecycleWorks(cliPath, cfg)
+		})
+
+		It("Blobstore lifecycle works with custom retry attempts", func() {
+			cfg := &config.Config{
 				Endpoint:      endpoint,
 				User:          user,
 				Password:      password,
@@ -53,36 +57,127 @@ var _ = Describe("General testing for DAV", func() {
 						CA: ca,
 					},
 				},
-			}),
-		}
+			}
+			integration.AssertLifecycleWorks(cliPath, cfg)
+		})
 
-		DescribeTable("Blobstore lifecycle works",
-			func(cfg *config.Config) { integration.AssertLifecycleWorks(cliPath, cfg) },
-			configurations,
-		)
+		It("Invoking `get` on a non-existent-key fails with basic config", func() {
+			cfg := &config.Config{
+				Endpoint: endpoint,
+				User:     user,
+				Password: password,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertGetNonexistentFails(cliPath, cfg)
+		})
 
-		DescribeTable("Invoking `get` on a non-existent-key fails",
-			func(cfg *config.Config) { integration.AssertGetNonexistentFails(cliPath, cfg) },
-			configurations,
-		)
+		It("Invoking `get` on a non-existent-key fails with custom retry attempts", func() {
+			cfg := &config.Config{
+				Endpoint:      endpoint,
+				User:          user,
+				Password:      password,
+				RetryAttempts: 5,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertGetNonexistentFails(cliPath, cfg)
+		})
 
-		DescribeTable("Invoking `delete` on a non-existent-key does not fail",
-			func(cfg *config.Config) { integration.AssertDeleteNonexistentWorks(cliPath, cfg) },
-			configurations,
-		)
+		It("Invoking `delete` on a non-existent-key does not fail with basic config", func() {
+			cfg := &config.Config{
+				Endpoint: endpoint,
+				User:     user,
+				Password: password,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertDeleteNonexistentWorks(cliPath, cfg)
+		})
 
-		DescribeTable("Blobstore list and delete-recursive lifecycle works",
-			func(cfg *config.Config) { integration.AssertOnListDeleteLifecycle(cliPath, cfg) },
-			configurations,
-		)
+		It("Invoking `delete` on a non-existent-key does not fail with custom retry attempts", func() {
+			cfg := &config.Config{
+				Endpoint:      endpoint,
+				User:          user,
+				Password:      password,
+				RetryAttempts: 5,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertDeleteNonexistentWorks(cliPath, cfg)
+		})
 
-		DescribeTable("Invoking `ensure-storage-exists` works",
-			func(cfg *config.Config) {
-				Skip("ensure-storage-exists not applicable for WebDAV - root always exists")
-				integration.AssertEnsureStorageExists(cliPath, cfg)
-			},
-			configurations,
-		)
+		It("Blobstore list and delete-recursive lifecycle works with basic config", func() {
+			cfg := &config.Config{
+				Endpoint: endpoint,
+				User:     user,
+				Password: password,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertOnListDeleteLifecycle(cliPath, cfg)
+		})
+
+		It("Blobstore list and delete-recursive lifecycle works with custom retry attempts", func() {
+			cfg := &config.Config{
+				Endpoint:      endpoint,
+				User:          user,
+				Password:      password,
+				RetryAttempts: 5,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertOnListDeleteLifecycle(cliPath, cfg)
+		})
+
+		It("Invoking `ensure-storage-exists` works with basic config", func() {
+			Skip("ensure-storage-exists not applicable for WebDAV - root always exists")
+			cfg := &config.Config{
+				Endpoint: endpoint,
+				User:     user,
+				Password: password,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertEnsureStorageExists(cliPath, cfg)
+		})
+
+		It("Invoking `ensure-storage-exists` works with custom retry attempts", func() {
+			Skip("ensure-storage-exists not applicable for WebDAV - root always exists")
+			cfg := &config.Config{
+				Endpoint:      endpoint,
+				User:          user,
+				Password:      password,
+				RetryAttempts: 5,
+				TLS: config.TLS{
+					Cert: config.Cert{
+						CA: ca,
+					},
+				},
+			}
+			integration.AssertEnsureStorageExists(cliPath, cfg)
+		})
 
 		Context("with signed URL support", func() {
 			BeforeEach(func() {
@@ -91,8 +186,8 @@ var _ = Describe("General testing for DAV", func() {
 				}
 			})
 
-			configurationsWithSecret := []TableEntry{
-				Entry("with secret for signed URLs", &config.Config{
+			It("Invoking `sign` returns a signed URL with secret for signed URLs", func() {
+				cfg := &config.Config{
 					Endpoint: endpoint,
 					User:     user,
 					Password: password,
@@ -102,13 +197,9 @@ var _ = Describe("General testing for DAV", func() {
 							CA: ca,
 						},
 					},
-				}),
-			}
-
-			DescribeTable("Invoking `sign` returns a signed URL",
-				func(cfg *config.Config) { integration.AssertOnSignedURLs(cliPath, cfg) },
-				configurationsWithSecret,
-			)
+				}
+				integration.AssertOnSignedURLs(cliPath, cfg)
+			})
 		})
 	})
 })
