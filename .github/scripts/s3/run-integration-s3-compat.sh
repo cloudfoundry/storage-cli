@@ -15,6 +15,7 @@ source "${script_dir}/utils.sh"
 : "${bucket_name:?}"
 : "${s3_endpoint_host:?}"
 : "${s3_endpoint_port:?}"
+: "${label_filter:=s3-compatible}"
 
 export ACCESS_KEY_ID=${access_key_id}
 export SECRET_ACCESS_KEY=${secret_access_key}
@@ -24,5 +25,6 @@ export S3_PORT=${s3_endpoint_port}
 
 pushd "${repo_root}" > /dev/null
   echo -e "\n running tests with $(go version)..."
-  ginkgo -r --focus="S3 COMPATIBLE" s3/integration/
+  echo "Selecting specs via label filter: ${label_filter}"
+  ginkgo -r --label-filter="${label_filter}" s3/integration/
 popd > /dev/null

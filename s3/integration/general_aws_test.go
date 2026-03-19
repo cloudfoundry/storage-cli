@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("General testing for all AWS regions", func() {
+var _ = Describe("General testing for all AWS regions", Label("aws", "static", "general"), func() {
 	Context("with GENERAL AWS (static creds) configurations", func() {
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")
@@ -33,7 +33,8 @@ var _ = Describe("General testing for all AWS regions", func() {
 				BucketName:      bucketName,
 				Region:          region,
 			}),
-			Entry("with host and without region", &config.S3Cli{
+			// This case relies on default-region behavior and is excluded from regional endpoint jobs.
+			Entry("with host and without region", Label("requires-default-region"), &config.S3Cli{
 				AccessKeyID:     accessKeyID,
 				SecretAccessKey: secretAccessKey,
 				BucketName:      bucketName,

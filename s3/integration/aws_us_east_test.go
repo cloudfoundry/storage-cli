@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Testing only in us-east-1", func() {
+var _ = Describe("Testing only in us-east-1", Label("aws", "static", "us-east-1"), func() {
 	Context("with AWS US-EAST-1 (static creds) configurations", func() {
 		accessKeyID := os.Getenv("ACCESS_KEY_ID")
 		secretAccessKey := os.Getenv("SECRET_ACCESS_KEY")

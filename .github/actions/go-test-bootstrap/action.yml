@@ -1,0 +1,14 @@
+name: Set up Go test environment
+description: Sets up Go from go.mod and installs Ginkgo.
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version-file: go.mod
+
+    - name: Install Ginkgo
+      shell: bash
+      run: go install github.com/onsi/ginkgo/v2/ginkgo@latest

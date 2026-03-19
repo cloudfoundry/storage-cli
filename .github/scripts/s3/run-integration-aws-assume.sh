@@ -12,10 +12,9 @@ source "${script_dir}/utils.sh"
 : "${access_key_id:?}"
 : "${secret_access_key:?}"
 : "${region_name:=unset}"
-: "${focus_regex:?}"
+: "${label_filter:?}"
 : "${assume_role_arn:=unset}"
 : "${s3_endpoint_host:=unset}"
-
 
 # Just need these to get the stack info
 export AWS_ACCESS_KEY_ID=${access_key_id}
@@ -32,5 +31,6 @@ export S3_HOST=${s3_endpoint_host}
 
 pushd "${repo_root}" > /dev/null
   echo -e "\n running tests with $(go version)..."
-  ginkgo -r --focus="${focus_regex}" s3/integration/
+  echo "Selecting specs via label filter: ${label_filter}"
+  ginkgo -r --label-filter="${label_filter}" s3/integration/
 popd > /dev/null
