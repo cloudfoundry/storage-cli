@@ -27,6 +27,16 @@ jobs:
             -o "storage-cli-linux-arm64"
             sha1sum "storage-cli-linux-arm64"
     
+    - name: Storage-CLI Build for macOS
+      run: |
+            echo "Building Storage CLI for macOS"
+            GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" \
+            -o "storage-cli-darwin-amd64"
+            sha1sum "storage-cli-darwin-amd64"
+            GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" \
+            -o "storage-cli-darwin-arm64"
+            sha1sum "storage-cli-darwin-arm64"
+
     - name: Storage-CLI Build for Windows
       run: |
             echo "Building Storage CLI for Windows"
@@ -48,5 +58,7 @@ jobs:
         path: |
           storage-cli-linux-amd64
           storage-cli-linux-arm64
+          storage-cli-darwin-amd64
+          storage-cli-darwin-arm64
           storage-cli-windows-amd64.exe
         retention-days: 30
