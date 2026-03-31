@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.10
 	github.com/aws/smithy-go v1.24.2
-	github.com/cloudfoundry/bosh-utils v0.0.604
+	github.com/cloudfoundry/bosh-utils v0.0.605
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.1
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
@@ -30,7 +30,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
-	code.cloudfoundry.org/tlsconfig v0.48.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.49.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
