@@ -30,7 +30,10 @@ The S3 client requires a JSON configuration file with the following structure:
   "upload_part_size":             <int64> (optional - default: 5242880),   # 5 MB
   "multipart_copy_threshold":     <int64> (optional - default: 5368709120), # 5 GB - files larger than this use multipart copy
   "multipart_copy_part_size":     <int64> (optional - default: 104857600), # 100 MB - must be at least 5 MB
-  "single_upload_threshold":      <int64> (optional - default: 0)          # bytes; files <= this use a single PutObject call, larger files use multipart upload. 0 means always use multipart. Max 5 GB for AWS S3. GCS ignores this and always uses single upload.
+  "single_upload_threshold":      <int64> (optional - default: 0),         # bytes; files <= this use a single PutObject call, larger files use multipart upload. 0 means always use multipart. Max 5 GB for AWS S3. GCS ignores this and always uses single upload.
+  "request_checksum_calculation_enabled":          <bool> (optional - default: true),
+  "response_checksum_calculation_enabled":         <bool> (optional - default: true),
+  "uploader_request_checksum_calculation_enabled": <bool> (optional - default: true)
 }
 ```
 
