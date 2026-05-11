@@ -34,7 +34,7 @@ func NewSignerWithFormat(secret string, signedURLFormat string) (Signer, error) 
 	normalized := strings.ToLower(signedURLFormat)
 	switch normalized {
 	case "sha256":
-		normalized = "hmac-sha256"
+		// Alias for hmac-sha256
 	case "hmac-sha256":
 		// Valid format, already normalized
 	default:

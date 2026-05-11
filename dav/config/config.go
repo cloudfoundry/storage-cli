@@ -6,14 +6,14 @@ import (
 )
 
 type Config struct {
-	User          string
-	Password      string
-	Endpoint      string
+	User           string
+	Password       string
+	Endpoint       string
 	PublicEndpoint string `json:"public_endpoint"` // Optional: public endpoint for external signed URLs
-	RetryAttempts uint
-	RetryDelay    uint `json:"retry_delay"` // Delay in seconds between retry attempts (default: 1)
-	TLS           TLS
-	Secret        string
+	RetryAttempts  uint
+	RetryDelay     uint `json:"retry_delay"` // Delay in seconds between retry attempts (default: 1)
+	TLS            TLS
+	Secret         string
 
 	// SignedURLFormat specifies the signed URL format configured by the WebDAV server.
 	// This must match the server configuration and should not be changed arbitrarily.

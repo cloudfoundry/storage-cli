@@ -779,4 +779,3 @@ func (c *storageClient) signViaExternalEndpoint(blobID, action string, duration 
 
 	return responseURL.String(), nil
 }
-

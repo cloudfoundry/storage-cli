@@ -144,7 +144,8 @@ func validateEndpointConfig(config davconf.Config) error {
 		}
 	}
 
-	if config.SignedURLFormat == "external-nginx-secure-link-signer" {
+	switch config.SignedURLFormat {
+	case "external-nginx-secure-link-signer":
 		if config.User == "" || config.Password == "" {
 			return fmt.Errorf("external-nginx-secure-link-signer requires user and password for Basic Auth")
 		}
@@ -156,7 +157,7 @@ func validateEndpointConfig(config davconf.Config) error {
 			slog.Warn("secret is configured but not used with external-nginx-secure-link-signer",
 				"signed_url_format", config.SignedURLFormat)
 		}
-	} else if config.SignedURLFormat == "hmac-sha256" {
+	case "hmac-sha256":
 		if config.Secret == "" {
 			return fmt.Errorf("%s requires secret to be configured", config.SignedURLFormat)
 		}
@@ -164,4 +165,3 @@ func validateEndpointConfig(config davconf.Config) error {
 
 	return nil
 }
-
