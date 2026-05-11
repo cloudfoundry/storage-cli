@@ -260,22 +260,6 @@ var _ = Describe("General testing for DAV", func() {
 				integration.AssertOnSignedURLs(cliPath, cfg)
 			})
 
-			It("Invoking `sign` returns a signed URL with secure-link-md5 format", func() {
-				cfg := &config.Config{
-					Endpoint:        endpoint,
-					User:            user,
-					Password:        password,
-					Secret:          secret,
-					SignedURLFormat: "secure-link-md5",
-					TLS: config.TLS{
-						Cert: config.Cert{
-							CA: ca,
-						},
-					},
-				}
-				integration.AssertOnSignedURLsSecureLinkMD5(cliPath, cfg)
-			})
-
 			It("Invoking `sign` returns a signed URL with custom expiration", func() {
 				cfg := &config.Config{
 					Endpoint:            endpoint,

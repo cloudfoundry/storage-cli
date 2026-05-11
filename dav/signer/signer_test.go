@@ -14,7 +14,8 @@ var _ = Describe("Signer", func() {
 	verb := "get"
 	duration := time.Duration(15 * time.Minute)
 	timeStamp := time.Date(2019, 8, 26, 11, 11, 0, 0, time.UTC)
-	path := "https://api.example.com/"
+	endpointBase := "https://api.example.com"
+	directoryKey := "cc-droplets"
 
 	Context("SHA256 HMAC Signed URL (BOSH format - default)", func() {
 		signer := signer.NewSigner(secret)
@@ -24,10 +25,10 @@ var _ = Describe("Signer", func() {
 		// duration: 900 seconds (15 minutes)
 		// Signature matches BOSH secure_link_hmac format: $request_method$object_id$arg_ts$arg_e
 		// where arg_e is the DURATION in seconds, not absolute expiration
-		expected := "https://api.example.com/signed/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
+		expected := "https://api.example.com/signed/cc-droplets/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
 
 		It("Generates a properly formed URL", func() {
-			actual, err := signer.GenerateSignedURL(path, objectID, verb, timeStamp, duration)
+			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
 			Expect(err).To(BeNil())
 			Expect(actual).To(Equal(expected))
 		})
@@ -37,25 +38,10 @@ var _ = Describe("Signer", func() {
 		signer, err := signer.NewSignerWithFormat(secret, "sha256")
 		Expect(err).To(BeNil())
 
-		expected := "https://api.example.com/signed/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
+		expected := "https://api.example.com/signed/cc-droplets/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
 
 		It("Generates a properly formed URL", func() {
-			actual, err := signer.GenerateSignedURL(path, objectID, verb, timeStamp, duration)
-			Expect(err).To(BeNil())
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("MD5 Signed URL (CAPI format)", func() {
-		signer, err := signer.NewSignerWithFormat(secret, "md5")
-		Expect(err).To(BeNil())
-
-		// Expected signature for: md5("1566818760/read/fake-object-id {secret}")
-		// expires: 1566818760 (timestamp + 900 seconds)
-		expected := "https://api.example.com/read/fake-object-id?expires=1566818760&md5=WQ0QdFWpV_nxXrlyHPOu6g"
-
-		It("Generates a properly formed URL", func() {
-			actual, err := signer.GenerateSignedURL(path, objectID, verb, timeStamp, duration)
+			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
 			Expect(err).To(BeNil())
 			Expect(actual).To(Equal(expected))
 		})

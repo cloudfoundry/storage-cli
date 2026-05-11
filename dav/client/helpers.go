@@ -3,6 +3,8 @@ package client
 import (
 	"crypto/x509"
 	"fmt"
+	"log/slog"
+	"net/url"
 	"strings"
 
 	boshcrypto "github.com/cloudfoundry/bosh-utils/crypto"
@@ -85,3 +87,81 @@ func validatePrefix(prefix string) error {
 
 	return nil
 }
+
+func extractSignEndpoint(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+}
+
+// extracts the directory key from the endpoint path
+func extractDirectoryKey(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return ""
+	}
+
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+
+	for i, part := range pathParts {
+		if part == "admin" && i+1 < len(pathParts) {
+			return pathParts[i+1]
+		}
+	}
+
+	for i := len(pathParts) - 1; i >= 0; i-- {
+		if pathParts[i] != "" {
+			return pathParts[i]
+		}
+	}
+
+	return ""
+}
+
+// validates the endpoint configuration and provides helpful error messages
+func validateEndpointConfig(config davconf.Config) error {
+	if config.Endpoint == "" {
+		return fmt.Errorf("endpoint cannot be empty")
+	}
+
+	u, err := url.Parse(config.Endpoint)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint URL: %w", err)
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("endpoint must use http or https scheme, got: %s", u.Scheme)
+	}
+
+	if u.Path != "" {
+		pathLower := strings.ToLower(u.Path)
+		if !strings.Contains(pathLower, "/admin/") {
+			slog.Warn("endpoint path does not contain '/admin/' - this may cause issues with WebDAV operations",
+				"endpoint", config.Endpoint,
+				"path", u.Path)
+		}
+	}
+
+	if config.SignedURLFormat == "external-nginx-secure-link-signer" {
+		if config.User == "" || config.Password == "" {
+			return fmt.Errorf("external-nginx-secure-link-signer requires user and password for Basic Auth")
+		}
+		if config.PublicEndpoint == "" {
+			return fmt.Errorf("external-nginx-secure-link-signer requires public_endpoint to be configured")
+		}
+
+		if config.Secret != "" {
+			slog.Warn("secret is configured but not used with external-nginx-secure-link-signer",
+				"signed_url_format", config.SignedURLFormat)
+		}
+	} else if config.SignedURLFormat == "hmac-sha256" {
+		if config.Secret == "" {
+			return fmt.Errorf("%s requires secret to be configured", config.SignedURLFormat)
+		}
+	}
+
+	return nil
+}
+

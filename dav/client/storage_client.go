@@ -48,6 +48,8 @@ type StorageClient interface {
 	Exists(path string) (bool, error)
 	Delete(path string) (err error)
 	Sign(objectID, action string, duration time.Duration) (string, error)
+	SignInternal(objectID, action string, duration time.Duration) (string, error)
+	SignPublic(objectID, action string, duration time.Duration) (string, error)
 	Copy(srcBlob, dstBlob string) error
 	List(prefix string) ([]string, error)
 	Properties(path string) error
@@ -111,8 +113,12 @@ type storageClient struct {
 }
 
 func NewStorageClient(config davconf.Config, httpClientBase httpclient.Client) (StorageClient, error) {
+	if err := validateEndpointConfig(config); err != nil {
+		return nil, err
+	}
+
 	var urlSigner URLsigner.Signer
-	if config.Secret != "" {
+	if config.Secret != "" && config.SignedURLFormat != "external-nginx-secure-link-signer" {
 		if config.SignedURLFormat != "" {
 			signer, err := URLsigner.NewSignerWithFormat(config.Secret, config.SignedURLFormat)
 			if err != nil {
@@ -235,6 +241,22 @@ func (c *storageClient) Delete(path string) error {
 }
 
 func (c *storageClient) Sign(blobID, action string, duration time.Duration) (string, error) {
+	return c.SignInternal(blobID, action, duration)
+}
+
+func (c *storageClient) SignInternal(blobID, action string, duration time.Duration) (string, error) {
+	return c.signWithEndpoint(blobID, action, duration, c.config.Endpoint, "internal")
+}
+
+func (c *storageClient) SignPublic(blobID, action string, duration time.Duration) (string, error) {
+	endpoint := c.config.PublicEndpoint
+	if endpoint == "" {
+		endpoint = c.config.Endpoint
+	}
+	return c.signWithEndpoint(blobID, action, duration, endpoint, "public")
+}
+
+func (c *storageClient) signWithEndpoint(blobID, action string, duration time.Duration, endpoint string, endpointType string) (string, error) {
 	if err := validateBlobID(blobID); err != nil {
 		return "", err
 	}
@@ -244,12 +266,20 @@ func (c *storageClient) Sign(blobID, action string, duration time.Duration) (str
 		return "", fmt.Errorf("action not implemented: %s (only GET and PUT are supported)", action)
 	}
 
+	if c.config.SignedURLFormat == "external-nginx-secure-link-signer" {
+		return c.signViaExternalEndpoint(blobID, action, duration, endpoint)
+	}
+
 	if c.signer == nil {
 		return "", fmt.Errorf("signing is not configured (no secret provided)")
 	}
 
 	signTime := time.Now()
-	signedURL, err := c.signer.GenerateSignedURL(c.config.Endpoint, blobID, action, signTime, duration)
+
+	directoryKey := extractDirectoryKey(endpoint)
+	endpointBase := extractSignEndpoint(endpoint)
+
+	signedURL, err := c.signer.GenerateSignedURL(endpointBase, directoryKey, blobID, action, signTime, duration)
 	if err != nil {
 		return "", fmt.Errorf("pre-signing the url: %w", err)
 	}
@@ -265,14 +295,40 @@ func (c *storageClient) Copy(srcBlob, dstBlob string) error {
 		return fmt.Errorf("invalid destination blob ID: %w", err)
 	}
 
-	err := c.copyNative(srcBlob, dstBlob)
+	// First, create the destination file with an empty PUT
+	// This ensures parent directories exist (nginx create_full_put_path)
+	// and creates the target file that COPY can then overwrite
+	dstURL, err := c.buildBlobURL(dstBlob)
+	if err != nil {
+		return fmt.Errorf("building destination URL: %w", err)
+	}
+
+	putReq, err := http.NewRequest("PUT", dstURL, strings.NewReader(""))
+	if err != nil {
+		return fmt.Errorf("creating PUT request for destination: %w", err)
+	}
+
+	if c.config.User != "" {
+		putReq.SetBasicAuth(c.config.User, c.config.Password)
+	}
+
+	putReq.ContentLength = 0
+	putResp, err := c.httpClient.Do(putReq)
+	if err != nil {
+		return fmt.Errorf("creating destination file: %w", err)
+	}
+	defer putResp.Body.Close() //nolint:errcheck
+
+	if putResp.StatusCode != http.StatusCreated && putResp.StatusCode != http.StatusNoContent {
+		bodyBytes, _ := io.ReadAll(io.LimitReader(putResp.Body, 512)) //nolint:errcheck
+		return fmt.Errorf("PUT destination failed with status %d: %s", putResp.StatusCode, string(bodyBytes))
+	}
+
+	err = c.copyNative(srcBlob, dstBlob)
 	if err == nil {
 		return nil
 	}
 
-	// nginx WebDAV handles directory creation automatically, so no need to handle
-	// 409 Conflict errors by manually creating parent directories and retrying.
-	// Return the COPY error directly.
 	return fmt.Errorf("WebDAV COPY failed: %w", err)
 }
 
@@ -601,8 +657,12 @@ func (c *storageClient) createReq(method, blobID string, body io.Reader) (*http.
 			expirationMinutes = 15
 		}
 
+		directoryKey := extractDirectoryKey(c.config.Endpoint)
+		endpointBase := extractSignEndpoint(c.config.Endpoint)
+
 		signedURL, err := c.signer.GenerateSignedURL(
-			c.config.Endpoint,
+			endpointBase,
+			directoryKey,
 			blobID,
 			method,
 			time.Now(),
@@ -667,3 +727,56 @@ func (c *storageClient) buildBlobURL(blobID string) (string, error) {
 
 	return blobURL.String(), nil
 }
+
+// signViaExternalEndpoint generates signed URLs using external blobstore_url_signer service
+func (c *storageClient) signViaExternalEndpoint(blobID, action string, duration time.Duration, targetEndpoint string) (string, error) {
+	signEndpoint := extractSignEndpoint(c.config.Endpoint)
+	directoryKey := extractDirectoryKey(c.config.Endpoint)
+	signPath := "/" + directoryKey + "/" + blobID
+
+	expires := time.Now().Unix() + int64(duration.Seconds())
+	signURL := fmt.Sprintf("%s/sign?expires=%d&path=%s", signEndpoint, expires, url.QueryEscape(signPath))
+
+	req, err := http.NewRequest("GET", signURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("creating sign request: %w", err)
+	}
+
+	if c.config.User != "" {
+		req.SetBasicAuth(c.config.User, c.config.Password)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("calling external signer: %w", err)
+	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 512)) //nolint:errcheck
+		return "", fmt.Errorf("external signer failed: status %d, body: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	signedURLBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading signed URL response: %w", err)
+	}
+
+	signedURLStr := strings.TrimSpace(string(signedURLBytes))
+
+	responseURL, err := url.Parse(signedURLStr)
+	if err != nil {
+		return "", fmt.Errorf("parsing signed URL response: %w", err)
+	}
+
+	targetURL, err := url.Parse(targetEndpoint)
+	if err != nil {
+		return "", fmt.Errorf("parsing target endpoint: %w", err)
+	}
+
+	responseURL.Scheme = targetURL.Scheme
+	responseURL.Host = targetURL.Host
+
+	return responseURL.String(), nil
+}
+

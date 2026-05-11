@@ -145,6 +145,28 @@ func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration
 	return signedURL, nil
 }
 
+func (d *DavBlobstore) SignInternal(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Info("Signing internal URL for WebDAV", "dest", dest, "action", action, "expiration", expiration)
+
+	signedURL, err := d.storageClient.SignInternal(dest, action, expiration)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign internal URL: %w", err)
+	}
+
+	return signedURL, nil
+}
+
+func (d *DavBlobstore) SignPublic(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Info("Signing public URL for WebDAV", "dest", dest, "action", action, "expiration", expiration)
+
+	signedURL, err := d.storageClient.SignPublic(dest, action, expiration)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign public URL: %w", err)
+	}
+
+	return signedURL, nil
+}
+
 func (d *DavBlobstore) List(prefix string) ([]string, error) {
 	slog.Info("Listing files on WebDAV", "prefix", prefix)
 

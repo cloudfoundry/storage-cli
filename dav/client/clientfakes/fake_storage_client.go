@@ -121,6 +121,36 @@ type FakeStorageClient struct {
 		result1 string
 		result2 error
 	}
+	SignInternalStub        func(string, string, time.Duration) (string, error)
+	signInternalMutex       sync.RWMutex
+	signInternalArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 time.Duration
+	}
+	signInternalReturns struct {
+		result1 string
+		result2 error
+	}
+	signInternalReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
+	SignPublicStub        func(string, string, time.Duration) (string, error)
+	signPublicMutex       sync.RWMutex
+	signPublicArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 time.Duration
+	}
+	signPublicReturns struct {
+		result1 string
+		result2 error
+	}
+	signPublicReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -678,6 +708,138 @@ func (fake *FakeStorageClient) SignReturnsOnCall(i int, result1 string, result2 
 		})
 	}
 	fake.signReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) SignInternal(arg1 string, arg2 string, arg3 time.Duration) (string, error) {
+	fake.signInternalMutex.Lock()
+	ret, specificReturn := fake.signInternalReturnsOnCall[len(fake.signInternalArgsForCall)]
+	fake.signInternalArgsForCall = append(fake.signInternalArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 time.Duration
+	}{arg1, arg2, arg3})
+	stub := fake.SignInternalStub
+	fakeReturns := fake.signInternalReturns
+	fake.recordInvocation("SignInternal", []interface{}{arg1, arg2, arg3})
+	fake.signInternalMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStorageClient) SignInternalCallCount() int {
+	fake.signInternalMutex.RLock()
+	defer fake.signInternalMutex.RUnlock()
+	return len(fake.signInternalArgsForCall)
+}
+
+func (fake *FakeStorageClient) SignInternalCalls(stub func(string, string, time.Duration) (string, error)) {
+	fake.signInternalMutex.Lock()
+	defer fake.signInternalMutex.Unlock()
+	fake.SignInternalStub = stub
+}
+
+func (fake *FakeStorageClient) SignInternalArgsForCall(i int) (string, string, time.Duration) {
+	fake.signInternalMutex.RLock()
+	defer fake.signInternalMutex.RUnlock()
+	argsForCall := fake.signInternalArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeStorageClient) SignInternalReturns(result1 string, result2 error) {
+	fake.signInternalMutex.Lock()
+	defer fake.signInternalMutex.Unlock()
+	fake.SignInternalStub = nil
+	fake.signInternalReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) SignInternalReturnsOnCall(i int, result1 string, result2 error) {
+	fake.signInternalMutex.Lock()
+	defer fake.signInternalMutex.Unlock()
+	fake.SignInternalStub = nil
+	if fake.signInternalReturnsOnCall == nil {
+		fake.signInternalReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.signInternalReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) SignPublic(arg1 string, arg2 string, arg3 time.Duration) (string, error) {
+	fake.signPublicMutex.Lock()
+	ret, specificReturn := fake.signPublicReturnsOnCall[len(fake.signPublicArgsForCall)]
+	fake.signPublicArgsForCall = append(fake.signPublicArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 time.Duration
+	}{arg1, arg2, arg3})
+	stub := fake.SignPublicStub
+	fakeReturns := fake.signPublicReturns
+	fake.recordInvocation("SignPublic", []interface{}{arg1, arg2, arg3})
+	fake.signPublicMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeStorageClient) SignPublicCallCount() int {
+	fake.signPublicMutex.RLock()
+	defer fake.signPublicMutex.RUnlock()
+	return len(fake.signPublicArgsForCall)
+}
+
+func (fake *FakeStorageClient) SignPublicCalls(stub func(string, string, time.Duration) (string, error)) {
+	fake.signPublicMutex.Lock()
+	defer fake.signPublicMutex.Unlock()
+	fake.SignPublicStub = stub
+}
+
+func (fake *FakeStorageClient) SignPublicArgsForCall(i int) (string, string, time.Duration) {
+	fake.signPublicMutex.RLock()
+	defer fake.signPublicMutex.RUnlock()
+	argsForCall := fake.signPublicArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeStorageClient) SignPublicReturns(result1 string, result2 error) {
+	fake.signPublicMutex.Lock()
+	defer fake.signPublicMutex.Unlock()
+	fake.SignPublicStub = nil
+	fake.signPublicReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeStorageClient) SignPublicReturnsOnCall(i int, result1 string, result2 error) {
+	fake.signPublicMutex.Lock()
+	defer fake.signPublicMutex.Unlock()
+	fake.SignPublicStub = nil
+	if fake.signPublicReturnsOnCall == nil {
+		fake.signPublicReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.signPublicReturnsOnCall[i] = struct {
 		result1 string
 		result2 error
 	}{result1, result2}

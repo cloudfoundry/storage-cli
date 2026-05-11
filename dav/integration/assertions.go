@@ -235,41 +235,6 @@ func AssertOnSignedURLs(cliPath string, cfg *config.Config) {
 	Expect(signedGetURL).To(ContainSubstring("/signed/"))
 }
 
-// AssertOnSignedURLsSecureLinkMD5 tests signed URL generation with secure-link-md5 format
-func AssertOnSignedURLsSecureLinkMD5(cliPath string, cfg *config.Config) {
-	storageType := "dav"
-	blobName := GenerateRandomString()
-
-	configWithSecret := MakeConfigFile(cfg)
-	defer os.Remove(configWithSecret) //nolint:errcheck
-
-	// Generate signed PUT URL
-	session, err := RunCli(cliPath, configWithSecret, storageType, "sign", blobName, "put", "3600s")
-	Expect(err).ToNot(HaveOccurred())
-	Expect(session.ExitCode()).To(BeZero())
-
-	signedPutURL := string(session.Out.Contents())
-	Expect(signedPutURL).To(ContainSubstring("http"))
-	Expect(signedPutURL).To(ContainSubstring("md5="))
-	Expect(signedPutURL).To(ContainSubstring("expires="))
-
-	// Verify URL does NOT contain /signed/ prefix (secure-link-md5 format)
-	Expect(signedPutURL).ToNot(ContainSubstring("/signed/"))
-
-	// Generate signed GET URL
-	session, err = RunCli(cliPath, configWithSecret, storageType, "sign", blobName, "get", "3600s")
-	Expect(err).ToNot(HaveOccurred())
-	Expect(session.ExitCode()).To(BeZero())
-
-	signedGetURL := string(session.Out.Contents())
-	Expect(signedGetURL).To(ContainSubstring("http"))
-	Expect(signedGetURL).To(ContainSubstring("md5="))
-	Expect(signedGetURL).To(ContainSubstring("expires="))
-
-	// Verify URL does NOT contain /signed/ prefix (secure-link-md5 format)
-	Expect(signedGetURL).ToNot(ContainSubstring("/signed/"))
-}
-
 // AssertOnSignedURLsWithCustomExpiration tests signed URL generation with custom expiration
 func AssertOnSignedURLsWithCustomExpiration(cliPath string, cfg *config.Config, expectedExpirationMinutes uint) {
 	storageType := "dav"
@@ -289,13 +254,8 @@ func AssertOnSignedURLsWithCustomExpiration(cliPath string, cfg *config.Config, 
 
 	// Verify URL contains expiration parameter
 	// For hmac-sha256: e=<seconds>
-	// For secure-link-md5: expires=<unix_timestamp>
 	expectedSeconds := fmt.Sprintf("%d", expectedExpirationMinutes*60)
-	if cfg.SignedURLFormat == "secure-link-md5" {
-		Expect(signedURL).To(ContainSubstring("expires="))
-	} else {
-		Expect(signedURL).To(ContainSubstring(fmt.Sprintf("e=%s", expectedSeconds)))
-	}
+	Expect(signedURL).To(ContainSubstring(fmt.Sprintf("e=%s", expectedSeconds)))
 }
 
 // AssertEnsureStorageExists tests ensure-storage-exists command

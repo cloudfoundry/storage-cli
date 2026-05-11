@@ -16,3 +16,10 @@ type Storager interface {
 	Properties(dest string) error
 	EnsureStorageExists() error
 }
+
+// SignerInternal is an optional interface for storage providers that support
+// separate internal and public endpoints (e.g., WebDAV)
+type SignerInternal interface {
+	SignInternal(dest string, action string, expiration time.Duration) (string, error)
+	SignPublic(dest string, action string, expiration time.Duration) (string, error)
+}
