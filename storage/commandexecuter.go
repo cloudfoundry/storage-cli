@@ -107,6 +107,58 @@ func (sty *CommandExecuter) Execute(cmd string, nonFlagArgs []string) error {
 		}
 		fmt.Print(signedURL)
 
+	case "sign-internal":
+		if len(nonFlagArgs) != 3 {
+			return fmt.Errorf("sign-internal method expects 3 arguments got %d", len(nonFlagArgs))
+		}
+
+		objectID, action := nonFlagArgs[0], nonFlagArgs[1]
+		action = strings.ToLower(action)
+		if action != "get" && action != "put" {
+			return fmt.Errorf("action not implemented: %s. Available actions are 'get' and 'put'", action)
+		}
+
+		expiration, err := time.ParseDuration(nonFlagArgs[2])
+		if err != nil {
+			return fmt.Errorf("expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[2])
+		}
+
+		if signer, ok := sty.str.(SignerInternal); ok {
+			signedURL, err := signer.SignInternal(objectID, action, expiration)
+			if err != nil {
+				return fmt.Errorf("failed to sign-internal request: %w", err)
+			}
+			fmt.Print(signedURL)
+		} else {
+			return fmt.Errorf("sign-internal is not supported by this storage provider")
+		}
+
+	case "sign-public":
+		if len(nonFlagArgs) != 3 {
+			return fmt.Errorf("sign-public method expects 3 arguments got %d", len(nonFlagArgs))
+		}
+
+		objectID, action := nonFlagArgs[0], nonFlagArgs[1]
+		action = strings.ToLower(action)
+		if action != "get" && action != "put" {
+			return fmt.Errorf("action not implemented: %s. Available actions are 'get' and 'put'", action)
+		}
+
+		expiration, err := time.ParseDuration(nonFlagArgs[2])
+		if err != nil {
+			return fmt.Errorf("expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[2])
+		}
+
+		if signer, ok := sty.str.(SignerInternal); ok {
+			signedURL, err := signer.SignPublic(objectID, action, expiration)
+			if err != nil {
+				return fmt.Errorf("failed to sign-public request: %w", err)
+			}
+			fmt.Print(signedURL)
+		} else {
+			return fmt.Errorf("sign-public is not supported by this storage provider")
+		}
+
 	case "list":
 		var prefix string
 		if len(nonFlagArgs) > 1 {

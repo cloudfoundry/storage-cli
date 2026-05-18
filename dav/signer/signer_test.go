@@ -12,19 +12,46 @@ var _ = Describe("Signer", func() {
 	secret := "mefq0umpmwevpv034m890j34m0j0-9!fijm434j99j034mjrwjmv9m304mj90;2ef32buf32gbu2i3"
 	objectID := "fake-object-id"
 	verb := "get"
-	signer := signer.NewSigner(secret)
 	duration := time.Duration(15 * time.Minute)
 	timeStamp := time.Date(2019, 8, 26, 11, 11, 0, 0, time.UTC)
-	path := "https://api.example.com/"
+	endpointBase := "https://api.example.com"
+	directoryKey := "cc-droplets"
 
-	Context("HMAC Signed URL", func() {
+	Context("SHA256 HMAC Signed URL (BOSH format - default)", func() {
+		signer := signer.NewSigner(secret)
 
-		expected := "https://api.example.com/signed/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
+		// Expected signature for: HMAC-SHA256("GETfake-object-id1566817860900", secret)
+		// timestamp: 1566817860 (2019-08-26 11:11:00 UTC)
+		// duration: 900 seconds (15 minutes)
+		// Signature matches BOSH secure_link_hmac format: $request_method$object_id$arg_ts$arg_e
+		// where arg_e is the DURATION in seconds, not absolute expiration
+		expected := "https://api.example.com/signed/cc-droplets/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
 
 		It("Generates a properly formed URL", func() {
-			actual, err := signer.GenerateSignedURL(path, objectID, verb, timeStamp, duration)
+			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
 			Expect(err).To(BeNil())
 			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("SHA256 HMAC Signed URL (BOSH format - explicit)", func() {
+		signer, err := signer.NewSignerWithFormat(secret, "sha256")
+		Expect(err).To(BeNil())
+
+		expected := "https://api.example.com/signed/cc-droplets/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
+
+		It("Generates a properly formed URL", func() {
+			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
+			Expect(err).To(BeNil())
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Unsupported format", func() {
+		It("Returns an error for unknown format", func() {
+			_, err := signer.NewSignerWithFormat(secret, "banana")
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("unsupported signed_url_format"))
 		})
 	})
 })
