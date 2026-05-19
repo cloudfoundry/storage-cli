@@ -14,7 +14,7 @@ Object IDs are used exactly as provided:
 - Simple paths: `my-blob-id` → stored as `my-blob-id`
 - Nested paths: `ab/cd/my-blob-id` → stored as `ab/cd/my-blob-id`
 
-**Breaking change from previous versions:** The driver no longer applies automatic 2-character path fan-out (e.g., `abcdef...` was previously stored as `ab/cd/abcdef...`). Callers must now include any desired directory structure in the object ID itself.
+**Breaking change in v0.0.8+:** The driver no longer applies automatic 2-character path fan-out (e.g., `abcdef...` was previously stored as `ab/cd/abcdef...` in v0.0.7 and earlier). Callers must now include any desired directory structure in the object ID itself.
 
 This behavior aligns with other storage-cli providers (S3, Azure, GCS, AliOSS), which also pass keys through unchanged.
 
@@ -104,40 +104,3 @@ Or using ginkgo:
 ginkgo --cover -v -r ./dav/client
 ```
 
-### Local Testing with Docker
-
-For quick local testing, you can use the provided docker-compose setup:
-
-1. Start the WebDAV server:
-```bash
-docker-compose up -d
-```
-
-2. Create a config file (`dav-local-config.json`):
-```json
-{
-  "endpoint": "http://localhost:9090",
-  "user": "test",
-  "password": "test"
-}
-```
-
-3. Test basic operations:
-```bash
-# Upload
-echo "test content" > test-file.txt
-storage-cli -s dav -c dav-local-config.json put test-file.txt my-blob
-
-# Download
-storage-cli -s dav -c dav-local-config.json get my-blob downloaded.txt
-
-# Verify
-diff test-file.txt downloaded.txt
-
-# Clean up
-storage-cli -s dav -c dav-local-config.json delete my-blob
-docker-compose down
-```
-
-### Integration Tests
-Full integration tests will be added in a future release with the advanced features.

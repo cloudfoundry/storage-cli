@@ -14,12 +14,10 @@ import (
 	davconf "github.com/cloudfoundry/storage-cli/dav/config"
 )
 
-// DavBlobstore is the high-level interface implementing storage.Storager
 type DavBlobstore struct {
 	storageClient StorageClient
 }
 
-// New creates a new DavBlobstore with the default StorageClient
 func New(config davconf.Config) (*DavBlobstore, error) {
 	logger := boshlog.NewLogger(boshlog.LevelNone)
 
@@ -47,7 +45,6 @@ func New(config davconf.Config) (*DavBlobstore, error) {
 	return NewWithStorageClient(storageClient), nil
 }
 
-// NewWithStorageClient creates a DavBlobstore with a custom StorageClient (useful for testing)
 func NewWithStorageClient(storageClient StorageClient) *DavBlobstore {
 	return &DavBlobstore{storageClient: storageClient}
 }

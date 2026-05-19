@@ -16,7 +16,6 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 . StorageClient
 
-// StorageClient defines the low-level WebDAV HTTP operations
 type StorageClient interface {
 	Get(path string) (content io.ReadCloser, err error)
 	Put(path string, content io.ReadCloser, contentLength int64) (err error)
