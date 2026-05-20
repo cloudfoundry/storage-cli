@@ -102,12 +102,12 @@ func (d *DavBlobstore) Delete(dest string) error {
 }
 
 func (d *DavBlobstore) Exists(dest string) (bool, error) {
-	slog.Debug("checking if file exists on webdav", "dest", dest)
+	slog.Info("checking if file exists on webdav", "dest", dest)
 	return d.storageClient.Exists(dest)
 }
 
 func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration) (string, error) {
-	slog.Debug("signing url for webdav", "dest", dest, "action", action, "expiration", expiration)
+	slog.Info("signing url for webdav", "dest", dest, "action", action, "expiration", expiration)
 
 	action = strings.ToUpper(action)
 	switch action {
