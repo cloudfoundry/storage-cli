@@ -1,298 +1,127 @@
 package client_test
 
 import (
+	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"strings"
+
+	"github.com/cloudfoundry/storage-cli/dav/client"
+	"github.com/cloudfoundry/storage-cli/dav/client/clientfakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-
-	"github.com/cloudfoundry/bosh-utils/httpclient"
-	boshlog "github.com/cloudfoundry/bosh-utils/logger"
-
-	. "github.com/cloudfoundry/storage-cli/dav/client"
-	davconf "github.com/cloudfoundry/storage-cli/dav/config"
 )
 
 var _ = Describe("Client", func() {
-	var (
-		server *ghttp.Server
-		config davconf.Config
-		client Client
-		logger boshlog.Logger
-	)
 
-	BeforeEach(func() {
-		server = ghttp.NewServer()
-		config.Endpoint = server.URL()
-		config.User = "some_user"
-		config.Password = "some password"
-		logger = boshlog.NewLogger(boshlog.LevelNone)
-		client = NewClient(config, httpclient.DefaultClient, logger)
-	})
+	Context("Put", func() {
+		It("uploads a file to a blob", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.PutReturns(nil)
 
-	disconnectingRequestHandler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		conn, _, err := w.(http.Hijacker).Hijack()
-		Expect(err).NotTo(HaveOccurred())
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
 
-		conn.Close() //nolint:errcheck
-	})
-
-	Describe("Exists", func() {
-		It("does not return an error if file exists", func() {
-			server.AppendHandlers(ghttp.RespondWith(200, ""))
-			err := client.Exists("/somefile")
+			file, err := os.CreateTemp("", "tmpfile")
 			Expect(err).NotTo(HaveOccurred())
-		})
+			defer os.Remove(file.Name()) //nolint:errcheck
 
-		Context("the file does not exist", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(404, ""),
-					ghttp.RespondWith(404, ""),
-					ghttp.RespondWith(404, ""),
-				)
-			})
-
-			It("returns an error saying blob was not found", func() {
-				err := client.Exists("/somefile")
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("Checking if dav blob /somefile exists: /somefile not found")))
-			})
-		})
-
-		Context("unexpected http status code returned", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(601, ""),
-					ghttp.RespondWith(601, ""),
-					ghttp.RespondWith(601, ""),
-				)
-			})
-
-			It("returns an error saying an unexpected error occurred", func() {
-				err := client.Exists("/somefile")
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("Checking if dav blob /somefile exists:")))
-			})
-		})
-	})
-
-	Describe("Delete", func() {
-		Context("when the file does not exist", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(404, ""),
-					ghttp.RespondWith(404, ""),
-					ghttp.RespondWith(404, ""),
-				)
-			})
-
-			It("does not return an error if file does not exists", func() {
-				err := client.Delete("/somefile")
-				Expect(err).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when the file exists", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(ghttp.RespondWith(204, ""))
-			})
-
-			It("does not return an error", func() {
-				err := client.Delete("/somefile")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
-				request := server.ReceivedRequests()[0]
-				Expect(request.URL.Path).To(Equal("/19/somefile"))
-				Expect(request.Method).To(Equal("DELETE"))
-				Expect(request.Header["Authorization"]).To(Equal([]string{"Basic c29tZV91c2VyOnNvbWUgcGFzc3dvcmQ="}))
-				Expect(request.Host).To(Equal(server.Addr()))
-			})
-		})
-
-		Context("when the status code is not in the 2xx range", func() {
-			It("returns an error saying an unexpected error occurred when the status code is greater than 299", func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(300, ""),
-					ghttp.RespondWith(300, ""),
-					ghttp.RespondWith(300, ""),
-				)
-
-				err := client.Delete("/somefile")
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(Equal("Deleting blob '/somefile': invalid status: 300")))
-			})
-		})
-	})
-
-	Describe("Get", func() {
-		It("returns the response body from the given path", func() {
-			server.AppendHandlers(ghttp.RespondWith(200, "response"))
-
-			responseBody, err := client.Get("/")
+			_, err = file.WriteString("test content")
 			Expect(err).NotTo(HaveOccurred())
-			buf := make([]byte, 1024)
-			n, _ := responseBody.Read(buf) //nolint:errcheck
-			Expect(string(buf[0:n])).To(Equal("response"))
+			file.Close() //nolint:errcheck
+
+			err = davBlobstore.Put(file.Name(), "target/blob")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeStorageClient.PutCallCount()).To(Equal(1))
+			path, _, _ := fakeStorageClient.PutArgsForCall(0)
+			Expect(path).To(Equal("target/blob"))
 		})
 
-		Context("when the http request fails", func() {
-			BeforeEach(func() {
-				server.Close()
-			})
+		It("fails if the source file does not exist", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
 
-			It("returns err", func() {
-				responseBody, err := client.Get("/")
-				Expect(responseBody).To(BeNil())
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Getting dav blob /"))
-			})
-		})
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			err := davBlobstore.Put("nonexistent/path", "target/blob")
 
-		Context("when the http response code is not 200", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(300, "response"),
-					ghttp.RespondWith(300, "response"),
-					ghttp.RespondWith(300, "response"),
-				)
-			})
-
-			It("returns err", func() {
-				responseBody, err := client.Get("/")
-				Expect(responseBody).To(BeNil())
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("Getting dav blob /: Wrong response code: 300")))
-				Expect(server.ReceivedRequests()).To(HaveLen(3))
-			})
-		})
-	})
-
-	Describe("Put", func() {
-		Context("When the put request succeeds", func() {
-			itUploadsABlob := func() {
-				body := io.NopCloser(strings.NewReader("content"))
-				err := client.Put("/", body, int64(7))
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
-				req := server.ReceivedRequests()[0]
-				Expect(req.ContentLength).To(Equal(int64(7)))
-			}
-
-			It("uploads the given content if the blob does not exist", func() {
-				server.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.RespondWith(201, ""),
-						ghttp.VerifyBody([]byte("content")),
-					),
-				)
-				itUploadsABlob()
-			})
-
-			It("uploads the given content if the blob exists", func() {
-				server.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.RespondWith(204, ""),
-						ghttp.VerifyBody([]byte("content")),
-					),
-				)
-				itUploadsABlob()
-			})
-
-			It("adds an Authorizatin header to the request", func() {
-				server.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.RespondWith(204, ""),
-						ghttp.VerifyBody([]byte("content")),
-					),
-				)
-				itUploadsABlob()
-				req := server.ReceivedRequests()[0]
-				Expect(req.Header.Get("Authorization")).NotTo(BeEmpty())
-			})
-
-			Context("when neither user nor password is provided in blobstore options", func() {
-				BeforeEach(func() {
-					config.User = ""
-					config.Password = ""
-					client = NewClient(config, httpclient.DefaultClient, logger)
-				})
-
-				It("sends a request with no Basic Auth header", func() {
-					server.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.RespondWith(204, ""),
-							ghttp.VerifyBody([]byte("content")),
-						),
-					)
-					itUploadsABlob()
-					req := server.ReceivedRequests()[0]
-					Expect(req.Header.Get("Authorization")).To(BeEmpty())
-				})
-			})
-		})
-
-		Context("when the http request fails", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					disconnectingRequestHandler,
-					disconnectingRequestHandler,
-					disconnectingRequestHandler,
-				)
-			})
-
-			It("returns err", func() {
-				body := io.NopCloser(strings.NewReader("content"))
-				err := client.Put("/", body, int64(7))
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("Putting dav blob /: Put \"%s/42\": EOF", server.URL())))
-				Expect(server.ReceivedRequests()).To(HaveLen(3))
-			})
-		})
-
-		Context("when the http response code is not 201 or 204", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(300, "response"),
-					ghttp.RespondWith(300, "response"),
-					ghttp.RespondWith(300, "response"),
-				)
-			})
-
-			It("returns err", func() {
-				body := io.NopCloser(strings.NewReader("content"))
-				err := client.Put("/", body, int64(7))
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError(ContainSubstring("Putting dav blob /: Wrong response code: 300")))
-			})
-		})
-	})
-
-	Describe("retryable count is configurable", func() {
-		BeforeEach(func() {
-			server.AppendHandlers(
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-				disconnectingRequestHandler,
-			)
-			config = davconf.Config{RetryAttempts: 7, Endpoint: server.URL()}
-			client = NewClient(config, httpclient.DefaultClient, logger)
-		})
-
-		It("tries the specified number of times", func() {
-			body := io.NopCloser(strings.NewReader("content"))
-			err := client.Put("/", body, int64(7))
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError(ContainSubstring("Putting dav blob /: Put \"%s/42\": EOF", server.URL())))
-			Expect(server.ReceivedRequests()).To(HaveLen(7))
+			Expect(err.Error()).To(ContainSubstring("failed to open source file"))
+			Expect(fakeStorageClient.PutCallCount()).To(Equal(0))
+		})
+	})
+
+	Context("Get", func() {
+		It("downloads a blob to a file", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			content := io.NopCloser(strings.NewReader("test content"))
+			fakeStorageClient.GetReturns(content, nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+
+			tmpFile, err := os.CreateTemp("", "download")
+			Expect(err).NotTo(HaveOccurred())
+			tmpFile.Close()                 //nolint:errcheck
+			defer os.Remove(tmpFile.Name()) //nolint:errcheck
+
+			err = davBlobstore.Get("source/blob", tmpFile.Name())
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeStorageClient.GetCallCount()).To(Equal(1))
+
+			downloaded, err := os.ReadFile(tmpFile.Name())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(downloaded)).To(Equal("test content"))
+		})
+	})
+
+	Context("Delete", func() {
+		It("deletes a blob", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.DeleteReturns(nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			err := davBlobstore.Delete("blob/path")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeStorageClient.DeleteCallCount()).To(Equal(1))
+			Expect(fakeStorageClient.DeleteArgsForCall(0)).To(Equal("blob/path"))
+		})
+	})
+
+	Context("Exists", func() {
+		It("returns true if blob exists", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.ExistsReturns(true, nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			exists, err := davBlobstore.Exists("blob/path")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeTrue())
+			Expect(fakeStorageClient.ExistsCallCount()).To(Equal(1))
+		})
+
+		It("returns false if blob does not exist", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.ExistsReturns(false, nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			exists, err := davBlobstore.Exists("blob/path")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeFalse())
+		})
+
+		It("returns error on server error", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.ExistsReturns(false, fmt.Errorf("server error"))
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			exists, err := davBlobstore.Exists("blob/path")
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("server error"))
+			Expect(exists).To(BeFalse())
 		})
 	})
 })

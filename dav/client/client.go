@@ -1,197 +1,148 @@
 package client
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
-	"path"
+	"log/slog"
+	"os"
 	"strings"
 	"time"
 
-	URLsigner "github.com/cloudfoundry/storage-cli/dav/signer"
-
-	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	"github.com/cloudfoundry/bosh-utils/httpclient"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 
 	davconf "github.com/cloudfoundry/storage-cli/dav/config"
 )
 
-type Client interface {
-	Get(path string) (content io.ReadCloser, err error)
-	Put(path string, content io.ReadCloser, contentLength int64) (err error)
-	Exists(path string) (err error)
-	Delete(path string) (err error)
-	Sign(objectID, action string, duration time.Duration) (string, error)
+type DavBlobstore struct {
+	storageClient StorageClient
 }
 
-func NewClient(config davconf.Config, httpClient httpclient.Client, logger boshlog.Logger) (c Client) {
+func New(config davconf.Config) (*DavBlobstore, error) {
+	logger := boshlog.NewLogger(boshlog.LevelNone)
+
+	var httpClientBase httpclient.Client
+	var certPool, err = getCertPool(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create certificate pool: %w", err)
+	}
+
+	httpClientBase = httpclient.CreateDefaultClient(certPool)
+
 	if config.RetryAttempts == 0 {
 		config.RetryAttempts = 3
 	}
 
-	// @todo should a logger now be passed in to this client?
-	duration := time.Duration(0)
 	retryClient := httpclient.NewRetryClient(
-		httpClient,
+		httpClientBase,
 		config.RetryAttempts,
-		duration,
+		time.Duration(0),
 		logger,
 	)
 
-	return client{
-		config:     config,
-		httpClient: retryClient,
-	}
+	storageClient := NewStorageClient(config, retryClient)
+
+	return NewWithStorageClient(storageClient), nil
 }
 
-type client struct {
-	config     davconf.Config
-	httpClient httpclient.Client
+func NewWithStorageClient(storageClient StorageClient) *DavBlobstore {
+	return &DavBlobstore{storageClient: storageClient}
 }
 
-func (c client) Get(path string) (io.ReadCloser, error) {
-	req, err := c.createReq("GET", path, nil)
+func (d *DavBlobstore) Put(sourceFilePath string, dest string) error {
+	slog.Info("uploading file to webdav", "source", sourceFilePath, "dest", dest)
+
+	source, err := os.Open(sourceFilePath)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to open source file: %w", err)
 	}
+	defer source.Close() //nolint:errcheck
 
-	resp, err := c.httpClient.Do(req)
+	fileInfo, err := source.Stat()
 	if err != nil {
-		return nil, bosherr.WrapErrorf(err, "Getting dav blob %s", path)
+		return fmt.Errorf("failed to stat source file: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Getting dav blob %s: Wrong response code: %d; body: %s", path, resp.StatusCode, c.readAndTruncateBody(resp)) //nolint:staticcheck
+	err = d.storageClient.Put(dest, source, fileInfo.Size())
+	if err != nil {
+		return fmt.Errorf("upload failure: %w", err)
 	}
 
-	return resp.Body, nil
+	slog.Debug("successfully uploaded file", "dest", dest)
+	return nil
 }
 
-func (c client) Put(path string, content io.ReadCloser, contentLength int64) error {
-	req, err := c.createReq("PUT", path, content)
+func (d *DavBlobstore) Get(source string, dest string) error {
+	slog.Info("downloading file from webdav", "source", source, "dest", dest)
+
+	destFile, err := os.Create(dest)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close() //nolint:errcheck
+
+	content, err := d.storageClient.Get(source)
+	if err != nil {
+		return fmt.Errorf("download failure: %w", err)
 	}
 	defer content.Close() //nolint:errcheck
 
-	req.ContentLength = contentLength
-	resp, err := c.httpClient.Do(req)
+	_, err = io.Copy(destFile, content)
 	if err != nil {
-		return bosherr.WrapErrorf(err, "Putting dav blob %s", path)
+		return fmt.Errorf("failed to write to destination file: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Putting dav blob %s: Wrong response code: %d; body: %s", path, resp.StatusCode, c.readAndTruncateBody(resp)) //nolint:staticcheck
-	}
-
+	slog.Debug("successfully downloaded file", "dest", dest)
 	return nil
 }
 
-func (c client) Exists(path string) error {
-	req, err := c.createReq("HEAD", path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		err := fmt.Errorf("%s not found", path)
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		err := fmt.Errorf("invalid status: %d", resp.StatusCode)
-		return bosherr.WrapErrorf(err, "Checking if dav blob %s exists", path)
-	}
-
-	return nil
+func (d *DavBlobstore) Delete(dest string) error {
+	slog.Info("deleting file from webdav", "dest", dest)
+	return d.storageClient.Delete(dest)
 }
 
-func (c client) Delete(path string) error {
-	req, err := c.createReq("DELETE", path, nil)
-	if err != nil {
-		return bosherr.WrapErrorf(err, "Creating delete request for blob '%s'", path)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return bosherr.WrapErrorf(err, "Deleting blob '%s'", path)
-	}
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil
-	}
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		err := fmt.Errorf("invalid status: %d", resp.StatusCode)
-		return bosherr.WrapErrorf(err, "Deleting blob '%s'", path)
-	}
-
-	return nil
+func (d *DavBlobstore) Exists(dest string) (bool, error) {
+	slog.Info("checking if file exists on webdav", "dest", dest)
+	return d.storageClient.Exists(dest)
 }
 
-func (c client) Sign(blobID, action string, duration time.Duration) (string, error) {
-	signer := URLsigner.NewSigner(c.config.Secret)
-	signTime := time.Now()
+func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Info("signing url for webdav", "dest", dest, "action", action, "expiration", expiration)
 
-	prefixedBlob := fmt.Sprintf("%s/%s", getBlobPrefix(blobID), blobID)
-
-	signedURL, err := signer.GenerateSignedURL(c.config.Endpoint, prefixedBlob, action, signTime, duration)
-
-	if err != nil {
-		return "", bosherr.WrapErrorf(err, "pre-signing the url")
-	}
-
-	return signedURL, err
-}
-
-func (c client) createReq(method, blobID string, body io.Reader) (*http.Request, error) {
-	blobURL, err := url.Parse(c.config.Endpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	blobPrefix := getBlobPrefix(blobID)
-
-	newPath := path.Join(blobURL.Path, blobPrefix, blobID)
-	if !strings.HasPrefix(newPath, "/") {
-		newPath = "/" + newPath
-	}
-
-	blobURL.Path = newPath
-
-	req, err := http.NewRequest(method, blobURL.String(), body)
-	if err != nil {
-		return req, err
-	}
-
-	if c.config.User != "" {
-		req.SetBasicAuth(c.config.User, c.config.Password)
-	}
-	return req, nil
-}
-
-func (c client) readAndTruncateBody(resp *http.Response) string {
-	body := ""
-	if resp.Body != nil {
-		buf := make([]byte, 1024)
-		n, err := resp.Body.Read(buf)
-		if err == io.EOF || err == nil {
-			body = string(buf[0:n])
+	action = strings.ToUpper(action)
+	switch action {
+	case "GET", "PUT":
+		signedURL, err := d.storageClient.Sign(dest, action, expiration)
+		if err != nil {
+			return "", fmt.Errorf("failed to sign URL: %w", err)
 		}
+		return signedURL, nil
+	default:
+		return "", fmt.Errorf("action not implemented: %s", action)
 	}
-	return body
 }
 
-func getBlobPrefix(blobID string) string {
-	digester := sha1.New()
-	digester.Write([]byte(blobID))
-	return fmt.Sprintf("%02x", digester.Sum(nil)[0])
+// DeleteRecursive is not yet implemented in this refactoring
+func (d *DavBlobstore) DeleteRecursive(prefix string) error {
+	return fmt.Errorf("DeleteRecursive not yet implemented")
+}
+
+// List is not yet implemented in this refactoring
+func (d *DavBlobstore) List(prefix string) ([]string, error) {
+	return nil, fmt.Errorf("List not yet implemented")
+}
+
+// Copy is not yet implemented in this refactoring
+func (d *DavBlobstore) Copy(srcBlob string, dstBlob string) error {
+	return fmt.Errorf("Copy not yet implemented")
+}
+
+// Properties is not yet implemented in this refactoring
+func (d *DavBlobstore) Properties(dest string) error {
+	return fmt.Errorf("Properties not yet implemented")
+}
+
+// EnsureStorageExists is not yet implemented in this refactoring
+func (d *DavBlobstore) EnsureStorageExists() error {
+	return fmt.Errorf("EnsureStorageExists not yet implemented")
 }
