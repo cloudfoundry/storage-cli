@@ -122,27 +122,27 @@ func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration
 	}
 }
 
-// DeleteRecursive is not yet implemented in this refactoring
 func (d *DavBlobstore) DeleteRecursive(prefix string) error {
-	return fmt.Errorf("DeleteRecursive not yet implemented")
+	slog.Info("deleting blobs recursively from webdav", "prefix", prefix)
+	return d.storageClient.DeleteRecursive(prefix)
 }
 
-// List is not yet implemented in this refactoring
 func (d *DavBlobstore) List(prefix string) ([]string, error) {
-	return nil, fmt.Errorf("List not yet implemented")
+	slog.Info("listing blobs on webdav", "prefix", prefix)
+	return d.storageClient.List(prefix)
 }
 
-// Copy is not yet implemented in this refactoring
 func (d *DavBlobstore) Copy(srcBlob string, dstBlob string) error {
-	return fmt.Errorf("Copy not yet implemented")
+	slog.Info("copying blob on webdav", "src", srcBlob, "dst", dstBlob)
+	return d.storageClient.Copy(srcBlob, dstBlob)
 }
 
-// Properties is not yet implemented in this refactoring
 func (d *DavBlobstore) Properties(dest string) error {
-	return fmt.Errorf("Properties not yet implemented")
+	slog.Info("fetching blob properties from webdav", "dest", dest)
+	return d.storageClient.Properties(dest)
 }
 
-// EnsureStorageExists is not yet implemented in this refactoring
 func (d *DavBlobstore) EnsureStorageExists() error {
-	return fmt.Errorf("EnsureStorageExists not yet implemented")
+	slog.Info("ensuring webdav storage root exists")
+	return d.storageClient.EnsureStorageExists()
 }
