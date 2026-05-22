@@ -221,22 +221,29 @@ func (c *storageClient) Sign(blobID, action string, duration time.Duration) (str
 	return signedURL, nil
 }
 
-func (c *storageClient) createReq(method, blobID string, body io.Reader) (*http.Request, error) {
+func (c *storageClient) buildBlobURL(blobID string) (string, error) {
 	blobURL, err := url.Parse(c.config.Endpoint)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	newPath := path.Join(blobURL.Path, blobID)
 	if !strings.HasPrefix(newPath, "/") {
 		newPath = "/" + newPath
 	}
-
 	blobURL.Path = newPath
+	return blobURL.String(), nil
+}
 
-	req, err := http.NewRequest(method, blobURL.String(), body)
+func (c *storageClient) createReq(method, blobID string, body io.Reader) (*http.Request, error) {
+	rawURL, err := c.buildBlobURL(blobID)
 	if err != nil {
-		return req, err
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, rawURL, body)
+	if err != nil {
+		return nil, err
 	}
 
 	if c.config.User != "" {
@@ -253,26 +260,6 @@ func (c *storageClient) readAndTruncateBody(resp *http.Response) string {
 	return string(bodyBytes)
 }
 
-func (c *storageClient) buildBlobURL(blobID string) (string, error) {
-	blobURL, err := url.Parse(c.config.Endpoint)
-	if err != nil {
-		return "", err
-	}
-
-	newPath := path.Join(blobURL.Path, blobID)
-	if !strings.HasPrefix(newPath, "/") {
-		newPath = "/" + newPath
-	}
-	blobURL.Path = newPath
-	return blobURL.String(), nil
-}
-
-func (c *storageClient) setAuth(req *http.Request) {
-	if c.config.User != "" {
-		req.SetBasicAuth(c.config.User, c.config.Password)
-	}
-}
-
 func (c *storageClient) Copy(srcBlob, dstBlob string) error {
 	if err := validateBlobID(srcBlob); err != nil {
 		return fmt.Errorf("invalid source blob ID: %w", err)
@@ -286,11 +273,12 @@ func (c *storageClient) Copy(srcBlob, dstBlob string) error {
 		return fmt.Errorf("building destination URL: %w", err)
 	}
 
-	putReq, err := http.NewRequest("PUT", dstURL, strings.NewReader(""))
+	// PUT an empty file first so nginx (create_full_put_path on) creates any
+	// missing parent directories before COPY overwrites the placeholder.
+	putReq, err := c.createReq("PUT", dstBlob, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("creating destination PUT request: %w", err)
 	}
-	c.setAuth(putReq)
 	putReq.ContentLength = 0
 
 	putResp, err := c.httpClient.Do(putReq)
@@ -304,16 +292,10 @@ func (c *storageClient) Copy(srcBlob, dstBlob string) error {
 			dstBlob, putResp.StatusCode, c.readAndTruncateBody(putResp))
 	}
 
-	srcURL, err := c.buildBlobURL(srcBlob)
-	if err != nil {
-		return fmt.Errorf("building source URL: %w", err)
-	}
-
-	copyReq, err := http.NewRequest("COPY", srcURL, nil)
+	copyReq, err := c.createReq("COPY", srcBlob, nil)
 	if err != nil {
 		return fmt.Errorf("creating COPY request: %w", err)
 	}
-	c.setAuth(copyReq)
 	copyReq.Header.Set("Destination", dstURL)
 	copyReq.Header.Set("Overwrite", "T")
 
@@ -360,7 +342,9 @@ func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]st
 	if err != nil {
 		return nil, fmt.Errorf("creating PROPFIND request: %w", err)
 	}
-	c.setAuth(req)
+	if c.config.User != "" {
+		req.SetBasicAuth(c.config.User, c.config.Password)
+	}
 	req.Header.Set("Depth", "1")
 	req.Header.Set("Content-Type", "application/xml")
 
