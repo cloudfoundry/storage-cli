@@ -1,0 +1,134 @@
+name : Release Auto
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'version bump type'
+        required: false
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  tests: 
+    name: Run Unit Tests
+    runs-on: [ubuntu-latest]
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v5
+
+      - name: Set up Go    
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Lint code
+        uses: golangci/golangci-lint-action@v8
+
+      - name: Run Unit Tests
+        run: |
+              export CGO_ENABLED=0
+              go version
+              go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./...
+
+  build-and-release:
+    name: Build and Release
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Bump Version and Create Tag
+        id: tag_version
+        uses: anothrNick/github-tag-action@1.70.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # DEFAULT_BUMP is used when there are no MAJOR_STRING_TOKEN or MINOR_STRING_TOKEN, 
+          # or for manual workflow_dispatch
+          DEFAULT_BUMP: ${{ github.event.inputs.version_bump || 'patch'}}
+          WITH_V: true
+          MAJOR_STRING_TOKEN: "BREAKING CHANGE:"
+          MINOR_STRING_TOKEN: "feat:"
+          PRERELEASE: false
+
+      - name: Export Version Variable
+        run: |
+          VERSION=${{steps.tag_version.outputs.new_tag}}
+          VERSION_NUMBER=${VERSION#v}
+          echo "VERSION_NUMBER=${VERSION_NUMBER}" >> $GITHUB_ENV
+
+      - name: Generate Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          toTag: ${{ steps.tag_version.outputs.new_tag }}
+          commitMode: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build for Linux
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+          VERSION: ${{ steps.tag_version.outputs.new_tag}}
+        run: |
+              echo "Building Storage CLI for Linux"
+              go build -ldflags "-X main.version=${{ env.VERSION_NUMBER }}" \
+              -o "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64"
+              echo "### Linux Build Checksums" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              sha1sum "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Build for Windows
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+          VERSION: ${{ steps.tag_version.outputs.new_tag }}
+        run: |
+              echo "Building Storage CLI for Windows"
+              go build -ldflags "-X main.version=${{ env.VERSION_NUMBER }}" \
+              -o "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"
+              echo "### Windows Build Checksums" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              sha1sum "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          artifacts: |
+            storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64
+            storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # - name: Configure AWS
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+
+      # - name: Upload Artifacts to S3
+      #   run: |
+      #       aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64" \
+      #         "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-linux-amd64"
+      #       aws s3 cp "storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe" \
+      #       "s3://storage-cli-artifacts/storage-cli-${{ env.VERSION_NUMBER }}-windows-amd64.exe"   
