@@ -140,9 +140,6 @@ func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration
 
 func (d *DavBlobstore) DeleteRecursive(prefix string) error {
 	slog.Info("deleting blobs recursively from webdav", "prefix", prefix)
-	if err := validatePrefix(prefix); err != nil {
-		return err
-	}
 	return d.storageClient.DeleteRecursive(prefix)
 }
 
