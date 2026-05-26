@@ -198,6 +198,12 @@ func (c *storageClient) Delete(path string) error {
 		return nil
 	}
 
+	// RFC 4918 §9.6.1: 207 Multi-Status means at least one child could not be
+	// deleted — treat it as a failure rather than silent partial success.
+	if resp.StatusCode == http.StatusMultiStatus {
+		return fmt.Errorf("deleting blob %q: partial failure (207 Multi-Status): %s", path, c.readAndTruncateBody(resp))
+	}
+
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return fmt.Errorf("deleting blob %q: invalid status %d", path, resp.StatusCode)
 	}
@@ -435,22 +441,39 @@ func blobIDFromHref(href, endpointPath string) (string, error) {
 }
 
 func (c *storageClient) DeleteRecursive(prefix string) error {
-	if prefix != "" {
-		if err := validatePrefix(prefix); err != nil {
-			return err
-		}
+	if prefix == "" {
+		return fmt.Errorf("DeleteRecursive requires a non-empty prefix: refusing to delete the storage root")
+	}
+	if err := validatePrefix(prefix); err != nil {
+		return err
 	}
 
-	blobs, err := c.List(prefix)
+	// Mirror the Ruby DavClient: issue a single DELETE on the prefix path.
+	// WebDAV DELETE on a collection removes the collection and all descendants.
+	req, err := c.createReq("DELETE", strings.TrimSuffix(prefix, "/"), nil)
 	if err != nil {
-		return fmt.Errorf("listing blobs under %q: %w", prefix, err)
+		return fmt.Errorf("creating delete request for prefix %q: %w", prefix, err)
 	}
 
-	for _, blob := range blobs {
-		if err := c.Delete(blob); err != nil {
-			return fmt.Errorf("deleting %q: %w", blob, err)
-		}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("deleting prefix %q: %w", prefix, err)
 	}
+	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
+	// RFC 4918 §9.6.1: 207 means at least one child was not deleted.
+	if resp.StatusCode == http.StatusMultiStatus {
+		return fmt.Errorf("deleting prefix %q: partial failure (207 Multi-Status): %s", prefix, c.readAndTruncateBody(resp))
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("deleting prefix %q: invalid status %d", prefix, resp.StatusCode)
+	}
+
 	return nil
 }
 
