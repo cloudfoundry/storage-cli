@@ -103,10 +103,6 @@ func NewStorageClient(config davconf.Config, httpClient httpclient.Client) Stora
 }
 
 func (c *storageClient) Get(path string) (io.ReadCloser, error) {
-	if err := validateBlobID(path); err != nil {
-		return nil, err
-	}
-
 	req, err := c.createReq("GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -128,10 +124,6 @@ func (c *storageClient) Get(path string) (io.ReadCloser, error) {
 func (c *storageClient) Put(path string, content io.ReadCloser, contentLength int64) error {
 	defer content.Close() //nolint:errcheck
 
-	if err := validateBlobID(path); err != nil {
-		return err
-	}
-
 	req, err := c.createReq("PUT", path, content)
 	if err != nil {
 		return err
@@ -152,10 +144,6 @@ func (c *storageClient) Put(path string, content io.ReadCloser, contentLength in
 }
 
 func (c *storageClient) Exists(path string) (bool, error) {
-	if err := validateBlobID(path); err != nil {
-		return false, err
-	}
-
 	req, err := c.createReq("HEAD", path, nil)
 	if err != nil {
 		return false, err
@@ -179,10 +167,6 @@ func (c *storageClient) Exists(path string) (bool, error) {
 }
 
 func (c *storageClient) Delete(path string) error {
-	if err := validateBlobID(path); err != nil {
-		return err
-	}
-
 	req, err := c.createReq("DELETE", path, nil)
 	if err != nil {
 		return fmt.Errorf("creating delete request for blob %q: %w", path, err)
@@ -212,10 +196,6 @@ func (c *storageClient) Delete(path string) error {
 }
 
 func (c *storageClient) Sign(blobID, action string, duration time.Duration) (string, error) {
-	if err := validateBlobID(blobID); err != nil {
-		return "", err
-	}
-
 	signer := URLsigner.NewSigner(c.config.Secret)
 	signTime := time.Now()
 
@@ -267,13 +247,6 @@ func (c *storageClient) readAndTruncateBody(resp *http.Response) string {
 }
 
 func (c *storageClient) Copy(srcBlob, dstBlob string) error {
-	if err := validateBlobID(srcBlob); err != nil {
-		return fmt.Errorf("invalid source blob ID: %w", err)
-	}
-	if err := validateBlobID(dstBlob); err != nil {
-		return fmt.Errorf("invalid destination blob ID: %w", err)
-	}
-
 	dstURL, err := c.buildBlobURL(dstBlob)
 	if err != nil {
 		return fmt.Errorf("building destination URL: %w", err)
@@ -321,12 +294,6 @@ func (c *storageClient) Copy(srcBlob, dstBlob string) error {
 }
 
 func (c *storageClient) List(prefix string) ([]string, error) {
-	if prefix != "" {
-		if err := validatePrefix(prefix); err != nil {
-			return nil, err
-		}
-	}
-
 	rootURL, err := url.Parse(c.config.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("parsing endpoint URL: %w", err)
@@ -455,9 +422,6 @@ func (c *storageClient) DeleteRecursive(prefix string) error {
 	if prefix == "" {
 		return fmt.Errorf("DeleteRecursive requires a non-empty prefix: refusing to delete the storage root")
 	}
-	if err := validatePrefix(prefix); err != nil {
-		return err
-	}
 
 	// Mirror the Ruby DavClient: issue a single DELETE on the prefix path.
 	// WebDAV DELETE on a collection removes the collection and all descendants.
@@ -492,10 +456,6 @@ func (c *storageClient) DeleteRecursive(prefix string) error {
 // as JSON to stdout. Returns nil with `{}` on 404 to mirror the behaviour of
 // other backends (S3, Azure) for missing blobs.
 func (c *storageClient) Properties(blobPath string) error {
-	if err := validateBlobID(blobPath); err != nil {
-		return err
-	}
-
 	req, err := c.createReq("HEAD", blobPath, nil)
 	if err != nil {
 		return fmt.Errorf("creating HEAD request for %q: %w", blobPath, err)

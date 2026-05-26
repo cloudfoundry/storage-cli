@@ -52,6 +52,10 @@ func NewWithStorageClient(storageClient StorageClient) *DavBlobstore {
 func (d *DavBlobstore) Put(sourceFilePath string, dest string) error {
 	slog.Info("uploading file to webdav", "source", sourceFilePath, "dest", dest)
 
+	if err := validateBlobID(dest); err != nil {
+		return err
+	}
+
 	source, err := os.Open(sourceFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to open source file: %w", err)
@@ -74,6 +78,10 @@ func (d *DavBlobstore) Put(sourceFilePath string, dest string) error {
 
 func (d *DavBlobstore) Get(source string, dest string) error {
 	slog.Info("downloading file from webdav", "source", source, "dest", dest)
+
+	if err := validateBlobID(source); err != nil {
+		return err
+	}
 
 	destFile, err := os.Create(dest)
 	if err != nil {
@@ -98,17 +106,25 @@ func (d *DavBlobstore) Get(source string, dest string) error {
 
 func (d *DavBlobstore) Delete(dest string) error {
 	slog.Info("deleting file from webdav", "dest", dest)
+	if err := validateBlobID(dest); err != nil {
+		return err
+	}
 	return d.storageClient.Delete(dest)
 }
 
 func (d *DavBlobstore) Exists(dest string) (bool, error) {
 	slog.Info("checking if file exists on webdav", "dest", dest)
+	if err := validateBlobID(dest); err != nil {
+		return false, err
+	}
 	return d.storageClient.Exists(dest)
 }
 
 func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration) (string, error) {
 	slog.Info("signing url for webdav", "dest", dest, "action", action, "expiration", expiration)
-
+	if err := validateBlobID(dest); err != nil {
+		return "", err
+	}
 	action = strings.ToUpper(action)
 	switch action {
 	case "GET", "PUT":
@@ -124,21 +140,38 @@ func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration
 
 func (d *DavBlobstore) DeleteRecursive(prefix string) error {
 	slog.Info("deleting blobs recursively from webdav", "prefix", prefix)
+	if err := validatePrefix(prefix); err != nil {
+		return err
+	}
 	return d.storageClient.DeleteRecursive(prefix)
 }
 
 func (d *DavBlobstore) List(prefix string) ([]string, error) {
 	slog.Info("listing blobs on webdav", "prefix", prefix)
+	if prefix != "" {
+		if err := validatePrefix(prefix); err != nil {
+			return nil, err
+		}
+	}
 	return d.storageClient.List(prefix)
 }
 
 func (d *DavBlobstore) Copy(srcBlob string, dstBlob string) error {
 	slog.Info("copying blob on webdav", "src", srcBlob, "dst", dstBlob)
+	if err := validateBlobID(srcBlob); err != nil {
+		return fmt.Errorf("invalid source blob ID: %w", err)
+	}
+	if err := validateBlobID(dstBlob); err != nil {
+		return fmt.Errorf("invalid destination blob ID: %w", err)
+	}
 	return d.storageClient.Copy(srcBlob, dstBlob)
 }
 
 func (d *DavBlobstore) Properties(dest string) error {
 	slog.Info("fetching blob properties from webdav", "dest", dest)
+	if err := validateBlobID(dest); err != nil {
+		return err
+	}
 	return d.storageClient.Properties(dest)
 }
 
