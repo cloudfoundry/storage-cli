@@ -33,9 +33,9 @@ type StorageClient interface {
 }
 
 type BlobProperties struct {
-	ETag          string    `json:"etag,omitempty"`
-	LastModified  time.Time `json:"last_modified,omitempty"`
-	ContentLength int64     `json:"content_length,omitempty"`
+	ETag          string     `json:"etag,omitempty"`
+	LastModified  time.Time  `json:"last_modified,omitempty"`
+	ContentLength *int64     `json:"content_length,omitempty"`
 }
 
 // PROPFIND request body — sent as XML to ask the WebDAV server for the
@@ -475,7 +475,10 @@ func (c *storageClient) Properties(blobPath string) error {
 		return fmt.Errorf("fetching properties of %q: status %d", blobPath, resp.StatusCode)
 	}
 
-	props := BlobProperties{ContentLength: resp.ContentLength}
+	props := BlobProperties{}
+	if resp.ContentLength >= 0 {
+		props.ContentLength = &resp.ContentLength
+	}
 	if etag := resp.Header.Get("ETag"); etag != "" {
 		props.ETag = strings.Trim(etag, `"`)
 	}
