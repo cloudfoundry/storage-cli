@@ -302,16 +302,7 @@ func (c *storageClient) List(prefix string) ([]string, error) {
 		rootURL.Path = "/" + rootURL.Path
 	}
 
-	startURL := rootURL
-	if prefix != "" {
-		startURL, err = url.Parse(rootURL.String())
-		if err != nil {
-			return nil, fmt.Errorf("parsing endpoint URL: %w", err)
-		}
-		startURL.Path = path.Join(rootURL.Path, strings.TrimSuffix(prefix, "/")) + "/"
-	}
-
-	return c.listRecursive(startURL.String(), rootURL.Path, prefix)
+	return c.listRecursive(rootURL.String(), rootURL.Path, prefix)
 }
 
 func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]string, error) {
@@ -422,6 +413,11 @@ func (c *storageClient) DeleteRecursive(prefix string) error {
 	blobs, err := c.List(prefix)
 	if err != nil {
 		return fmt.Errorf("listing blobs under %q: %w", prefix, err)
+	}
+
+	if len(blobs) == 0 {
+		slog.Warn("no blobs found for prefix, nothing deleted", "prefix", prefix)
+		return nil
 	}
 
 	for _, blob := range blobs {
