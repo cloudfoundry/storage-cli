@@ -335,7 +335,16 @@ func (c *storageClient) List(prefix string) ([]string, error) {
 		rootURL.Path = "/" + rootURL.Path
 	}
 
-	return c.listRecursive(rootURL.String(), rootURL.Path, prefix)
+	startURL := rootURL
+	if prefix != "" {
+		startURL, err = url.Parse(rootURL.String())
+		if err != nil {
+			return nil, fmt.Errorf("parsing endpoint URL: %w", err)
+		}
+		startURL.Path = path.Join(rootURL.Path, strings.TrimSuffix(prefix, "/")) + "/"
+	}
+
+	return c.listRecursive(startURL.String(), rootURL.Path, prefix)
 }
 
 func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]string, error) {
@@ -383,6 +392,7 @@ func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]st
 	for _, response := range multi.Responses {
 		hrefURL, err := url.Parse(response.Href)
 		if err != nil {
+			slog.Warn("skipping unparseable href in PROPFIND response", "href", response.Href, "error", err)
 			continue
 		}
 		hrefPath := strings.TrimSuffix(hrefURL.Path, "/")
@@ -406,6 +416,7 @@ func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]st
 
 		blobID, err := blobIDFromHref(response.Href, endpointPath)
 		if err != nil {
+			slog.Warn("skipping href that could not be mapped to a blob ID", "href", response.Href, "error", err)
 			continue
 		}
 		if prefix == "" || strings.HasPrefix(blobID, prefix) {
