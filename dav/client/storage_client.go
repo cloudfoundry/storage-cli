@@ -33,9 +33,9 @@ type StorageClient interface {
 }
 
 type BlobProperties struct {
-	ETag          string     `json:"etag,omitempty"`
-	LastModified  time.Time  `json:"last_modified,omitempty"`
-	ContentLength *int64     `json:"content_length,omitempty"`
+	ETag          string    `json:"etag,omitempty"`
+	LastModified  time.Time `json:"last_modified,omitempty"`
+	ContentLength *int64    `json:"content_length,omitempty"`
 }
 
 // PROPFIND request body — sent as XML to ask the WebDAV server for the
@@ -180,12 +180,6 @@ func (c *storageClient) Delete(path string) error {
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil
-	}
-
-	// RFC 4918 §9.6.1: 207 Multi-Status means at least one child could not be
-	// deleted — treat it as a failure rather than silent partial success.
-	if resp.StatusCode == http.StatusMultiStatus {
-		return fmt.Errorf("deleting blob %q: partial failure (207 Multi-Status): %s", path, c.readAndTruncateBody(resp))
 	}
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
