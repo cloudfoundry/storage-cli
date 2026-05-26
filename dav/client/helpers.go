@@ -22,17 +22,9 @@ func getCertPool(config davconf.Config) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-// validateBlobID rejects blob IDs that are unsafe to splice into a request
-// path. The rules are intentionally strict: blob IDs come from external
-// callers (e.g. CCNG, Diego) and a malformed value can confuse path joining,
-// produce ambiguous URLs, or — worst case — escape the configured endpoint
-// via path traversal. We refuse:
-//
-//   - empty strings
-//   - leading or trailing slashes (the path joiner adds them itself)
-//   - empty path segments ("//")
-//   - "." or ".." segments (traversal)
-//   - control characters (CRLF / NUL injection into headers and URLs)
+// validateBlobID rejects blob IDs that could confuse path joining or enable
+// path traversal: empty, leading/trailing slashes, double slashes, . or ..
+// segments, and control characters.
 func validateBlobID(blobID string) error {
 	if blobID == "" {
 		return fmt.Errorf("blob ID cannot be empty")
@@ -61,11 +53,7 @@ func validateBlobID(blobID string) error {
 	return nil
 }
 
-// validatePrefix is the more lenient sibling of validateBlobID, used for List.
-// A directory-style prefix may legitimately end in "/" (e.g. "cc-droplets/"),
-// but everything else still applies. An empty prefix is allowed at the caller
-// level — List uses "" to mean "no filtering" — so this helper is only invoked
-// when a non-empty prefix was supplied.
+// validatePrefix is like validateBlobID but allows a trailing slash.
 func validatePrefix(prefix string) error {
 	if strings.HasPrefix(prefix, "/") {
 		return fmt.Errorf("prefix cannot start with slash: %q", prefix)
