@@ -6,12 +6,13 @@ import (
 )
 
 type Config struct {
-	User          string
-	Password      string
-	Endpoint      string
-	RetryAttempts uint
-	TLS           TLS
-	Secret        string
+	User           string
+	Password       string
+	Endpoint       string
+	PublicEndpoint string `json:"public_endpoint"`
+	RetryAttempts  uint
+	TLS            TLS
+	Secret         string
 }
 
 type TLS struct {

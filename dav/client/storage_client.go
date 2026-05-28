@@ -26,6 +26,8 @@ type StorageClient interface {
 	Delete(path string) (err error)
 	DeleteRecursive(prefix string) error
 	Sign(objectID, action string, duration time.Duration) (string, error)
+	SignInternal(objectID, action string, duration time.Duration) (string, error)
+	SignPublic(objectID, action string, duration time.Duration) (string, error)
 	Copy(srcBlob, dstBlob string) error
 	List(prefix string) ([]string, error)
 	Properties(path string) error
@@ -189,15 +191,29 @@ func (c *storageClient) Delete(path string) error {
 	return nil
 }
 
+// Sign delegates to SignInternal; kept for callers that don't need the public/private distinction.
 func (c *storageClient) Sign(blobID, action string, duration time.Duration) (string, error) {
-	signer := URLsigner.NewSigner(c.config.Secret)
-	signTime := time.Now()
+	return c.SignInternal(blobID, action, duration)
+}
 
-	signedURL, err := signer.GenerateSignedURL(c.config.Endpoint, blobID, action, signTime, duration)
+func (c *storageClient) SignInternal(blobID, action string, duration time.Duration) (string, error) {
+	return c.signAgainst(c.config.Endpoint, blobID, action, duration)
+}
+
+func (c *storageClient) SignPublic(blobID, action string, duration time.Duration) (string, error) {
+	endpoint := c.config.PublicEndpoint
+	if endpoint == "" {
+		endpoint = c.config.Endpoint
+	}
+	return c.signAgainst(endpoint, blobID, action, duration)
+}
+
+func (c *storageClient) signAgainst(endpoint, blobID, action string, duration time.Duration) (string, error) {
+	signer := URLsigner.NewSigner(c.config.Secret)
+	signedURL, err := signer.GenerateSignedURL(endpoint, blobID, action, time.Now(), duration)
 	if err != nil {
 		return "", fmt.Errorf("pre-signing the url: %w", err)
 	}
-
 	return signedURL, nil
 }
 
