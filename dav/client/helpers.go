@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"strings"
 
 	boshcrypto "github.com/cloudfoundry/bosh-utils/crypto"
@@ -51,6 +52,37 @@ func validateBlobID(blobID string) error {
 	}
 
 	return nil
+}
+
+func extractSignEndpoint(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint
+	}
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+}
+
+func extractDirectoryKey(endpoint string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		return ""
+	}
+
+	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
+
+	for i, part := range pathParts {
+		if part == "admin" && i+1 < len(pathParts) {
+			return pathParts[i+1]
+		}
+	}
+
+	for i := len(pathParts) - 1; i >= 0; i-- {
+		if pathParts[i] != "" {
+			return pathParts[i]
+		}
+	}
+
+	return ""
 }
 
 // validatePrefix is like validateBlobID but allows a trailing slash.

@@ -33,7 +33,7 @@ The DAV client requires a JSON configuration file with the following structure:
       "ca":          "<string> (optional - PEM-encoded CA certificate)"
     }
   },
-  "secret":          "<string> (optional - required for pre-signed URLs)"
+  "secret":          "<string> (optional - required for sign, sign-internal, sign-public)"
 }
 ```
 
@@ -51,26 +51,24 @@ storage-cli -s dav -c dav-config.json exists remote-blob
 # Delete a blob
 storage-cli -s dav -c dav-config.json delete remote-blob
 
-# Generate a pre-signed URL (requires secret in config)
+# Generate pre-signed URLs (requires secret in config)
 storage-cli -s dav -c dav-config.json sign remote-blob get 1h
+storage-cli -s dav -c dav-config.json sign-internal remote-blob get 1h
+storage-cli -s dav -c dav-config.json sign-public remote-blob get 1h
 ```
 
 ## Features
 
-### Basic Operations (Available)
 - **Put** - Upload files to WebDAV server
 - **Get** - Download files from WebDAV server
 - **Delete** - Delete individual blobs
 - **Exists** - Check if a blob exists
-- **Sign** - Generate pre-signed URLs with HMAC-SHA256
-
-### Advanced Operations (Coming Soon)
-The following operations will be available in future releases:
-- **List** - List all blobs or filter by prefix
 - **Copy** - Server-side blob copying via WebDAV COPY method
+- **List** - List all blobs or filter by prefix
 - **DeleteRecursive** - Delete all blobs matching a prefix
 - **Properties** - Retrieve blob metadata (ContentLength, ETag, LastModified)
-- **EnsureStorageExists** - Initialize WebDAV directory structure
+- **EnsureStorageExists** - No-op (nginx auto-creates directories on PUT)
+- **Sign** / **SignInternal** / **SignPublic** - Generate pre-signed URLs with HMAC-SHA256
 
 ### Automatic Retry Logic
 All operations automatically retry on transient errors. Default is 3 retry attempts, configurable via `retry_attempts` in config.
@@ -80,15 +78,22 @@ Supports HTTPS connections with custom CA certificates for internal or self-sign
 
 ## Pre-signed URLs
 
-The `sign` command generates a pre-signed URL for a specific object, action, and duration.
+The `sign`, `sign-internal`, and `sign-public` commands generate a pre-signed URL for a specific object, action, and duration. Requires `secret` in config.
 
-The request is signed using HMAC-SHA256 with a secret provided in the configuration.
+- `sign` and `sign-internal` use the private `endpoint` as the host — for internal consumers (e.g. stager)
+- `sign-public` uses `public_endpoint` as the host (falls back to `endpoint` if not set) — for external consumers (e.g. CF API downloads via gorouter)
 
-The HMAC format is:
-`<HTTP Verb><Object ID><Unix timestamp of the signature time><Unix timestamp of the expiration time>`
+The directory key is always derived from the private `endpoint` path regardless of which command is used.
 
-The generated URL format:
-`https://blobstore.url/signed/object-id?st=HMACSignatureHash&ts=GenerationTimestamp&e=ExpirationTimestamp`
+The URL uses nginx `secure_link_hmac` format (HMAC-SHA256):
+
+```
+https://{host}/signed/{directoryKey}/{objectID}?st={signature}&ts={timestamp}&e={duration_seconds}
+```
+
+The `directoryKey` is extracted from the endpoint path (e.g. `/admin/bbl-envs-drops-leia` → `bbl-envs-drops-leia`). nginx captures `{directoryKey}/{objectID}` as `$blob_path` and uses it for both the file alias and the HMAC message.
+
+HMAC input: `{VERB}{directoryKey}/{objectID}{unix_timestamp}{duration_seconds}`
 
 ## Testing
 
