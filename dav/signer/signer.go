@@ -13,7 +13,8 @@ import (
 )
 
 type Signer interface {
-	GenerateSignedURL(endpoint, prefixedBlobID, verb string, timeStamp time.Time, expiresAfter time.Duration) (string, error)
+	// GenerateSignedURL builds a nginx secure_link_hmac compatible URL.
+	GenerateSignedURL(endpointBase, directoryKey, prefixedBlobID, verb string, timeStamp time.Time, expiresAfter time.Duration) (string, error)
 }
 
 type signer struct {
@@ -35,21 +36,24 @@ func (s *signer) generateSignature(prefixedBlobID, verb string, timeStamp time.T
 	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(sigBytes)
 }
 
-func (s *signer) GenerateSignedURL(endpoint, prefixedBlobID, verb string, timeStamp time.Time, expiresAfter time.Duration) (string, error) {
+func (s *signer) GenerateSignedURL(endpointBase, directoryKey, prefixedBlobID, verb string, timeStamp time.Time, expiresAfter time.Duration) (string, error) {
 	verb = strings.ToUpper(verb)
 	if verb != "GET" && verb != "PUT" {
 		return "", fmt.Errorf("action not implemented: %s. Available actions are 'GET' and 'PUT'", verb)
 	}
 
-	endpoint = strings.TrimSuffix(endpoint, "/")
+	endpointBase = strings.TrimSuffix(endpointBase, "/")
 	expiresAfterSeconds := int(expiresAfter.Seconds())
-	signature := s.generateSignature(prefixedBlobID, verb, timeStamp, expiresAfterSeconds)
 
-	blobURL, err := url.Parse(endpoint)
+	// nginx signs over $blob_path = everything after /signed/, so include the directory key.
+	blobPathForSig := directoryKey + "/" + prefixedBlobID
+	signature := s.generateSignature(blobPathForSig, verb, timeStamp, expiresAfterSeconds)
+
+	blobURL, err := url.Parse(endpointBase)
 	if err != nil {
 		return "", err
 	}
-	blobURL.Path = path.Join(blobURL.Path, "signed", prefixedBlobID)
+	blobURL.Path = path.Join("/signed", directoryKey, prefixedBlobID)
 	req, err := http.NewRequest(verb, blobURL.String(), nil)
 	if err != nil {
 		return "", err

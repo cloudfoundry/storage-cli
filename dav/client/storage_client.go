@@ -201,16 +201,29 @@ func (c *storageClient) SignInternal(blobID, action string, duration time.Durati
 }
 
 func (c *storageClient) SignPublic(blobID, action string, duration time.Duration) (string, error) {
-	endpoint := c.config.PublicEndpoint
-	if endpoint == "" {
-		endpoint = c.config.Endpoint
+	// The directory key always comes from the private Endpoint path (/admin/<bucket>).
+	// For public URLs we only swap the host — the path structure and HMAC are the same.
+	hostEndpoint := c.config.PublicEndpoint
+	if hostEndpoint == "" {
+		hostEndpoint = c.config.Endpoint
 	}
-	return c.signAgainst(endpoint, blobID, action, duration)
+	baseEndpoint := extractSignEndpoint(hostEndpoint)
+	directoryKey := extractDirectoryKey(c.config.Endpoint)
+
+	return c.signWith(baseEndpoint, directoryKey, blobID, action, duration)
 }
 
 func (c *storageClient) signAgainst(endpoint, blobID, action string, duration time.Duration) (string, error) {
+	// nginx serves /signed/<bucket>/<blobID> and signs over that full path,
+	// so extract the bucket name and base URL separately from the endpoint.
+	baseEndpoint := extractSignEndpoint(endpoint)
+	directoryKey := extractDirectoryKey(endpoint)
+	return c.signWith(baseEndpoint, directoryKey, blobID, action, duration)
+}
+
+func (c *storageClient) signWith(baseEndpoint, directoryKey, blobID, action string, duration time.Duration) (string, error) {
 	signer := URLsigner.NewSigner(c.config.Secret)
-	signedURL, err := signer.GenerateSignedURL(endpoint, blobID, action, time.Now(), duration)
+	signedURL, err := signer.GenerateSignedURL(baseEndpoint, directoryKey, blobID, action, time.Now(), duration)
 	if err != nil {
 		return "", fmt.Errorf("pre-signing the url: %w", err)
 	}
