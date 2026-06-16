@@ -138,6 +138,42 @@ func (d *DavBlobstore) Sign(dest string, action string, expiration time.Duration
 	}
 }
 
+func (d *DavBlobstore) SignInternal(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Info("signing internal url for webdav", "dest", dest, "action", action, "expiration", expiration)
+	if err := validateBlobID(dest); err != nil {
+		return "", err
+	}
+	action = strings.ToUpper(action)
+	switch action {
+	case "GET", "PUT":
+		signedURL, err := d.storageClient.SignInternal(dest, action, expiration)
+		if err != nil {
+			return "", fmt.Errorf("failed to sign internal URL: %w", err)
+		}
+		return signedURL, nil
+	default:
+		return "", fmt.Errorf("action not implemented: %s", action)
+	}
+}
+
+func (d *DavBlobstore) SignPublic(dest string, action string, expiration time.Duration) (string, error) {
+	slog.Info("signing public url for webdav", "dest", dest, "action", action, "expiration", expiration)
+	if err := validateBlobID(dest); err != nil {
+		return "", err
+	}
+	action = strings.ToUpper(action)
+	switch action {
+	case "GET", "PUT":
+		signedURL, err := d.storageClient.SignPublic(dest, action, expiration)
+		if err != nil {
+			return "", fmt.Errorf("failed to sign public URL: %w", err)
+		}
+		return signedURL, nil
+	default:
+		return "", fmt.Errorf("action not implemented: %s", action)
+	}
+}
+
 func (d *DavBlobstore) DeleteRecursive(prefix string) error {
 	slog.Info("deleting blobs recursively from webdav", "prefix", prefix)
 	return d.storageClient.DeleteRecursive(prefix)

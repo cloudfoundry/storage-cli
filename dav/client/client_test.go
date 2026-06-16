@@ -185,6 +185,142 @@ var _ = Describe("Client", func() {
 		})
 	})
 
+	Context("SignInternal", func() {
+		var expiry = 100 * time.Second
+
+		It("forwards args to the storage client and returns the signed URL", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignInternalReturns("https://internal-url", nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignInternal("blob/path", "get", expiry)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(url).To(Equal("https://internal-url"))
+
+			Expect(fakeStorageClient.SignInternalCallCount()).To(Equal(1))
+			object, action, expiration := fakeStorageClient.SignInternalArgsForCall(0)
+			Expect(object).To(Equal("blob/path"))
+			Expect(action).To(Equal("GET"))
+			Expect(expiration).To(Equal(expiry))
+		})
+
+		It("uppercases the action before forwarding", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignInternalReturns("https://internal-url", nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			_, err := davBlobstore.SignInternal("blob/path", "put", expiry)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, action, _ := fakeStorageClient.SignInternalArgsForCall(0)
+			Expect(action).To(Equal("PUT"))
+		})
+
+		It("rejects an invalid blob ID without calling the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignInternal("", "get", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(url).To(Equal(""))
+			Expect(fakeStorageClient.SignInternalCallCount()).To(Equal(0))
+		})
+
+		It("rejects unknown actions without calling the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignInternal("blob/path", "delete", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("action not implemented"))
+			Expect(url).To(Equal(""))
+			Expect(fakeStorageClient.SignInternalCallCount()).To(Equal(0))
+		})
+
+		It("propagates errors from the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignInternalReturns("", fmt.Errorf("internal-boom"))
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignInternal("blob/path", "get", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("internal-boom"))
+			Expect(url).To(Equal(""))
+		})
+	})
+
+	Context("SignPublic", func() {
+		var expiry = 100 * time.Second
+
+		It("forwards args to the storage client and returns the signed URL", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignPublicReturns("https://public-url", nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignPublic("blob/path", "get", expiry)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(url).To(Equal("https://public-url"))
+
+			Expect(fakeStorageClient.SignPublicCallCount()).To(Equal(1))
+			object, action, expiration := fakeStorageClient.SignPublicArgsForCall(0)
+			Expect(object).To(Equal("blob/path"))
+			Expect(action).To(Equal("GET"))
+			Expect(expiration).To(Equal(expiry))
+		})
+
+		It("uppercases the action before forwarding", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignPublicReturns("https://public-url", nil)
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			_, err := davBlobstore.SignPublic("blob/path", "put", expiry)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, action, _ := fakeStorageClient.SignPublicArgsForCall(0)
+			Expect(action).To(Equal("PUT"))
+		})
+
+		It("rejects an invalid blob ID without calling the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignPublic("", "get", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(url).To(Equal(""))
+			Expect(fakeStorageClient.SignPublicCallCount()).To(Equal(0))
+		})
+
+		It("rejects unknown actions without calling the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignPublic("blob/path", "delete", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("action not implemented"))
+			Expect(url).To(Equal(""))
+			Expect(fakeStorageClient.SignPublicCallCount()).To(Equal(0))
+		})
+
+		It("propagates errors from the storage client", func() {
+			fakeStorageClient := &clientfakes.FakeStorageClient{}
+			fakeStorageClient.SignPublicReturns("", fmt.Errorf("public-boom"))
+
+			davBlobstore := client.NewWithStorageClient(fakeStorageClient)
+			url, err := davBlobstore.SignPublic("blob/path", "get", expiry)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("public-boom"))
+			Expect(url).To(Equal(""))
+		})
+	})
+
 	Context("Copy", func() {
 		It("forwards source and destination to the storage client", func() {
 			fakeStorageClient := &clientfakes.FakeStorageClient{}

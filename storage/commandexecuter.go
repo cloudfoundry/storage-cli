@@ -107,6 +107,42 @@ func (sty *CommandExecuter) Execute(cmd string, nonFlagArgs []string) error {
 		}
 		fmt.Print(signedURL)
 
+	case "sign-internal", "sign-public":
+		if len(nonFlagArgs) != 3 {
+			return fmt.Errorf("%s method expects 3 arguments got %d", cmd, len(nonFlagArgs))
+		}
+
+		objectID, action := nonFlagArgs[0], nonFlagArgs[1]
+		action = strings.ToLower(action)
+		if action != "get" && action != "put" {
+			return fmt.Errorf("action not implemented: %s. Available actions are 'get' and 'put'", action)
+		}
+
+		expiration, err := time.ParseDuration(nonFlagArgs[2])
+		if err != nil {
+			return fmt.Errorf("expiration should be in the format of a duration i.e. 1h, 60m, 3600s. Got: %s", nonFlagArgs[2])
+		}
+
+		// DAV-specific: type-assert rather than pollute the cross-backend Storager interface.
+		dualSigner, ok := sty.str.(interface {
+			SignInternal(string, string, time.Duration) (string, error)
+			SignPublic(string, string, time.Duration) (string, error)
+		})
+		if !ok {
+			return fmt.Errorf("%s is only supported by storage backends with separate internal/public endpoints (currently: dav)", cmd)
+		}
+
+		var signedURL string
+		if cmd == "sign-internal" {
+			signedURL, err = dualSigner.SignInternal(objectID, action, expiration)
+		} else {
+			signedURL, err = dualSigner.SignPublic(objectID, action, expiration)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to %s request: %w", cmd, err)
+		}
+		fmt.Print(signedURL)
+
 	case "list":
 		var prefix string
 		if len(nonFlagArgs) > 1 {

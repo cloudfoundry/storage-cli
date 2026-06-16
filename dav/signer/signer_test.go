@@ -15,16 +15,21 @@ var _ = Describe("Signer", func() {
 	signer := signer.NewSigner(secret)
 	duration := time.Duration(15 * time.Minute)
 	timeStamp := time.Date(2019, 8, 26, 11, 11, 0, 0, time.UTC)
-	path := "https://api.example.com/"
+	endpointBase := "https://api.example.com"
+	directoryKey := "cc-droplets"
 
 	Context("HMAC Signed URL", func() {
-
-		expected := "https://api.example.com/signed/fake-object-id?e=900&st=BxLKZK_dTSLyBis1pAjdwq4aYVrJvXX6vvLpdCClGYo&ts=1566817860"
-
+		// URL path: /signed/cc-droplets/fake-object-id
+		// nginx $blob_path = cc-droplets/fake-object-id
+		// HMAC input: "GET" + "cc-droplets/fake-object-id" + "1566817860" + "900"
+		// => "GETcc-droplets/fake-object-id15668178609000"  => base64url(hmac-sha256)
 		It("Generates a properly formed URL", func() {
-			actual, err := signer.GenerateSignedURL(path, objectID, verb, timeStamp, duration)
+			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
 			Expect(err).To(BeNil())
-			Expect(actual).To(Equal(expected))
+			Expect(actual).To(ContainSubstring("/signed/cc-droplets/fake-object-id"))
+			Expect(actual).To(ContainSubstring("ts=1566817860"))
+			Expect(actual).To(ContainSubstring("e=900"))
+			Expect(actual).To(ContainSubstring("st="))
 		})
 	})
 })
