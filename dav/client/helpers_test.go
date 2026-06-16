@@ -51,4 +51,3 @@ func TestExtractDirectoryKey(t *testing.T) {
 		}
 	})
 }
-
