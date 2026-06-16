@@ -207,8 +207,14 @@ func (c *storageClient) SignPublic(blobID, action string, duration time.Duration
 	if hostEndpoint == "" {
 		hostEndpoint = c.config.Endpoint
 	}
-	baseEndpoint := extractSignEndpoint(hostEndpoint)
-	directoryKey := extractDirectoryKey(c.config.Endpoint)
+	baseEndpoint, err := extractSignEndpoint(hostEndpoint)
+	if err != nil {
+		return "", err
+	}
+	directoryKey, err := extractDirectoryKey(c.config.Endpoint)
+	if err != nil {
+		return "", err
+	}
 
 	return c.signWith(baseEndpoint, directoryKey, blobID, action, duration)
 }
@@ -216,8 +222,14 @@ func (c *storageClient) SignPublic(blobID, action string, duration time.Duration
 func (c *storageClient) signAgainst(endpoint, blobID, action string, duration time.Duration) (string, error) {
 	// nginx serves /signed/<bucket>/<blobID> and signs over that full path,
 	// so extract the bucket name and base URL separately from the endpoint.
-	baseEndpoint := extractSignEndpoint(endpoint)
-	directoryKey := extractDirectoryKey(endpoint)
+	baseEndpoint, err := extractSignEndpoint(endpoint)
+	if err != nil {
+		return "", err
+	}
+	directoryKey, err := extractDirectoryKey(endpoint)
+	if err != nil {
+		return "", err
+	}
 	return c.signWith(baseEndpoint, directoryKey, blobID, action, duration)
 }
 

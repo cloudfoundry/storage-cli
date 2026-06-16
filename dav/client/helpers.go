@@ -54,35 +54,35 @@ func validateBlobID(blobID string) error {
 	return nil
 }
 
-func extractSignEndpoint(endpoint string) string {
+func extractSignEndpoint(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return endpoint
+		return "", fmt.Errorf("parsing endpoint URL %q: %w", endpoint, err)
 	}
-	return fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	return fmt.Sprintf("%s://%s", u.Scheme, u.Host), nil
 }
 
-func extractDirectoryKey(endpoint string) string {
+func extractDirectoryKey(endpoint string) (string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("parsing endpoint URL %q: %w", endpoint, err)
 	}
 
 	pathParts := strings.Split(strings.Trim(u.Path, "/"), "/")
 
 	for i, part := range pathParts {
 		if part == "admin" && i+1 < len(pathParts) {
-			return pathParts[i+1]
+			return pathParts[i+1], nil
 		}
 	}
 
 	for i := len(pathParts) - 1; i >= 0; i-- {
 		if pathParts[i] != "" {
-			return pathParts[i]
+			return pathParts[i], nil
 		}
 	}
 
-	return ""
+	return "", nil
 }
 
 // validatePrefix is like validateBlobID but allows a trailing slash.
