@@ -1,0 +1,167 @@
+name: Release Cron
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check for Changes
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      next_version: ${{ steps.check.outputs.next_version }}
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check diff and compute next version
+        id: check
+        run: |
+          LATEST_TAG=$(git tag --sort=-version:refname | head -1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found, cannot determine next version"
+            exit 1
+          fi
+
+          echo "Latest tag: $LATEST_TAG"
+
+          if git diff "${LATEST_TAG}..HEAD" --quiet; then
+            echo "No changes since ${LATEST_TAG}, skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "## No release needed" >> $GITHUB_STEP_SUMMARY
+            echo "No changes since ${LATEST_TAG}." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          VERSION_NUMBER=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION_NUMBER | cut -d. -f1)
+          MINOR=$(echo $VERSION_NUMBER | cut -d. -f2)
+          PATCH=$(echo $VERSION_NUMBER | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="v${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+          echo "Next version: $NEXT_VERSION"
+          echo "should_release=true" >> $GITHUB_OUTPUT
+          echo "next_version=${NEXT_VERSION}" >> $GITHUB_OUTPUT
+
+  tests:
+    name: Run Unit Tests
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Lint code
+        uses: golangci/golangci-lint-action@v9
+
+      - name: Run Unit Tests
+        run: |
+          export CGO_ENABLED=0
+          go version
+          go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./...
+
+  build-and-release:
+    name: Build and Release
+    needs: [check, tests]
+    if: needs.check.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Set version variables
+        id: version
+        run: |
+          VERSION="${{ needs.check.outputs.next_version }}"
+          VERSION_NUMBER=${VERSION#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION_NUMBER=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION (number: $VERSION_NUMBER)"
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.VERSION }}" -m "Release ${{ steps.version.outputs.VERSION }}"
+          git push origin "${{ steps.version.outputs.VERSION }}"
+
+      - name: Build for Linux
+        run: |
+          echo "Building Storage CLI for Linux"
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+          -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64"
+          echo "### Linux amd64 Build Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+          -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64"
+          echo "### Linux arm64 Build Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Build for macOS
+        run: |
+          echo "Building Storage CLI for macOS"
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+          -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-amd64"
+          echo "### macOS amd64 Build Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-amd64" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+          -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-arm64"
+          echo "### macOS arm64 Build Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-arm64" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Build for Windows
+        run: |
+          echo "Building Storage CLI for Windows"
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION_NUMBER }}" \
+          -o "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe"
+          echo "### Windows Build Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          sha1sum "storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.version.outputs.VERSION }}
+          name: Release ${{ steps.version.outputs.VERSION }}
+          body: Release ${{ steps.version.outputs.VERSION }}
+          artifacts: |
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-amd64
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-linux-arm64
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-amd64
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-arm64
+            storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: true # for testing, TODO: change to false
+          makeLatest: true
+          generateReleaseNotes: true
