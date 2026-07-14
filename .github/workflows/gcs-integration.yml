@@ -3,11 +3,6 @@ name: GCS Integration Tests
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-    - ".github/workflows/gcs-integration.yml"
-    - "gcs/**"
-    - "go.mod"
-    - "go.sum"
   push:
     branches:
     - "main"
