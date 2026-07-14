@@ -20,7 +20,7 @@ jobs:
   azurecloud-environment-integration-tests:
     name:  AzureCloud Environment Integration Tests
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    # Run on push/workflow_dispatch, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
