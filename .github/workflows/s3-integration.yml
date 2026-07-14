@@ -20,7 +20,7 @@ jobs:
   aws-s3-us-integration:
     name: AWS S3 US Integration
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    # Run on push/workflow_dispatch, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
@@ -88,11 +88,11 @@ jobs:
   aws-s3-regional-integration:
     name: AWS S3 ${{ matrix.name }} Integration
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+    # Run on push/workflow_dispatch, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
@@ -153,11 +153,11 @@ jobs:
   s3-compatible-integration:
    name: S3 Compatible Integration
    runs-on: ubuntu-latest
-   # Run on push/workflow_dispatch, skip forks and Dependabot on PRs
+   # Run on push/workflow_dispatch, skip fork PRs
    if: |
      github.event_name == 'push' ||
      github.event_name == 'workflow_dispatch' ||
-     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
    steps:
      - name: Checkout code
        uses: actions/checkout@v7
