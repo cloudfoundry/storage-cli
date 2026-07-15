@@ -2,6 +2,11 @@ name: S3 Integration Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      pr_ref:
+        description: 'SHA of the PR head commit (for fork PRs)'
+        required: false
+        default: ''
   pull_request:
   push:
     branches:
@@ -27,6 +32,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.pr_ref || github.sha }}
 
       - name: Set up test environment
         uses: ./.github/actions/go-test-bootstrap
@@ -113,6 +120,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.pr_ref || github.sha }}
 
       - name: Set up test environment
         uses: ./.github/actions/go-test-bootstrap
@@ -156,6 +165,8 @@ jobs:
    steps:
      - name: Checkout code
        uses: actions/checkout@v7
+       with:
+         ref: ${{ inputs.pr_ref || github.sha }}
 
      - name: Set up test environment
        uses: ./.github/actions/go-test-bootstrap
