@@ -61,6 +61,16 @@ var _ = Describe("General testing for DAV", func() {
 			integration.AssertOnListDeleteLifecycle(cliPath, cfg)
 		})
 
+		It("Blobstore list and delete-recursive lifecycle works with nested prefixes", func() {
+			cfg := &config.Config{
+				Endpoint: davEndpoint,
+				User:     davUser,
+				Password: davPassword,
+				TLS:      config.TLS{Cert: config.Cert{CA: davCA}},
+			}
+			integration.AssertOnNestedListDeleteLifecycle(cliPath, cfg)
+		})
+
 		It("Invoking `list` on non-existent prefix returns empty list", func() {
 			cfg := &config.Config{
 				Endpoint: davEndpoint,

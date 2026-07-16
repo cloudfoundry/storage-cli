@@ -336,8 +336,32 @@ func (c *storageClient) List(prefix string) ([]string, error) {
 	if !strings.HasPrefix(rootURL.Path, "/") {
 		rootURL.Path = "/" + rootURL.Path
 	}
+	endpointPath := rootURL.Path
 
-	return c.listRecursive(rootURL.String(), rootURL.Path, prefix)
+	// Start the walk at the deepest directory the prefix fully names, so the
+	// traversal is bounded by the prefix's subtree instead of the whole store.
+	// Blob IDs are matched as string prefixes, so only the portion of the
+	// prefix up to its last "/" is guaranteed to be a directory. The trailing
+	// slash marks the URL as a collection, matching the slash-terminated hrefs
+	// the recursion follows and avoiding directory redirects from servers that
+	// insist on the canonical form.
+	if dir := prefixDir(prefix); dir != "" {
+		rootURL.Path = path.Join(rootURL.Path, dir) + "/"
+	}
+
+	return c.listRecursive(rootURL.String(), endpointPath, prefix)
+}
+
+// prefixDir returns the deepest directory a blob-ID prefix fully names, or ""
+// when the prefix does not name one ("" or a single path segment) or would
+// escape the endpoint through ".." segments, in which case the walk starts at
+// the endpoint root as it always did.
+func prefixDir(prefix string) string {
+	dir := path.Dir(strings.TrimPrefix(prefix, "/"))
+	if dir == "." || dir == "/" || dir == ".." || strings.HasPrefix(dir, "../") {
+		return ""
+	}
+	return dir
 }
 
 func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]string, error) {
@@ -395,6 +419,9 @@ func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]st
 		}
 
 		if response.isCollection() {
+			if !collectionMayContainPrefix(response.Href, endpointPath, prefix) {
+				continue
+			}
 			subURL := hrefURL.String()
 			if !hrefURL.IsAbs() {
 				subURL = parsedDirURL.ResolveReference(hrefURL).String()
@@ -418,6 +445,24 @@ func (c *storageClient) listRecursive(dirURL, endpointPath, prefix string) ([]st
 	}
 
 	return blobs, nil
+}
+
+// collectionMayContainPrefix reports whether a collection can hold blob IDs
+// matching the prefix. Every blob under a collection with relative path rel
+// has an ID starting with rel+"/", so the collection is worth descending into
+// only when rel+"/" and the prefix are string prefixes of one another.
+func collectionMayContainPrefix(href, endpointPath, prefix string) bool {
+	if prefix == "" {
+		return true
+	}
+	rel, err := blobIDFromHref(href, endpointPath)
+	if err != nil {
+		// Can't map the href to a relative path; descend rather than risk
+		// skipping blobs.
+		return true
+	}
+	rel = strings.TrimSuffix(rel, "/") + "/"
+	return strings.HasPrefix(prefix, rel) || strings.HasPrefix(rel, prefix)
 }
 
 // blobIDFromHref extracts the blob ID from a WebDAV href

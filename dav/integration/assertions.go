@@ -160,6 +160,64 @@ func AssertOnListDeleteLifecycle(cliPath string, cfg *config.Config) {
 	}
 }
 
+func AssertOnNestedListDeleteLifecycle(cliPath string, cfg *config.Config) {
+	guid := GenerateRandomString()
+	prefix := "ab/cd/" + guid
+
+	configPath := MakeConfigFile(cfg)
+	defer os.Remove(configPath) //nolint:errcheck
+
+	targets := []string{
+		prefix + "/droplet",
+		prefix + "-extra",
+	}
+	bystanders := []string{
+		"ab/cd/" + GenerateRandomString(),
+		"zz/yy/" + GenerateRandomString(),
+	}
+
+	var contentFiles []string
+	defer func() {
+		for _, f := range contentFiles {
+			os.Remove(f) //nolint:errcheck
+		}
+	}()
+
+	for _, blobName := range append(append([]string{}, targets...), bystanders...) {
+		contentFile := MakeContentFile(GenerateRandomString())
+		contentFiles = append(contentFiles, contentFile)
+		session, err := RunCli(cliPath, configPath, storageType, "put", contentFile, blobName)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.ExitCode()).To(BeZero())
+	}
+
+	session, err := RunCli(cliPath, configPath, storageType, "list", prefix)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+	for _, blobName := range targets {
+		Expect(session.Out.Contents()).To(ContainSubstring(blobName))
+	}
+	for _, blobName := range bystanders {
+		Expect(session.Out.Contents()).ToNot(ContainSubstring(blobName))
+	}
+
+	session, err = RunCli(cliPath, configPath, storageType, "delete-recursive", prefix)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session.ExitCode()).To(BeZero())
+
+	for _, blobName := range targets {
+		session, err := RunCli(cliPath, configPath, storageType, "exists", blobName)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.ExitCode()).ToNot(BeZero())
+	}
+
+	for _, blobName := range bystanders {
+		session, err := RunCli(cliPath, configPath, storageType, "exists", blobName)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.ExitCode()).To(BeZero())
+	}
+}
+
 func AssertListNonexistentPrefixReturnsEmpty(cliPath string, cfg *config.Config) {
 	nonExistentPrefix := GenerateRandomString()
 
