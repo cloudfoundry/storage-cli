@@ -15,4 +15,4 @@ jobs:
     if: github.actor == 'dependabot[bot]'
     steps:
       - name: Enable auto-merge
-        run: gh pr merge --auto --rebase "${{ github.event.pull_request.number }}"
+        run: gh pr merge --auto --rebase --repo "${{ github.repository }}" "${{ github.event.pull_request.number }}"
