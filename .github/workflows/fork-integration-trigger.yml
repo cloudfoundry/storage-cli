@@ -6,6 +6,7 @@ on:
 
 permissions:
   pull-requests: write
+  actions: write
 
 env:
   GH_TOKEN: ${{ github.token }}
