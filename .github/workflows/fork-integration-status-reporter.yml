@@ -1,0 +1,52 @@
+name: Report integration test results for fork PRs
+
+on:
+  workflow_run:
+    workflows:
+      - "S3 Integration Tests"
+      - "GCS Integration Tests"
+      - "Alioss Integration Tests"
+      - "Azurebs Integration Tests"
+      - "DAV Integration Tests"
+    types: [completed]
+
+permissions:
+  statuses: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  report:
+    name: Report status
+    runs-on: ubuntu-latest
+    # Only fork-triggered runs use workflow_dispatch; skip push/pull_request runs entirely
+    if: github.event.workflow_run.event == 'workflow_dispatch'
+    steps:
+      - name: Get pr_ref from triggering run
+        id: inputs
+        run: |
+          pr_ref=$(gh run view ${{ github.event.workflow_run.id }} \
+            --repo "$GITHUB_REPOSITORY" --json inputs \
+            --jq '.inputs.pr_ref // empty')
+          echo "pr_ref=$pr_ref" >> $GITHUB_OUTPUT
+
+      - name: Post commit status per job
+        if: steps.inputs.outputs.pr_ref != ''
+        run: |
+          pr_ref="${{ steps.inputs.outputs.pr_ref }}"
+          gh run view ${{ github.event.workflow_run.id }} \
+            --repo "$GITHUB_REPOSITORY" --json jobs \
+            --jq '.jobs[] | [.name, .conclusion, .url] | @tsv' \
+          | while IFS=$'\t' read -r name conclusion url; do
+            case "$conclusion" in
+              success)   state="success" ;;
+              cancelled) state="error" ;;
+              *)         state="failure" ;;
+            esac
+            gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$pr_ref" \
+              -f state="$state" \
+              -f context="$name" \
+              -f target_url="$url" \
+              -f description="$conclusion"
+          done
