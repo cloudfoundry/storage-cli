@@ -18,3 +18,7 @@ jobs:
     steps:
       - name: Enable auto-merge
         run: gh pr merge --auto --rebase --repo "${{ github.repository }}" "${{ github.event.pull_request.number }}"
+      - name: Approve dependabot PR
+        env:
+          GH_TOKEN: ${{ secrets.BOT_GH_TOKEN }}
+        run: gh pr review --approve --repo "${{ github.repository }}" "${{ github.event.pull_request.number }}"
