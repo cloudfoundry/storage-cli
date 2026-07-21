@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -121,21 +121,9 @@ func newTestStorageClient(t *testing.T, store *fakeDavServer) (*storageClient, f
 }
 
 func sorted(in []string) []string {
-	out := append([]string{}, in...)
-	sort.Strings(out)
+	out := slices.Clone(in)
+	slices.Sort(out)
 	return out
-}
-
-func equalStrings(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func TestListScopesWalkToPrefix(t *testing.T) {
@@ -149,12 +137,12 @@ func TestListScopesWalkToPrefix(t *testing.T) {
 	}
 
 	wantBlobs := []string{"ab/cd/abcd-target-guid-file", "ab/cd/abcd-target-guid/cflinuxfs4"}
-	if !equalStrings(sorted(blobs), wantBlobs) {
+	if !slices.Equal(sorted(blobs), wantBlobs) {
 		t.Fatalf("unexpected blobs: %v, want %v", sorted(blobs), wantBlobs)
 	}
 
 	wantPropfinds := []string{"ab/cd", "ab/cd/abcd-target-guid"}
-	if !equalStrings(sorted(store.propfinds), wantPropfinds) {
+	if !slices.Equal(sorted(store.propfinds), wantPropfinds) {
 		t.Fatalf("walk was not scoped to the prefix: PROPFINDs hit %v, want %v", sorted(store.propfinds), wantPropfinds)
 	}
 }
@@ -177,7 +165,7 @@ func TestListEmptyPrefixWalksWholeStore(t *testing.T) {
 		"ab/zz/abzz-unrelated",
 		"zz/yy/zzyy-other",
 	}
-	if !equalStrings(sorted(blobs), wantBlobs) {
+	if !slices.Equal(sorted(blobs), wantBlobs) {
 		t.Fatalf("unexpected blobs: %v, want %v", sorted(blobs), wantBlobs)
 	}
 }
@@ -212,7 +200,7 @@ func TestListSingleSegmentPrefixPrunesSiblings(t *testing.T) {
 		"ab/cd/abcd-unrelated",
 		"ab/zz/abzz-unrelated",
 	}
-	if !equalStrings(sorted(blobs), wantBlobs) {
+	if !slices.Equal(sorted(blobs), wantBlobs) {
 		t.Fatalf("unexpected blobs: %v, want %v", sorted(blobs), wantBlobs)
 	}
 
@@ -233,12 +221,12 @@ func TestDeleteRecursiveDeletesOnlyPrefixedBlobs(t *testing.T) {
 	}
 
 	wantDeletes := []string{"ab/cd/abcd-target-guid-file", "ab/cd/abcd-target-guid/cflinuxfs4"}
-	if !equalStrings(sorted(store.deletes), wantDeletes) {
+	if !slices.Equal(sorted(store.deletes), wantDeletes) {
 		t.Fatalf("unexpected deletes: %v, want %v", sorted(store.deletes), wantDeletes)
 	}
 
 	wantPropfinds := []string{"ab/cd", "ab/cd/abcd-target-guid"}
-	if !equalStrings(sorted(store.propfinds), wantPropfinds) {
+	if !slices.Equal(sorted(store.propfinds), wantPropfinds) {
 		t.Fatalf("walk was not scoped to the prefix: PROPFINDs hit %v, want %v", sorted(store.propfinds), wantPropfinds)
 	}
 }
