@@ -25,6 +25,8 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-iam
@@ -87,6 +89,12 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
 
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
+
   aws-s3-regional-integration:
     name: AWS S3 ${{ matrix.name }} Integration
     runs-on: ubuntu-latest
@@ -95,6 +103,8 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -154,29 +164,44 @@ jobs:
           region_name: ${{ matrix.region_name }}
           stack_name: ${{ matrix.stack_name }}
 
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
+
   s3-compatible-integration:
-   name: S3 Compatible Integration
-   runs-on: ubuntu-latest
-   # Run on push/workflow_dispatch, skip fork PRs
-   if: |
-     github.event_name == 'push' ||
-     github.event_name == 'workflow_dispatch' ||
-     (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-   steps:
-     - name: Checkout code
-       uses: actions/checkout@v7
-       with:
-         ref: ${{ inputs.pr_ref || github.sha }}
+    name: S3 Compatible Integration
+    runs-on: ubuntu-latest
+    # Run on push/workflow_dispatch, skip fork PRs
+    if: |
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.pr_ref || github.sha }}
 
-     - name: Set up test environment
-       uses: ./.github/actions/go-test-bootstrap
+      - name: Set up test environment
+        uses: ./.github/actions/go-test-bootstrap
 
-     - name: Run GCS S3 compatible tests
-       run: |
-         export access_key_id="${{ secrets.GCP_ACCESS_KEY_ID }}"
-         export secret_access_key="${{ secrets.GCP_SECRET_ACCESS_KEY }}"
-         export bucket_name=storage-cli-test-aws-compat
-         export s3_endpoint_host=storage.googleapis.com
-         export s3_endpoint_port=443
-         export label_filter='s3-compatible'
-         ./.github/scripts/s3/run-integration-s3-compat.sh
+      - name: Run GCS S3 compatible tests
+        run: |
+          export access_key_id="${{ secrets.GCP_ACCESS_KEY_ID }}"
+          export secret_access_key="${{ secrets.GCP_SECRET_ACCESS_KEY }}"
+          export bucket_name=storage-cli-test-aws-compat
+          export s3_endpoint_host=storage.googleapis.com
+          export s3_endpoint_port=443
+          export label_filter='s3-compatible'
+          ./.github/scripts/s3/run-integration-s3-compat.sh
+
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
+

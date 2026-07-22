@@ -45,9 +45,6 @@ jobs:
             -f content=rocket
 
       - name: Trigger integration tests
-        env:
-          # need bot token, otherwise the IT workflows won't trigger fork-integration-status-reporter.yml
-          GH_TOKEN: ${{ secrets.BOT_GH_TOKEN }}
         run: |
           # run all integration test workflows in context of main branch, passing the PR head SHA as an input
           for workflow in s3-integration.yml gcs-integration.yml alioss-integration.yml azurebs-integration.yml dav-integration.yml; do

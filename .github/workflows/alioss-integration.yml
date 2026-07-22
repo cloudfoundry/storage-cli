@@ -25,6 +25,8 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -54,3 +56,8 @@ jobs:
             export access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
             export access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
             ./.github/scripts/alioss/teardown.sh
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
