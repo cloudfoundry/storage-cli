@@ -25,6 +25,8 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -40,7 +42,7 @@ jobs:
         run: |
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
-            ./.github/scripts/gcs/setup.sh       
+            ./.github/scripts/gcs/setup.sh
       - name: Run Fast Tests
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
@@ -53,6 +55,11 @@ jobs:
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
             ./.github/scripts/gcs/teardown.sh
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
 
   gcs-integration-all-tests:
     name:  GCS Integation All Tests
@@ -62,11 +69,13 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      statuses: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }} 
+          ref: ${{ inputs.pr_ref || github.sha }}
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -77,7 +86,7 @@ jobs:
         run: |
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
-            ./.github/scripts/gcs/setup.sh  
+            ./.github/scripts/gcs/setup.sh
       - name: Run All Tests
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
@@ -89,4 +98,8 @@ jobs:
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
             ./.github/scripts/gcs/teardown.sh
-
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}

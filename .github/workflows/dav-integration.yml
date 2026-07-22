@@ -24,7 +24,8 @@ jobs:
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-
+    permissions:
+      statuses: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -41,3 +42,9 @@ jobs:
 
       - name: Run DAV Integration Tests
         run: ginkgo -r dav/integration/
+
+      - name: Report fork PR status
+        if: always() && inputs.pr_ref != ''
+        uses: ./.github/actions/report-fork-status
+        with:
+          pr_ref: ${{ inputs.pr_ref }}
