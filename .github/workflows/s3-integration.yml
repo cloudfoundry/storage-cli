@@ -94,6 +94,7 @@ jobs:
         uses: ./.github/actions/report-fork-status
         with:
           pr_ref: ${{ inputs.pr_ref }}
+          name: AWS S3 US Integration
 
   aws-s3-regional-integration:
     name: AWS S3 ${{ matrix.name }} Integration
@@ -169,6 +170,7 @@ jobs:
         uses: ./.github/actions/report-fork-status
         with:
           pr_ref: ${{ inputs.pr_ref }}
+          name: AWS S3 ${{ matrix.name }} Integration
 
   s3-compatible-integration:
     name: S3 Compatible Integration
@@ -204,4 +206,5 @@ jobs:
         uses: ./.github/actions/report-fork-status
         with:
           pr_ref: ${{ inputs.pr_ref }}
+          name: S3 Compatible Integration
 
