@@ -48,3 +48,4 @@ jobs:
         uses: ./.github/actions/report-fork-status
         with:
           pr_ref: ${{ inputs.pr_ref }}
+          name: DAV Integration Tests

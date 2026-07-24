@@ -5,6 +5,9 @@ inputs:
   pr_ref:
     description: 'SHA of the fork PR head commit'
     required: true
+  name:
+    description: 'Status context name (job name)'
+    required: true
 
 runs:
   using: composite
@@ -20,8 +23,9 @@ runs:
           skipped)             exit 0          ;;
           *)                   state="failure" ;;
         esac
+        echo "report-fork-status: name/context='${{ inputs.name }}' pr_ref=${{ inputs.pr_ref }} state=$state"
         gh api --method POST "repos/${{ github.repository }}/statuses/${{ inputs.pr_ref }}" \
           -f state="$state" \
-          -f context="${{ job.name }}" \
+          -f context="${{ inputs.name }}" \
           -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           -f description="${{ job.status }}"

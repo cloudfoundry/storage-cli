@@ -61,3 +61,4 @@ jobs:
         uses: ./.github/actions/report-fork-status
         with:
           pr_ref: ${{ inputs.pr_ref }}
+          name: Alioss General Integration Tests
