@@ -113,7 +113,7 @@ Follow these steps to make a contribution to the project:
   ginkgo --race --skip-package=integration --cover -v -r ./...
   ```
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
-- **Note:** Integration tests require access to cloud provider credentials and cannot run on PRs from forks. They will run automatically when a maintainer merges your PR to main.
+- **Note:** Integration tests require access to cloud provider credentials and don't run on PRs from forks. Maintainers can trigger the integration tests.
 - Push changes to your fork
   ``` bash
   git add .
@@ -122,11 +122,18 @@ Follow these steps to make a contribution to the project:
   ```
 - Create a GitHub pull request, selecting `main` as the target branch
 
+### Integration tests for fork PRs
+
+After reviewing a PR, maintainers can run integration tests for fork PRs by adding a comment `/run-integration` to the PR.
+
+> [!WARNING]
+> @maintainers: Review the PR carefully before running the integration tests to avoid leaking of credentials.
+
 ## Dependency Updates
 
 This project uses [Dependabot](https://docs.github.com/en/code-security/dependabot) to keep dependencies up to date. Dependencies are grouped (e.g., AWS SDK, Azure SDK, Google Cloud, testing tools) to reduce PR noise.
 
-**Integration tests on Dependabot PRs:** Integration tests are skipped for Dependabot PRs since they don't have access to secrets. If needed, maintainers can manually trigger the integration tests via `workflow_dispatch` before merging. Integration tests will also run automatically after merging to main.
+Dependabot PRs are merged automatically if they pass all required checks (tests and integration tests).
 
 ## Releases
 
