@@ -303,12 +303,20 @@ func (b *awsS3Client) EnsureStorageExists() error {
 		var alreadyExists *types.BucketAlreadyExists
 		if errors.As(err, &alreadyOwned) || errors.As(err, &alreadyExists) {
 			slog.Warn("Bucket got created by another process", "bucket", b.s3cliConfig.BucketName)
-			return nil
+		} else {
+			return fmt.Errorf("failed to create bucket: %w", err)
 		}
-		return fmt.Errorf("failed to create bucket: %w", err)
 	}
 
-	slog.Info("Bucket created successfully", "bucket", b.s3cliConfig.BucketName)
+	slog.Info("Bucket created, waiting for it to be accessible", "bucket", b.s3cliConfig.BucketName)
+	waiter := s3.NewBucketExistsWaiter(b.s3Client)
+	if waitErr := waiter.Wait(context.TODO(), &s3.HeadBucketInput{
+		Bucket: aws.String(b.s3cliConfig.BucketName),
+	}, 60*time.Second); waitErr != nil {
+		return fmt.Errorf("bucket created but did not become accessible: %w", waitErr)
+	}
+
+	slog.Info("Bucket is accessible", "bucket", b.s3cliConfig.BucketName)
 	return nil
 }
 
