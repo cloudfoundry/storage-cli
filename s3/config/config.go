@@ -165,8 +165,6 @@ func NewFromReader(reader io.Reader) (S3Cli, error) {
 		c.configureAlicloud()
 	case "google":
 		c.configureGoogle()
-	case "gdch":
-		c.configureGDCH()
 	default:
 		c.configureDefault()
 	}
@@ -218,12 +216,6 @@ func (c *S3Cli) configureGoogle() {
 	// Unlike AWS S3, GCS has no 5GB hard limit on single uploads, so math.MaxInt64 is safe here.
 	c.SingleUploadThreshold = math.MaxInt64
 	c.RequestChecksumCalculationEnabled = false
-}
-
-func (c *S3Cli) configureGDCH() {
-	c.RequestChecksumCalculationEnabled = false
-	c.ResponseChecksumCalculationEnabled = false
-	c.UploaderRequestChecksumCalculationEnabled = false
 }
 
 func (c *S3Cli) configureDefault() {
