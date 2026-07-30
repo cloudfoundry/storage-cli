@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+  workflow_call:
 
 concurrency:
   group: s3-integration
@@ -20,10 +21,11 @@ jobs:
   aws-s3-us-integration:
     name: AWS S3 US Integration
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip fork PRs
+    # Run on push/workflow_dispatch/workflow_call, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       statuses: write
@@ -99,10 +101,11 @@ jobs:
   aws-s3-regional-integration:
     name: AWS S3 ${{ matrix.name }} Integration
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip fork PRs
+    # Run on push/workflow_dispatch/workflow_call, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       statuses: write
@@ -175,10 +178,11 @@ jobs:
   s3-compatible-integration:
     name: S3 Compatible Integration
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip fork PRs
+    # Run on push/workflow_dispatch/workflow_call, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       statuses: write
