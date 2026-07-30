@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+  workflow_call:
 
 concurrency:
   group: alioss-integration
@@ -20,10 +21,11 @@ jobs:
   alioss-general-integration-tests:
     name:  Alioss General Integration Tests
     runs-on: ubuntu-latest
-    # Run on push/workflow_dispatch, skip fork PRs
+    # Run on push/workflow_dispatch/workflow_call, skip fork PRs
     if: |
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'workflow_call' ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     permissions:
       statuses: write
