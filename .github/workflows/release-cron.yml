@@ -79,42 +79,42 @@ jobs:
   integration-s3:
     name: Integration Tests - S3
     needs: [check, tests]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/s3-integration.yml
     secrets: inherit
 
   integration-gcs:
     name: Integration Tests - GCS
     needs: [check, tests]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/gcs-integration.yml
     secrets: inherit
 
   integration-azurebs:
     name: Integration Tests - Azure Blob Storage
     needs: [check, tests]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/azurebs-integration.yml
     secrets: inherit
 
   integration-alioss:
     name: Integration Tests - Alibaba OSS
     needs: [check, tests]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/alioss-integration.yml
     secrets: inherit
 
   integration-dav:
     name: Integration Tests - DAV
     needs: [check, tests]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/dav-integration.yml
     secrets: inherit
 
   build-and-release:
     name: Build and Release
     needs: [check, tests, integration-s3, integration-gcs, integration-azurebs, integration-alioss, integration-dav]
-    if: needs.check.outputs.should_release == 'true'
+    if: needs.tests.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Into Source Code
