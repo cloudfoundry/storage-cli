@@ -139,11 +139,13 @@ Dependabot PRs are merged automatically if they pass all required checks (tests 
 
 ### Automatic Weekly Releases
 
-The workflow [Release Cron](https://github.com/cloudfoundry/storage-cli/actions/workflows/release-cron.yml) builds an automatic release every Monday morning if there are changes on the `main` branch (e.g. version bumps).
+The workflow [Release Cron](https://github.com/cloudfoundry/storage-cli/actions/workflows/release-cron.yml) builds an automatic weekly patch release if there are changes on the `main` branch (e.g. version bumps).
 
 The workflow builds and tests storage-cli, runs the integration tests and creates a **draft release** that needs to be published manually. Note that only published storage-cli releases are picked up by [capi-release](https://github.com/cloudfoundry/capi-release).
 
 If this process works well, the idea is to switch the workflow from draft to published releases.
+
+Disable the [Release Cron](https://github.com/cloudfoundry/storage-cli/actions/workflows/release-cron.yml) workflow (3 dot button on the right > Disable workflow) to stop automatic releases, e.g. in case of known bugs on main or when a new major/minor version shall be released manually.
 
 ### Manual Release
 Releases must be triggered manually by an approver. This can be done either via `GitHub Actions` (workflow dispatch) or through the `GitHub Releases` page using the **Draft a new release** option. The *Release Manual* workflow is responsible for creating and completing the release.
