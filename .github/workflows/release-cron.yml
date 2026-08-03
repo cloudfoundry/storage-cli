@@ -2,7 +2,7 @@ name: Release Cron
 
 on:
   schedule:
-    - cron: '0 8 * * 1'  # Every Monday at 08:00 UTC
+    - cron: '27 5 * * 2'  # Every Tuesday at 05:27 UTC
   workflow_dispatch:
 
 permissions:
