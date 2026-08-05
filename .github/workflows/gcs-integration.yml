@@ -2,36 +2,38 @@ name: GCS Integration Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      pr_ref:
-        description: 'SHA of the PR head commit (for fork PRs)'
-        required: false
-        default: ''
-  pull_request:
+  workflow_call:
+  pull_request_target:
   push:
     branches:
     - "main"
-  workflow_call:
 
 concurrency:
   group: gcs-integration
   cancel-in-progress: false
 
 jobs:
-  gcs-integration-fast-tests:
-    name:  GCS Integation Fast Tests
+  gate:
+    name: Approval gate (fork PRs only)
     runs-on: ubuntu-latest
-    # Skip fork PRs; run for all other triggers (push, dispatch, workflow_call, schedule, etc.)
     if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      statuses: write
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    environment: fork-pr-integration-test
+    steps:
+      - run: echo "Fork PR approved, proceeding with integration tests"
+
+  gcs-integration-fast-tests:
+    name: GCS Integation Fast Tests
+    runs-on: ubuntu-latest
+    needs: [gate]
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          allow-unsafe-pr-checkout: true
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
@@ -55,27 +57,18 @@ jobs:
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
             ./.github/scripts/gcs/teardown.sh
-      - name: Report fork PR status
-        if: always() && inputs.pr_ref != ''
-        uses: ./.github/actions/report-fork-status
-        with:
-          pr_ref: ${{ inputs.pr_ref }}
-          name: GCS Integation Fast Tests
 
   gcs-integration-all-tests:
-    name:  GCS Integation All Tests
+    name: GCS Integation All Tests
     runs-on: ubuntu-latest
-    # Skip fork PRs; run for all other triggers (push, dispatch, workflow_call, schedule, etc.)
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      statuses: write
+    needs: [gate]
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          allow-unsafe-pr-checkout: true
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
@@ -98,9 +91,3 @@ jobs:
             echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
             export google_json_key_data="$(cat /tmp/gcp-key.json)"
             ./.github/scripts/gcs/teardown.sh
-      - name: Report fork PR status
-        if: always() && inputs.pr_ref != ''
-        uses: ./.github/actions/report-fork-status
-        with:
-          pr_ref: ${{ inputs.pr_ref }}
-          name: GCS Integation All Tests

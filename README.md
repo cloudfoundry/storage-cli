@@ -113,7 +113,7 @@ Follow these steps to make a contribution to the project:
   ginkgo --race --skip-package=integration --cover -v -r ./...
   ```
 - If you added or modified integration tests, to run them locally, follow the instructions in the provider-specific README (see [Providers](#providers) section)
-- **Note:** Integration tests require access to cloud provider credentials and don't run on PRs from forks. Maintainers can trigger the integration tests.
+- **Note:** Integration tests require access to cloud provider credentials. For fork PRs, a maintainer must approve the integration test run before they execute (see [Integration tests for fork PRs](#integration-tests-for-fork-prs)).
 - Push changes to your fork
   ``` bash
   git add .
@@ -124,10 +124,10 @@ Follow these steps to make a contribution to the project:
 
 ### Integration tests for fork PRs
 
-After reviewing a PR, maintainers can run integration tests for fork PRs by adding a comment `/run-integration` to the PR.
+Integration tests run automatically for PRs from within this repository. For fork PRs, each push triggers the integration test workflows, but they pause at an approval gate before executing.
 
 > [!WARNING]
-> @maintainers: Review the PR carefully before running the integration tests to avoid leaking of credentials.
+> @maintainers: Review the PR diff carefully before approving the integration test run to avoid leaking credentials. Approve via the **"Review deployments"** button that appears on the PR's Checks tab.
 
 ## Dependency Updates
 

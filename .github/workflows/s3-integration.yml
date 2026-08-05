@@ -2,31 +2,32 @@ name: S3 Integration Tests
 
 on:
   workflow_dispatch:
-    inputs:
-      pr_ref:
-        description: 'SHA of the PR head commit (for fork PRs)'
-        required: false
-        default: ''
-  pull_request:
+  workflow_call:
+  pull_request_target:
   push:
     branches:
       - main
-  workflow_call:
 
 concurrency:
   group: s3-integration
   cancel-in-progress: false
 
 jobs:
+  gate:
+    name: Approval gate (fork PRs only)
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    environment: fork-pr-integration-test
+    steps:
+      - run: echo "Fork PR approved, proceeding with integration tests"
+
   aws-s3-us-integration:
     name: AWS S3 US Integration
     runs-on: ubuntu-latest
-    # Skip fork PRs; run for all other triggers (push, dispatch, workflow_call, schedule, etc.)
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      statuses: write
+    needs: [gate]
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     env:
       REGION_NAME: us-east-1
       STACK_NAME: s3cli-iam
@@ -35,7 +36,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          allow-unsafe-pr-checkout: true
 
       - name: Set up test environment
         uses: ./.github/actions/go-test-bootstrap
@@ -47,7 +49,7 @@ jobs:
           secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
-          
+
       - name: Test Static Credentials
         uses: ./.github/actions/s3-integration-run
         with:
@@ -89,22 +91,11 @@ jobs:
           region_name: ${{ env.REGION_NAME }}
           stack_name: ${{ env.STACK_NAME }}
 
-      - name: Report fork PR status
-        if: always() && inputs.pr_ref != ''
-        uses: ./.github/actions/report-fork-status
-        with:
-          pr_ref: ${{ inputs.pr_ref }}
-          name: AWS S3 US Integration
-
   aws-s3-regional-integration:
     name: AWS S3 ${{ matrix.name }} Integration
     runs-on: ubuntu-latest
-    # Skip fork PRs; run for all other triggers (push, dispatch, workflow_call, schedule, etc.)
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      statuses: write
+    needs: [gate]
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     strategy:
       fail-fast: false
       matrix:
@@ -131,7 +122,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          allow-unsafe-pr-checkout: true
 
       - name: Set up test environment
         uses: ./.github/actions/go-test-bootstrap
@@ -164,27 +156,17 @@ jobs:
           region_name: ${{ matrix.region_name }}
           stack_name: ${{ matrix.stack_name }}
 
-      - name: Report fork PR status
-        if: always() && inputs.pr_ref != ''
-        uses: ./.github/actions/report-fork-status
-        with:
-          pr_ref: ${{ inputs.pr_ref }}
-          name: AWS S3 ${{ matrix.name }} Integration
-
   s3-compatible-integration:
     name: S3 Compatible Integration
     runs-on: ubuntu-latest
-    # Skip fork PRs; run for all other triggers (push, dispatch, workflow_call, schedule, etc.)
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
-    permissions:
-      statuses: write
+    needs: [gate]
+    if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.pr_ref || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          allow-unsafe-pr-checkout: true
 
       - name: Set up test environment
         uses: ./.github/actions/go-test-bootstrap
@@ -198,11 +180,3 @@ jobs:
           export s3_endpoint_port=443
           export label_filter='s3-compatible'
           ./.github/scripts/s3/run-integration-s3-compat.sh
-
-      - name: Report fork PR status
-        if: always() && inputs.pr_ref != ''
-        uses: ./.github/actions/report-fork-status
-        with:
-          pr_ref: ${{ inputs.pr_ref }}
-          name: S3 Compatible Integration
-
