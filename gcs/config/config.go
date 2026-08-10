@@ -21,7 +21,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"time"
 )
 
 // GCSCli represents the configuration for the gcscli
@@ -50,6 +52,9 @@ type GCSCli struct {
 	// GCS transparently encrypts data using server-side encryption keys.
 	// https://cloud.google.com/storage/docs/encryption
 	EncryptionKey []byte `json:"encryption_key"`
+	// HTTPRequestTimeout specifies the maximum duration for each GCS HTTP request.
+	// If empty, requests have no client-side timeout.
+	HTTPRequestTimeout string `json:"http_request_timeout"`
 
 	EncryptionKeyEncoded string
 	EncryptionKeySha256  string
@@ -78,6 +83,9 @@ var ErrEmptyServiceAccountFile = errors.New("json_key must be set")
 // ErrWrongLengthEncryptionKey is returned when a non-nil encryption_key
 // in the config is not exactly 32 bytes.
 var ErrWrongLengthEncryptionKey = errors.New("encryption_key not 32 bytes")
+
+// ErrNonPositiveHTTPRequestTimeout is returned when http_request_timeout is <= 0.
+var ErrNonPositiveHTTPRequestTimeout = errors.New("http_request_timeout must be greater than 0")
 
 // NewFromReader returns the new gcscli configuration struct from the
 // contents of the reader.
@@ -112,5 +120,26 @@ func NewFromReader(reader io.Reader) (GCSCli, error) {
 		c.EncryptionKeySha256 = base64.StdEncoding.EncodeToString(encryptionKeySha.Sum(nil))
 	}
 
+	if _, err := c.HTTPRequestTimeoutValue(); err != nil {
+		return GCSCli{}, err
+	}
+
 	return c, nil
+}
+
+func (c *GCSCli) HTTPRequestTimeoutValue() (time.Duration, error) {
+	if c.HTTPRequestTimeout == "" {
+		return 0, nil
+	}
+
+	requestTimeout, err := time.ParseDuration(c.HTTPRequestTimeout)
+	if err != nil {
+		return 0, fmt.Errorf("invalid http_request_timeout: %w", err)
+	}
+
+	if requestTimeout <= 0 {
+		return 0, ErrNonPositiveHTTPRequestTimeout
+	}
+
+	return requestTimeout, nil
 }
