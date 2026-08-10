@@ -17,6 +17,7 @@ The GCS client requires a JSON configuration file.
   "credentials_source":     "<string> ['static'|'none'|""]",
   "json_key":               "<string> (required if credentials_source = 'static')",
   "storage_class":          "<string> (optional - default: 'STANDARD', check for more options=https://docs.cloud.google.com/storage/docs/storage-classes)",
+  "http_request_timeout":   "<string duration> (optional)",
   "encryption_key":         "<string> (optional)",
   "uniform_bucket_level_access": "<boolean> (optional)"
 }

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strconv"
 	"strings"
+	"time"
 )
 
-// The S3Cli represents configuration for the s3cli
+// The S3Cli represents configuration for the s3 cli
 type S3Cli struct {
 	AccessKeyID                               string `json:"access_key_id"`
 	SecretAccessKey                           string `json:"secret_access_key"`
@@ -21,6 +23,7 @@ type S3Cli struct {
 	Region                                    string `json:"region"`
 	SSLVerifyPeer                             bool   `json:"ssl_verify_peer"`
 	UseSSL                                    bool   `json:"use_ssl"`
+	HTTPRequestTimeout                        string `json:"http_request_timeout"`
 	ServerSideEncryption                      string `json:"server_side_encryption"`
 	SSEKMSKeyID                               string `json:"sse_kms_key_id"`
 	AssumeRoleArn                             string `json:"assume_role_arn"`
@@ -70,6 +73,7 @@ const credentialsSourceEnvOrProfile = "env_or_profile"
 const noCredentialsSourceProvided = ""
 
 var errorStaticCredentialsMissing = errors.New("access_key_id and secret_access_key must be provided")
+var errorNonPositiveHTTPRequestTimeout = errors.New("http_request_timeout must be greater than 0")
 
 type errorStaticCredentialsPresent struct {
 	credentialsSource string
@@ -130,6 +134,10 @@ func NewFromReader(reader io.Reader) (S3Cli, error) {
 	}
 	if c.MultipartCopyPartSize > 0 && c.MultipartCopyPartSize < multipartCopyMinPartSize {
 		return S3Cli{}, fmt.Errorf("multipart_copy_part_size must be at least %d bytes (5MB - AWS minimum)", multipartCopyMinPartSize)
+	}
+
+	if _, err := c.HTTPRequestTimeoutValue(); err != nil {
+		return S3Cli{}, err
 	}
 
 	switch c.CredentialsSource {
@@ -253,4 +261,25 @@ func (c *S3Cli) ShouldDisableResponseChecksumCalculation() bool {
 
 func (c *S3Cli) ShouldDisableUploaderRequestChecksumCalculation() bool {
 	return !c.UploaderRequestChecksumCalculationEnabled
+}
+
+func (c *S3Cli) HTTPRequestTimeoutValue() (time.Duration, error) {
+	if c.HTTPRequestTimeout == "" {
+		return 0, nil
+	}
+
+	if _, err := strconv.ParseFloat(c.HTTPRequestTimeout, 64); err == nil {
+		return 0, fmt.Errorf("invalid http_request_timeout: missing duration unit")
+	}
+
+	httpRequestTimeout, err := time.ParseDuration(c.HTTPRequestTimeout)
+	if err != nil {
+		return 0, fmt.Errorf("invalid http_request_timeout: %w", err)
+	}
+
+	if httpRequestTimeout <= 0 {
+		return 0, errorNonPositiveHTTPRequestTimeout
+	}
+
+	return httpRequestTimeout, nil
 }
