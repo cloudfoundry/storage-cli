@@ -198,6 +198,6 @@ jobs:
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-darwin-arm64
             storage-cli-${{ steps.version.outputs.VERSION_NUMBER }}-windows-amd64.exe
           token: ${{ secrets.GITHUB_TOKEN }}
-          draft: true # for testing, TODO: change to false
+          draft: false
           makeLatest: true
           generateReleaseNotes: true
