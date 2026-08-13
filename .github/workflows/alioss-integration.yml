@@ -9,8 +9,8 @@ on:
       - main
 
 concurrency:
-  group: alioss-integration
-  cancel-in-progress: false
+  group: alioss-integration-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gate:
@@ -27,6 +27,10 @@ jobs:
     name: Alioss General Integration Tests
     runs-on: ubuntu-latest
     needs: [gate]
+    concurrency:
+      group: alioss-integration
+      cancel-in-progress: false
+      queue: max
     if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code

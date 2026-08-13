@@ -9,8 +9,8 @@ on:
     - "main"
 
 concurrency:
-  group: gcs-integration
-  cancel-in-progress: false
+  group: gcs-integration-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   gate:
@@ -27,6 +27,10 @@ jobs:
     name: GCS Integation Fast Tests
     runs-on: ubuntu-latest
     needs: [gate]
+    concurrency:
+      group: gcs-integration
+      cancel-in-progress: false
+      queue: max
     if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code
@@ -62,6 +66,10 @@ jobs:
     name: GCS Integation All Tests
     runs-on: ubuntu-latest
     needs: [gate]
+    concurrency:
+      group: gcs-integration
+      cancel-in-progress: false
+      queue: max
     if: always() && (needs.gate.result == 'success' || needs.gate.result == 'skipped')
     steps:
       - name: Checkout code
