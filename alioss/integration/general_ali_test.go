@@ -194,6 +194,33 @@ var _ = Describe("General testing for all Ali regions", func() {
 			fileContent, _ := os.ReadFile(outputFilePath) //nolint:errcheck
 			Expect(string(fileContent)).To(Equal("foo"))
 		})
+
+		It("downloads a file when http_request_timeout is set", func() {
+			outputFilePath := "/tmp/" + integration.GenerateRandomString()
+			cfg := defaultConfig
+			cfg.HTTPRequestTimeout = "30s"
+			timeoutConfigPath := integration.MakeConfigFile(&cfg)
+
+			defer func() {
+				cliSession, err := integration.RunCli(cliPath, timeoutConfigPath, storageType, "delete", blobName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cliSession.ExitCode()).To(BeZero())
+
+				_ = os.Remove(outputFilePath)   //nolint:errcheck
+				_ = os.Remove(timeoutConfigPath) //nolint:errcheck
+			}()
+
+			cliSession, err := integration.RunCli(cliPath, timeoutConfigPath, storageType, "put", contentFile, blobName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			cliSession, err = integration.RunCli(cliPath, timeoutConfigPath, storageType, "get", blobName, outputFilePath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cliSession.ExitCode()).To(BeZero())
+
+			fileContent, _ := os.ReadFile(outputFilePath) //nolint:errcheck
+			Expect(string(fileContent)).To(Equal("foo"))
+		})
 	})
 
 	Describe("Invoking `delete`", func() {

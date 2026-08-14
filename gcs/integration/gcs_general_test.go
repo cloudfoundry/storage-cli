@@ -50,6 +50,15 @@ var _ = Describe("Integration", func() {
 			},
 			configurations)
 
+		DescribeTable("Blobstore lifecycle works with http_request_timeout set",
+			func(cfg *config.GCSCli) {
+				cfgCopy := *cfg
+				cfgCopy.HTTPRequestTimeout = "30s"
+				env.AddConfig(&cfgCopy)
+				AssertLifecycleWorks(gcsCLIPath, env)
+			},
+			configurations)
+
 		DescribeTable("Delete silently ignores that the file doesn't exist",
 			func(config *config.GCSCli) {
 				env.AddConfig(config)
