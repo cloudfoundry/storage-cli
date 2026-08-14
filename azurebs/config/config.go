@@ -3,7 +3,9 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 )
@@ -27,11 +29,34 @@ func init() {
 }
 
 type AZStorageConfig struct {
-	AccountName   string `json:"account_name"`
-	AccountKey    string `json:"account_key"`
-	ContainerName string `json:"container_name"`
-	Environment   string `json:"environment"`
-	Timeout       string `json:"put_timeout_in_seconds"`
+	AccountName        string `json:"account_name"`
+	AccountKey         string `json:"account_key"`
+	ContainerName      string `json:"container_name"`
+	Environment        string `json:"environment"`
+	Timeout            string `json:"put_timeout_in_seconds"`
+	HTTPRequestTimeout string `json:"http_request_timeout"`
+}
+
+// ErrNonPositiveHTTPRequestTimeout is returned when http_request_timeout is <= 0.
+var ErrNonPositiveHTTPRequestTimeout = errors.New("http_request_timeout must be greater than 0")
+
+// HTTPRequestTimeoutValue parses HTTPRequestTimeout as a Go duration string.
+// Returns 0 (no timeout) if the field is empty.
+func (c *AZStorageConfig) HTTPRequestTimeoutValue() (time.Duration, error) {
+	if c.HTTPRequestTimeout == "" {
+		return 0, nil
+	}
+
+	d, err := time.ParseDuration(c.HTTPRequestTimeout)
+	if err != nil {
+		return 0, fmt.Errorf("invalid http_request_timeout: %w", err)
+	}
+
+	if d <= 0 {
+		return 0, ErrNonPositiveHTTPRequestTimeout
+	}
+
+	return d, nil
 }
 
 // NewFromReader returns a new azure-storage-cli configuration struct from the contents of reader.
@@ -50,6 +75,10 @@ func NewFromReader(reader io.Reader) (AZStorageConfig, error) {
 
 	err = config.configureCloud()
 	if err != nil {
+		return AZStorageConfig{}, err
+	}
+
+	if _, err = config.HTTPRequestTimeoutValue(); err != nil {
 		return AZStorageConfig{}, err
 	}
 
