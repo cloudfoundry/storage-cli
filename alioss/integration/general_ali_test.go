@@ -206,7 +206,7 @@ var _ = Describe("General testing for all Ali regions", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cliSession.ExitCode()).To(BeZero())
 
-				_ = os.Remove(outputFilePath)   //nolint:errcheck
+				_ = os.Remove(outputFilePath)    //nolint:errcheck
 				_ = os.Remove(timeoutConfigPath) //nolint:errcheck
 			}()
 
