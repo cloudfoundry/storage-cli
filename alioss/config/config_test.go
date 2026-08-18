@@ -15,7 +15,8 @@ var _ = Describe("Config", func() {
 		configJson := []byte(`{"access_key_id": "foo_access_key_id",
 								"access_key_secret": "foo_access_key_secret",
                                 "endpoint": "foo_endpoint",
-								"bucket_name": "foo_bucket_name"}`)
+								"bucket_name": "foo_bucket_name",
+								"http_request_timeout": "30s"}`)
 		configReader := bytes.NewReader(configJson)
 
 		config, err := config.NewFromReader(configReader)
@@ -25,6 +26,70 @@ var _ = Describe("Config", func() {
 		Expect(config.AccessKeySecret).To(Equal("foo_access_key_secret"))
 		Expect(config.Endpoint).To(Equal("foo_endpoint"))
 		Expect(config.BucketName).To(Equal("foo_bucket_name"))
+		Expect(config.HTTPRequestTimeout).To(Equal("30s"))
+
+		timeoutSeconds, err := config.HTTPRequestTimeoutSeconds()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(timeoutSeconds).To(Equal(int64(30)))
+	})
+
+	It("rounds up sub-second timeout in HTTPRequestTimeoutSeconds getter", func() {
+		configJson := []byte(`{"access_key_id": "foo_access_key_id",
+								"access_key_secret": "foo_access_key_secret",
+								"endpoint": "foo_endpoint",
+								"bucket_name": "foo_bucket_name",
+								"http_request_timeout": "1500ms"}`)
+		configReader := bytes.NewReader(configJson)
+
+		config, err := config.NewFromReader(configReader)
+
+		Expect(err).ToNot(HaveOccurred())
+		timeoutSeconds, err := config.HTTPRequestTimeoutSeconds()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(timeoutSeconds).To(Equal(int64(2)))
+	})
+
+	It("leaves timeout unset when http_request_timeout is not provided", func() {
+		configJson := []byte(`{"access_key_id": "foo_access_key_id",
+								"access_key_secret": "foo_access_key_secret",
+								"endpoint": "foo_endpoint",
+								"bucket_name": "foo_bucket_name"}`)
+		configReader := bytes.NewReader(configJson)
+
+		config, err := config.NewFromReader(configReader)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.HTTPRequestTimeout).To(BeEmpty())
+		timeoutSeconds, err := config.HTTPRequestTimeoutSeconds()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(timeoutSeconds).To(BeZero())
+	})
+
+	It("returns an error when http_request_timeout has invalid format", func() {
+		configJson := []byte(`{"access_key_id": "foo_access_key_id",
+								"access_key_secret": "foo_access_key_secret",
+								"endpoint": "foo_endpoint",
+								"bucket_name": "foo_bucket_name",
+								"http_request_timeout": "bananas"}`)
+		configReader := bytes.NewReader(configJson)
+
+		_, err := config.NewFromReader(configReader)
+
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid http_request_timeout"))
+	})
+
+	It("returns an error when http_request_timeout is non-positive", func() {
+		configJson := []byte(`{"access_key_id": "foo_access_key_id",
+								"access_key_secret": "foo_access_key_secret",
+								"endpoint": "foo_endpoint",
+								"bucket_name": "foo_bucket_name",
+								"http_request_timeout": "0s"}`)
+		configReader := bytes.NewReader(configJson)
+
+		_, err := config.NewFromReader(configReader)
+
+		Expect(err).To(MatchError("http_request_timeout must be greater than 0"))
 	})
 
 	It("is empty if config cannot be parsed", func() {
