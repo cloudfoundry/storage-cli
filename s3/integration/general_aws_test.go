@@ -59,6 +59,14 @@ var _ = Describe("General testing for all AWS regions", Label("aws", "static", "
 			func(cfg *config.S3Cli) { integration.AssertLifecycleWorks(s3CLIPath, cfg) },
 			configurations,
 		)
+		DescribeTable("Blobstore lifecycle works with http_request_timeout set",
+			func(cfg *config.S3Cli) {
+				cfgCopy := *cfg
+				cfgCopy.HTTPRequestTimeout = "30s"
+				integration.AssertLifecycleWorks(s3CLIPath, &cfgCopy)
+			},
+			configurations,
+		)
 
 		DescribeTable("Invoking `ensure-storage-exists` works",
 			func(cfg *config.S3Cli) { integration.AssertOnStorageExists(s3CLIPath, cfg) },

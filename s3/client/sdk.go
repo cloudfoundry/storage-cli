@@ -46,6 +46,12 @@ func NewAwsS3ClientWithApiOptions(
 		httpClient.Transport = s3middleware.NewS3LoggingTransport(httpClient.Transport)
 	}
 
+	httpRequestTimeout, err := c.HTTPRequestTimeoutValue()
+	if err != nil {
+		return nil, err
+	}
+	httpClient.Timeout = httpRequestTimeout
+
 	options := []func(*config.LoadOptions) error{
 		config.WithHTTPClient(httpClient),
 	}

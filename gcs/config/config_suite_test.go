@@ -25,5 +25,5 @@ import (
 
 func TestConfig(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Gcs Config Suite")
+	RunSpecs(t, "GCS Config Suite")
 }
