@@ -75,6 +75,14 @@ var _ = Describe("General testing for all Azure regions", func() {
 		func(cfg *config.AZStorageConfig) { integration.AssertLifecycleWorks(cliPath, cfg) },
 		configurations,
 	)
+	DescribeTable("Blobstore lifecycle works with http_request_timeout set",
+		func(cfg *config.AZStorageConfig) {
+			cfgCopy := *cfg
+			cfgCopy.HTTPRequestTimeout = "30s"
+			integration.AssertLifecycleWorks(cliPath, &cfgCopy)
+		},
+		configurations,
+	)
 	DescribeTable("Invoking `get` on a non-existent-key fails",
 		func(cfg *config.AZStorageConfig) { integration.AssertGetNonexistentFails(cliPath, cfg) },
 		configurations,

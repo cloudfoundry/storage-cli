@@ -3,6 +3,7 @@ package config_test
 import (
 	"bytes"
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -84,6 +85,46 @@ var _ = Describe("Config", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(config.Environment).To(Equal("AzureUSGovernment"))
 				Expect(config.StorageEndpoint()).To(Equal("blob.core.usgovcloudapi.net"))
+			})
+		})
+	})
+	Context("http_request_timeout", func() {
+		When("not set", func() {
+			It("returns 0 duration", func() {
+				configJson := []byte(`{"account_name": "a", "account_key": "b", "container_name": "c"}`)
+				cfg, err := config.NewFromReader(bytes.NewReader(configJson))
+				Expect(err).ToNot(HaveOccurred())
+				d, err := cfg.HTTPRequestTimeoutValue()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(d).To(Equal(time.Duration(0)))
+			})
+		})
+
+		When("set to a valid duration", func() {
+			It("returns the parsed duration", func() {
+				configJson := []byte(`{"account_name": "a", "account_key": "b", "container_name": "c", "http_request_timeout": "30s"}`)
+				cfg, err := config.NewFromReader(bytes.NewReader(configJson))
+				Expect(err).ToNot(HaveOccurred())
+				d, err := cfg.HTTPRequestTimeoutValue()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(d).To(Equal(30 * time.Second))
+			})
+		})
+
+		When("set to an invalid duration string", func() {
+			It("returns an error", func() {
+				configJson := []byte(`{"account_name": "a", "account_key": "b", "container_name": "c", "http_request_timeout": "not-a-duration"}`)
+				_, err := config.NewFromReader(bytes.NewReader(configJson))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("invalid http_request_timeout"))
+			})
+		})
+
+		When("set to a non-positive duration", func() {
+			It("returns an error", func() {
+				configJson := []byte(`{"account_name": "a", "account_key": "b", "container_name": "c", "http_request_timeout": "-5s"}`)
+				_, err := config.NewFromReader(bytes.NewReader(configJson))
+				Expect(err).To(MatchError(config.ErrNonPositiveHTTPRequestTimeout))
 			})
 		})
 	})

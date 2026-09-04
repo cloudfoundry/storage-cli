@@ -15,9 +15,13 @@ The Azure client requires a JSON configuration file with the following structure
   "account_name":           "<string> (required)",
   "account_key":            "<string> (required)",
   "container_name":         "<string> (required)",
-  "environment":            "<string> (optional, default: 'AzureCloud')"
+  "environment":            "<string> (optional, default: 'AzureCloud')",
+  "put_timeout_in_seconds": "<string> (optional, e.g. '30', default: no timeout)",
+  "http_request_timeout":   "<string> (optional, Go duration e.g. '30s', default: no timeout)"
 }
 ```
+
+`put_timeout_in_seconds` sets a context-level timeout for upload operations. `http_request_timeout` sets a per-request HTTP client timeout that applies to all operations (upload, download, delete, list, etc.).
 
 **Usage examples:**
 ``` bash
@@ -66,7 +70,7 @@ go test $(go list ./azurebs/... | grep -v integration)
   1. Export the following variables into your environment.
   
       ```bash
-      export ACCOUNT_NAME=<your Azure accounnt name>
+      export ACCOUNT_NAME=<your Azure account name>
       export ACCOUNT_KEY=<your Azure account key>
       export CONTAINER_NAME=<the target container name>
       ```
