@@ -218,4 +218,53 @@ var _ = Describe("BlobstoreClient configuration", func() {
 		})
 	})
 
+	Describe("when http_response_header_timeout is set", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket", "http_response_header_timeout":"5s"}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("parses and stores timeout", func() {
+			c, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(BeNil())
+			Expect(c.HTTPResponseHeaderTimeout).To(Equal("5s"))
+			timeoutValue, err := c.HTTPResponseHeaderTimeoutValue()
+			Expect(err).To(BeNil())
+			Expect(timeoutValue.Seconds()).To(Equal(5.0))
+		})
+	})
+
+	Describe("when http_response_header_timeout is not set", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket"}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("leaves timeout unset", func() {
+			c, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(BeNil())
+			Expect(c.HTTPResponseHeaderTimeout).To(BeEmpty())
+			timeoutValue, err := c.HTTPResponseHeaderTimeoutValue()
+			Expect(err).To(BeNil())
+			Expect(timeoutValue).To(BeZero())
+		})
+	})
+
+	Describe("when http_response_header_timeout has invalid format", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket", "http_response_header_timeout":"bananas"}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("returns an error", func() {
+			_, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid http_response_header_timeout"))
+		})
+	})
+
+	Describe("when http_response_header_timeout is non-positive", func() {
+		dummyJSONBytes := []byte(`{"bucket_name": "some-bucket", "http_response_header_timeout":"0s"}`)
+		dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+		It("returns an error", func() {
+			_, err := NewFromReader(dummyJSONReader)
+			Expect(err).To(MatchError(ErrNonPositiveHTTPResponseHeaderTimeout))
+		})
+	})
+
 })

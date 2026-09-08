@@ -9,14 +9,16 @@ import (
 )
 
 type AliStorageConfig struct {
-	AccessKeyID        string `json:"access_key_id"`
-	AccessKeySecret    string `json:"access_key_secret"`
-	Endpoint           string `json:"endpoint"`
-	BucketName         string `json:"bucket_name"`
-	HTTPRequestTimeout string `json:"http_request_timeout"`
+	AccessKeyID               string `json:"access_key_id"`
+	AccessKeySecret           string `json:"access_key_secret"`
+	Endpoint                  string `json:"endpoint"`
+	BucketName                string `json:"bucket_name"`
+	HTTPRequestTimeout        string `json:"http_request_timeout"`
+	HTTPResponseHeaderTimeout string `json:"http_response_header_timeout"`
 }
 
 var errorNonPositiveHTTPRequestTimeout = errors.New("http_request_timeout must be greater than 0")
+var errorNonPositiveHTTPResponseHeaderTimeout = errors.New("http_response_header_timeout must be greater than 0")
 
 // NewFromReader returns a new ali-storage-cli configuration struct from the contents of reader.
 // reader.Read() is expected to return valid JSON
@@ -33,6 +35,9 @@ func NewFromReader(reader io.Reader) (AliStorageConfig, error) {
 	}
 
 	if _, err := config.HTTPRequestTimeoutSeconds(); err != nil {
+		return AliStorageConfig{}, err
+	}
+	if _, err := config.HTTPResponseHeaderTimeoutValue(); err != nil {
 		return AliStorageConfig{}, err
 	}
 
@@ -60,4 +65,21 @@ func (c AliStorageConfig) HTTPRequestTimeoutSeconds() (int64, error) {
 	}
 
 	return timeoutSeconds, nil
+}
+
+func (c AliStorageConfig) HTTPResponseHeaderTimeoutValue() (time.Duration, error) {
+	if c.HTTPResponseHeaderTimeout == "" {
+		return 0, nil
+	}
+
+	httpResponseHeaderTimeout, err := time.ParseDuration(c.HTTPResponseHeaderTimeout)
+	if err != nil {
+		return 0, fmt.Errorf("invalid http_response_header_timeout: %w", err)
+	}
+
+	if httpResponseHeaderTimeout <= 0 {
+		return 0, errorNonPositiveHTTPResponseHeaderTimeout
+	}
+
+	return httpResponseHeaderTimeout, nil
 }

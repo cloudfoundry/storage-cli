@@ -94,10 +94,21 @@ func NewStorageClient(storageConfig config.AliStorageConfig) (StorageClient, err
 	}, nil
 }
 
-func newOSSClient(endpoint, accessKeyID, accessKeySecret string, httpRequestTimeoutSeconds int64) (*oss.Client, error) {
+func setOSSResponseHeaderTimeout(timeout time.Duration) oss.ClientOption {
+	return func(client *oss.Client) {
+		if client.Config != nil {
+			client.Config.HTTPTimeout.HeaderTimeout = timeout
+		}
+	}
+}
+
+func newOSSClient(endpoint, accessKeyID, accessKeySecret string, httpRequestTimeoutSeconds int64, httpResponseHeaderTimeout time.Duration) (*oss.Client, error) {
 	options := make([]oss.ClientOption, 0, 3)
 	if httpRequestTimeoutSeconds > 0 {
 		options = append(options, oss.Timeout(httpRequestTimeoutSeconds, httpRequestTimeoutSeconds))
+	}
+	if httpResponseHeaderTimeout > 0 {
+		options = append(options, setOSSResponseHeaderTimeout(httpResponseHeaderTimeout))
 	}
 
 	if common.IsDebug() {
@@ -115,11 +126,17 @@ func (dsc DefaultStorageClient) newOSSClient() (*oss.Client, error) {
 		return nil, err
 	}
 
+	httpResponseHeaderTimeout, err := dsc.storageConfig.HTTPResponseHeaderTimeoutValue()
+	if err != nil {
+		return nil, err
+	}
+
 	return newOSSClient(
 		dsc.storageConfig.Endpoint,
 		dsc.storageConfig.AccessKeyID,
 		dsc.storageConfig.AccessKeySecret,
 		httpRequestTimeoutSeconds,
+		httpResponseHeaderTimeout,
 	)
 }
 

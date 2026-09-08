@@ -55,6 +55,9 @@ type GCSCli struct {
 	// HTTPRequestTimeout specifies the maximum duration for each GCS HTTP request.
 	// If empty, requests have no client-side timeout.
 	HTTPRequestTimeout string `json:"http_request_timeout"`
+	// HTTPResponseHeaderTimeout specifies how long to wait for response headers.
+	// If empty, no explicit response header timeout is configured.
+	HTTPResponseHeaderTimeout string `json:"http_response_header_timeout"`
 
 	EncryptionKeyEncoded string
 	EncryptionKeySha256  string
@@ -87,12 +90,14 @@ var ErrWrongLengthEncryptionKey = errors.New("encryption_key not 32 bytes")
 // ErrNonPositiveHTTPRequestTimeout is returned when http_request_timeout is <= 0.
 var ErrNonPositiveHTTPRequestTimeout = errors.New("http_request_timeout must be greater than 0")
 
+// ErrNonPositiveHTTPResponseHeaderTimeout is returned when http_response_header_timeout is <= 0.
+var ErrNonPositiveHTTPResponseHeaderTimeout = errors.New("http_response_header_timeout must be greater than 0")
+
 // NewFromReader returns the new gcscli configuration struct from the
 // contents of the reader.
 //
 // reader.Read() is expected to return valid JSON.
 func NewFromReader(reader io.Reader) (GCSCli, error) {
-
 	dec := json.NewDecoder(reader)
 	var c GCSCli
 	if err := dec.Decode(&c); err != nil {
@@ -103,8 +108,7 @@ func NewFromReader(reader io.Reader) (GCSCli, error) {
 		return GCSCli{}, ErrEmptyBucketName
 	}
 
-	if c.CredentialsSource == ServiceAccountFileCredentialsSource &&
-		c.ServiceAccountFile == "" {
+	if c.CredentialsSource == ServiceAccountFileCredentialsSource && c.ServiceAccountFile == "" {
 		return GCSCli{}, ErrEmptyServiceAccountFile
 	}
 
@@ -124,22 +128,34 @@ func NewFromReader(reader io.Reader) (GCSCli, error) {
 		return GCSCli{}, err
 	}
 
+	if _, err := c.HTTPResponseHeaderTimeoutValue(); err != nil {
+		return GCSCli{}, err
+	}
+
 	return c, nil
 }
 
 func (c *GCSCli) HTTPRequestTimeoutValue() (time.Duration, error) {
-	if c.HTTPRequestTimeout == "" {
+	return parseOptionalPositiveDuration("http_request_timeout", c.HTTPRequestTimeout, ErrNonPositiveHTTPRequestTimeout)
+}
+
+func (c *GCSCli) HTTPResponseHeaderTimeoutValue() (time.Duration, error) {
+	return parseOptionalPositiveDuration("http_response_header_timeout", c.HTTPResponseHeaderTimeout, ErrNonPositiveHTTPResponseHeaderTimeout)
+}
+
+func parseOptionalPositiveDuration(fieldName, value string, nonPositiveErr error) (time.Duration, error) {
+	if value == "" {
 		return 0, nil
 	}
 
-	requestTimeout, err := time.ParseDuration(c.HTTPRequestTimeout)
+	parsedDuration, err := time.ParseDuration(value)
 	if err != nil {
-		return 0, fmt.Errorf("invalid http_request_timeout: %w", err)
+		return 0, fmt.Errorf("invalid %s: %w", fieldName, err)
 	}
 
-	if requestTimeout <= 0 {
-		return 0, ErrNonPositiveHTTPRequestTimeout
+	if parsedDuration <= 0 {
+		return 0, nonPositiveErr
 	}
 
-	return requestTimeout, nil
+	return parsedDuration, nil
 }
