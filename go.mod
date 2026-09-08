@@ -1,6 +1,6 @@
 module github.com/cloudfoundry/storage-cli
 
-go 1.25.8
+go 1.26.0
 
 require (
 	cloud.google.com/go/storage v1.66.0
@@ -18,7 +18,7 @@ require (
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.43.0
-	golang.org/x/oauth2 v0.36.0
+	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.295.0
 )
 
