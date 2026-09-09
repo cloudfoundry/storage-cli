@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -107,6 +108,7 @@ type DefaultStorageClient struct {
 	credential    *azblob.SharedKeyCredential
 	serviceURL    string
 	storageConfig config.AZStorageConfig
+	clientOptions *azcore.ClientOptions
 }
 
 func NewStorageClient(storageConfig config.AZStorageConfig) (StorageClient, error) {
@@ -115,9 +117,64 @@ func NewStorageClient(storageConfig config.AZStorageConfig) (StorageClient, erro
 		return nil, err
 	}
 
+	clientOptions, err := buildClientOptions(storageConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	serviceURL := fmt.Sprintf("https://%s.%s/%s", storageConfig.AccountName, storageConfig.StorageEndpoint(), storageConfig.ContainerName)
 
-	return DefaultStorageClient{credential: credential, serviceURL: serviceURL, storageConfig: storageConfig}, nil
+	return DefaultStorageClient{credential: credential, serviceURL: serviceURL, storageConfig: storageConfig, clientOptions: clientOptions}, nil
+}
+
+// buildClientOptions builds the shared azcore client options carrying a custom
+// *http.Client whenever an HTTP request timeout and/or response header timeout is
+// configured. It returns nil when neither is set, preserving the SDK defaults.
+func buildClientOptions(storageConfig config.AZStorageConfig) (*azcore.ClientOptions, error) {
+	httpRequestTimeout, err := storageConfig.HTTPRequestTimeoutValue()
+	if err != nil {
+		return nil, err
+	}
+
+	responseHeaderTimeout, err := storageConfig.HTTPResponseHeaderTimeoutValue()
+	if err != nil {
+		return nil, err
+	}
+
+	if httpRequestTimeout == 0 && responseHeaderTimeout == 0 {
+		return nil, nil
+	}
+
+	// preserve the default transport settings from the azure-sdk-for-go runtime package
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if responseHeaderTimeout > 0 {
+		transport.ResponseHeaderTimeout = responseHeaderTimeout
+	}
+
+	httpClient := &http.Client{Timeout: httpRequestTimeout, Transport: transport}
+
+	return &azcore.ClientOptions{Transport: httpClient}, nil
+}
+
+func (dsc DefaultStorageClient) blockblobOptions() *blockblob.ClientOptions {
+	if dsc.clientOptions == nil {
+		return nil
+	}
+	return &blockblob.ClientOptions{ClientOptions: *dsc.clientOptions}
+}
+
+func (dsc DefaultStorageClient) blobOptions() *azBlob.ClientOptions {
+	if dsc.clientOptions == nil {
+		return nil
+	}
+	return &azBlob.ClientOptions{ClientOptions: *dsc.clientOptions}
+}
+
+func (dsc DefaultStorageClient) containerOptions() *azContainer.ClientOptions {
+	if dsc.clientOptions == nil {
+		return nil
+	}
+	return &azContainer.ClientOptions{ClientOptions: *dsc.clientOptions}
 }
 
 func (dsc DefaultStorageClient) Upload(
@@ -138,7 +195,7 @@ func (dsc DefaultStorageClient) Upload(
 	}
 	defer cancel()
 
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +230,7 @@ func (dsc DefaultStorageClient) UploadStream(
 	}
 	defer cancel()
 
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return err
 	}
@@ -196,7 +253,7 @@ func (dsc DefaultStorageClient) Download(
 ) error {
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, source)
 	slog.Info("Downloading blob from container", "container", dsc.storageConfig.ContainerName, "blob", source, "local_file", dest.Name())
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return err
 	}
@@ -226,7 +283,7 @@ func (dsc DefaultStorageClient) Copy(
 	srcURL := fmt.Sprintf("%s/%s", dsc.serviceURL, srcBlob)
 	destURL := fmt.Sprintf("%s/%s", dsc.serviceURL, destBlob)
 
-	destClient, err := blockblob.NewClientWithSharedKeyCredential(destURL, dsc.credential, nil)
+	destClient, err := blockblob.NewClientWithSharedKeyCredential(destURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return fmt.Errorf("failed to create destination client: %w", err)
 	}
@@ -268,7 +325,7 @@ func (dsc DefaultStorageClient) Delete(
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
 	slog.Info("Deleting blob from container", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return err
 	}
@@ -295,7 +352,7 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 		slog.Info("Deleting all blobs in container", "container", dsc.storageConfig.ContainerName)
 	}
 
-	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
+	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, dsc.containerOptions())
 	if err != nil {
 		return fmt.Errorf("failed to create container client: %w", err)
 	}
@@ -315,7 +372,7 @@ func (dsc DefaultStorageClient) DeleteRecursive(
 
 		for _, blob := range resp.Segment.BlobItems {
 			blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, *blob.Name)
-			blobClient, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+			blobClient, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 			if err != nil {
 				slog.Error("Failed to create blob client", "blob", *blob.Name, "error", err)
 				continue
@@ -338,7 +395,7 @@ func (dsc DefaultStorageClient) Exists(
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
 	slog.Info("Checking if blob exists", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return false, err
 	}
@@ -365,7 +422,7 @@ func (dsc DefaultStorageClient) SignedUrl(
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
 	slog.Info("Generating SAS URL for blob", "container", dsc.storageConfig.ContainerName, "blob", dest, "request_type", requestType, "expiration", expiration)
-	client, err := azBlob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := azBlob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blobOptions())
 	if err != nil {
 		return "", err
 	}
@@ -398,7 +455,7 @@ func (dsc DefaultStorageClient) List(
 		slog.Info("Listing blobs in container", "container", dsc.storageConfig.ContainerName)
 	}
 
-	client, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
+	client, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, dsc.containerOptions())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create container client: %w", err)
 	}
@@ -437,7 +494,7 @@ func (dsc DefaultStorageClient) Properties(
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
 	slog.Info("Getting properties for blob", "container", dsc.storageConfig.ContainerName, "blob", dest, "url", blobURL)
-	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, nil)
+	client, err := blockblob.NewClientWithSharedKeyCredential(blobURL, dsc.credential, dsc.blockblobOptions())
 	if err != nil {
 		return err
 	}
@@ -469,7 +526,7 @@ func (dsc DefaultStorageClient) Properties(
 func (dsc DefaultStorageClient) EnsureContainerExists() error {
 	slog.Info("Ensuring container exists", "container", dsc.storageConfig.ContainerName)
 
-	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, nil)
+	containerClient, err := azContainer.NewClientWithSharedKeyCredential(dsc.serviceURL, dsc.credential, dsc.containerOptions())
 	if err != nil {
 		return fmt.Errorf("failed to create container client: %w", err)
 	}
