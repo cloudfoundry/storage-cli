@@ -26,7 +26,6 @@ Key points
 - [Alioss](./alioss/README.md)
 - [Azurebs](./azurebs/README.md)
 - [Dav](./dav/README.md)
-  - additional endpoints needed by CAPI still missing
 - [GCS](./gcs/README.md)
 - [S3](./s3/README.md)
 
