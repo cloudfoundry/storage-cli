@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,6 +19,25 @@ import (
 
 	s3cli_config "github.com/cloudfoundry/storage-cli/s3/config"
 )
+
+func withResponseHeaderTimeout(base http.RoundTripper, timeout time.Duration) http.RoundTripper {
+	if timeout == 0 {
+		return base
+	}
+
+	if base == nil {
+		base = http.DefaultTransport
+	}
+
+	transport, ok := base.(*http.Transport)
+	if !ok {
+		return base
+	}
+
+	cloned := transport.Clone()
+	cloned.ResponseHeaderTimeout = timeout
+	return cloned
+}
 
 func NewAwsS3Client(c *s3cli_config.S3Cli) (*s3.Client, error) {
 	var apiOptions []func(stack *middleware.Stack) error
@@ -42,15 +62,21 @@ func NewAwsS3ClientWithApiOptions(
 		httpClient = boshhttp.CreateDefaultClientInsecureSkipVerify()
 	}
 
-	if common.IsDebug() {
-		httpClient.Transport = s3middleware.NewS3LoggingTransport(httpClient.Transport)
-	}
-
 	httpRequestTimeout, err := c.HTTPRequestTimeoutValue()
 	if err != nil {
 		return nil, err
 	}
 	httpClient.Timeout = httpRequestTimeout
+
+	httpResponseHeaderTimeout, err := c.HTTPResponseHeaderTimeoutDuration()
+	if err != nil {
+		return nil, err
+	}
+	httpClient.Transport = withResponseHeaderTimeout(httpClient.Transport, httpResponseHeaderTimeout)
+
+	if common.IsDebug() {
+		httpClient.Transport = s3middleware.NewS3LoggingTransport(httpClient.Transport)
+	}
 
 	options := []func(*config.LoadOptions) error{
 		config.WithHTTPClient(httpClient),

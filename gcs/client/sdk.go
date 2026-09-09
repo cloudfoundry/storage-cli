@@ -21,14 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 
 	"google.golang.org/api/option"
-
-	"net/http"
 
 	"cloud.google.com/go/storage"
 	"github.com/cloudfoundry/storage-cli/common"
@@ -38,15 +38,40 @@ import (
 
 const uaString = "storage-cli-gcs"
 
+func withResponseHeaderTimeout(base http.RoundTripper, timeout time.Duration) http.RoundTripper {
+	if timeout == 0 {
+		return base
+	}
+
+	if base == nil {
+		base = http.DefaultTransport
+	}
+
+	transport, ok := base.(*http.Transport)
+	if !ok {
+		return base
+	}
+
+	cloned := transport.Clone()
+	cloned.ResponseHeaderTimeout = timeout
+	return cloned
+}
+
 func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client, *storage.Client, error) {
 	requestTimeout, err := cfg.HTTPRequestTimeoutValue()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	responseHeaderTimeout, err := cfg.HTTPResponseHeaderTimeoutDuration()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	publicHTTPClient := &http.Client{Timeout: requestTimeout}
+	publicHTTPClient.Transport = withResponseHeaderTimeout(publicHTTPClient.Transport, responseHeaderTimeout)
 	if common.IsDebug() {
-		publicHTTPClient.Transport = middleware.NewLoggingTransport(http.DefaultTransport)
+		publicHTTPClient.Transport = middleware.NewLoggingTransport(publicHTTPClient.Transport)
 	}
 
 	publicClient, err := storage.NewClient(ctx, option.WithUserAgent(uaString), option.WithHTTPClient(publicHTTPClient))
@@ -60,6 +85,7 @@ func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client
 	case config.DefaultCredentialsSource:
 		if tokenSource, err = google.DefaultTokenSource(ctx, storage.ScopeFullControl); err == nil {
 			baseClient := oauth2.NewClient(ctx, tokenSource)
+			baseClient.Transport = withResponseHeaderTimeout(baseClient.Transport, responseHeaderTimeout)
 			if common.IsDebug() {
 				baseClient.Transport = middleware.NewLoggingTransport(baseClient.Transport)
 			}
@@ -70,6 +96,7 @@ func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client
 		if token, err = google.JWTConfigFromJSON([]byte(cfg.ServiceAccountFile), storage.ScopeFullControl); err == nil {
 			tokenSource := token.TokenSource(ctx)
 			baseClient := oauth2.NewClient(ctx, tokenSource)
+			baseClient.Transport = withResponseHeaderTimeout(baseClient.Transport, responseHeaderTimeout)
 			if common.IsDebug() {
 				baseClient.Transport = middleware.NewLoggingTransport(baseClient.Transport)
 			}

@@ -22,6 +22,7 @@ The S3 client requires a JSON configuration file with the following structure:
   "ssl_verify_peer":              <bool> (optional - default: true),
   "use_ssl":                      <bool> (optional - default: true),
   "http_request_timeout":         "<string duration> (optional)",
+  "http_response_header_timeout": "<string duration> (optional)",
   "signature_version":            "<string> (optional)",
   "server_side_encryption":       "<string> (optional)",
   "sse_kms_key_id":               "<string> (optional)",
@@ -39,6 +40,7 @@ The S3 client requires a JSON configuration file with the following structure:
 ```
 
 If `http_request_timeout` is omitted, the HTTP client timeout is left unset.
+If `http_response_header_timeout` is omitted, the transport response-header timeout is left unset.
 
 **Usage examples:**
 ```shell
