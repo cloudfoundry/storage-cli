@@ -126,7 +126,7 @@ func (dsc DefaultStorageClient) newOSSClient() (*oss.Client, error) {
 		return nil, err
 	}
 
-	httpResponseHeaderTimeout, err := dsc.storageConfig.HTTPResponseHeaderTimeoutValue()
+	httpResponseHeaderTimeout, err := dsc.storageConfig.HTTPResponseHeaderTimeoutDuration()
 	if err != nil {
 		return nil, err
 	}

@@ -128,7 +128,7 @@ func NewFromReader(reader io.Reader) (GCSCli, error) {
 		return GCSCli{}, err
 	}
 
-	if _, err := c.HTTPResponseHeaderTimeoutValue(); err != nil {
+	if _, err := c.HTTPResponseHeaderTimeoutDuration(); err != nil {
 		return GCSCli{}, err
 	}
 
@@ -139,7 +139,7 @@ func (c *GCSCli) HTTPRequestTimeoutValue() (time.Duration, error) {
 	return parseOptionalPositiveDuration("http_request_timeout", c.HTTPRequestTimeout, ErrNonPositiveHTTPRequestTimeout)
 }
 
-func (c *GCSCli) HTTPResponseHeaderTimeoutValue() (time.Duration, error) {
+func (c *GCSCli) HTTPResponseHeaderTimeoutDuration() (time.Duration, error) {
 	return parseOptionalPositiveDuration("http_response_header_timeout", c.HTTPResponseHeaderTimeout, ErrNonPositiveHTTPResponseHeaderTimeout)
 }
 

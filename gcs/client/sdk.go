@@ -63,7 +63,7 @@ func newStorageClients(ctx context.Context, cfg *config.GCSCli) (*storage.Client
 		return nil, nil, err
 	}
 
-	responseHeaderTimeout, err := cfg.HTTPResponseHeaderTimeoutValue()
+	responseHeaderTimeout, err := cfg.HTTPResponseHeaderTimeoutDuration()
 	if err != nil {
 		return nil, nil, err
 	}

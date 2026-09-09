@@ -33,7 +33,7 @@ var _ = Describe("Config", func() {
 		timeoutSeconds, err := config.HTTPRequestTimeoutSeconds()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(timeoutSeconds).To(Equal(int64(30)))
-		headerTimeout, err := config.HTTPResponseHeaderTimeoutValue()
+		headerTimeout, err := config.HTTPResponseHeaderTimeoutDuration()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(headerTimeout.Seconds()).To(Equal(5.0))
 	})
@@ -81,7 +81,7 @@ var _ = Describe("Config", func() {
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(config.HTTPResponseHeaderTimeout).To(BeEmpty())
-		headerTimeout, err := config.HTTPResponseHeaderTimeoutValue()
+		headerTimeout, err := config.HTTPResponseHeaderTimeoutDuration()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(headerTimeout).To(BeZero())
 	})

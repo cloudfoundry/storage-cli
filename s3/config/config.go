@@ -141,7 +141,7 @@ func NewFromReader(reader io.Reader) (S3Cli, error) {
 	if _, err := c.HTTPRequestTimeoutValue(); err != nil {
 		return S3Cli{}, err
 	}
-	if _, err := c.HTTPResponseHeaderTimeoutValue(); err != nil {
+	if _, err := c.HTTPResponseHeaderTimeoutDuration(); err != nil {
 		return S3Cli{}, err
 	}
 
@@ -272,7 +272,7 @@ func (c *S3Cli) HTTPRequestTimeoutValue() (time.Duration, error) {
 	return parseOptionalPositiveDuration("http_request_timeout", c.HTTPRequestTimeout, errorNonPositiveHTTPRequestTimeout)
 }
 
-func (c *S3Cli) HTTPResponseHeaderTimeoutValue() (time.Duration, error) {
+func (c *S3Cli) HTTPResponseHeaderTimeoutDuration() (time.Duration, error) {
 	return parseOptionalPositiveDuration("http_response_header_timeout", c.HTTPResponseHeaderTimeout, errorNonPositiveHTTPResponseHeaderTimeout)
 }
 

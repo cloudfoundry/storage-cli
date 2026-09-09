@@ -37,7 +37,7 @@ func NewFromReader(reader io.Reader) (AliStorageConfig, error) {
 	if _, err := config.HTTPRequestTimeoutSeconds(); err != nil {
 		return AliStorageConfig{}, err
 	}
-	if _, err := config.HTTPResponseHeaderTimeoutValue(); err != nil {
+	if _, err := config.HTTPResponseHeaderTimeoutDuration(); err != nil {
 		return AliStorageConfig{}, err
 	}
 
@@ -67,7 +67,7 @@ func (c AliStorageConfig) HTTPRequestTimeoutSeconds() (int64, error) {
 	return timeoutSeconds, nil
 }
 
-func (c AliStorageConfig) HTTPResponseHeaderTimeoutValue() (time.Duration, error) {
+func (c AliStorageConfig) HTTPResponseHeaderTimeoutDuration() (time.Duration, error) {
 	if c.HTTPResponseHeaderTimeout == "" {
 		return 0, nil
 	}

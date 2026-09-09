@@ -68,7 +68,7 @@ func NewAwsS3ClientWithApiOptions(
 	}
 	httpClient.Timeout = httpRequestTimeout
 
-	httpResponseHeaderTimeout, err := c.HTTPResponseHeaderTimeoutValue()
+	httpResponseHeaderTimeout, err := c.HTTPResponseHeaderTimeoutDuration()
 	if err != nil {
 		return nil, err
 	}
