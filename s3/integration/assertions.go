@@ -291,10 +291,14 @@ func AssertOnStorageExists(s3CLIPath string, cfg *config.S3Cli) {
 	Expect(s3CLISession.ExitCode()).To(BeZero())
 
 	// Verify the bucket now exists using the client created earlier.
-	_, headBucketErr := verificationClient.HeadBucket(context.TODO(), &s3.HeadBucketInput{
+	// Use a waiter rather than a bare HeadBucket call: in slower/newer regions (e.g. eusc-de-east-1)
+	// bucket creation may not yet be visible from a fresh client connection even after the CLI's
+	// own BucketExistsWaiter returned success.
+	bucketWaiter := s3.NewBucketExistsWaiter(verificationClient)
+	waitErr := bucketWaiter.Wait(context.TODO(), &s3.HeadBucketInput{
 		Bucket: aws.String(cfgCopy.BucketName),
-	})
-	Expect(headBucketErr).ToNot(HaveOccurred(), "Bucket should have been created by 'ensure-storage-exists'")
+	}, 60*time.Second)
+	Expect(waitErr).ToNot(HaveOccurred(), "Bucket should have been created by 'ensure-storage-exists'")
 
 	// --- Scenario 2: Bucket already exists, command should still succeed (idempotency) ---
 	s3CLISession, err = RunS3CLI(s3CLIPath, configPath, "s3", "ensure-storage-exists")
