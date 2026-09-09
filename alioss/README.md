@@ -16,7 +16,8 @@ The AliOSS client requires a JSON configuration file with the following structur
   "access_key_secret":         "<string> (required)",
   "endpoint":                  "<string> (required)",
   "bucket_name":               "<string> (required)",
-  "http_request_timeout":      "<string duration> (optional)"
+  "http_request_timeout":      "<string duration> (optional)",
+  "http_response_header_timeout": "<string duration> (optional)"
 }
 ```
 

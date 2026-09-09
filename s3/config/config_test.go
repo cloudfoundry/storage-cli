@@ -456,6 +456,66 @@ var _ = Describe("BlobstoreClient configuration", func() {
 		})
 	})
 
+	Describe("http_response_header_timeout", func() {
+		It("leaves timeout unset when not set", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket"}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			c, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.HTTPResponseHeaderTimeout).To(BeEmpty())
+			timeout, err := c.HTTPResponseHeaderTimeoutDuration()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(timeout).To(BeZero())
+		})
+
+		It("parses a valid duration", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket","http_response_header_timeout":"3s"}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			c, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.HTTPResponseHeaderTimeout).To(Equal("3s"))
+			timeout, err := c.HTTPResponseHeaderTimeoutDuration()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(timeout.Seconds()).To(Equal(3.0))
+		})
+
+		It("rejects numeric timeout values", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket","http_response_header_timeout":45}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			_, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("cannot unmarshal number into Go struct field"))
+		})
+
+		It("rejects invalid duration formats", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket","http_response_header_timeout":"bananas"}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			_, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid http_response_header_timeout"))
+		})
+
+		It("rejects negative durations", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket","http_response_header_timeout":"-1s"}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			_, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).To(MatchError("http_response_header_timeout must be greater than 0"))
+		})
+
+		It("rejects zero durations", func() {
+			dummyJSONBytes := []byte(`{"access_key_id":"id","secret_access_key":"key","bucket_name":"some-bucket","http_response_header_timeout":"0s"}`)
+			dummyJSONReader := bytes.NewReader(dummyJSONBytes)
+
+			_, err := config.NewFromReader(dummyJSONReader)
+			Expect(err).To(MatchError("http_response_header_timeout must be greater than 0"))
+		})
+	})
+
 	Describe("returning the S3 endpoint", func() {
 		Context("when port is provided", func() {
 			It("returns a URI in the form `host:port`", func() {
