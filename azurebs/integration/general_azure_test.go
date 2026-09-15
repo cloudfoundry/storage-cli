@@ -43,6 +43,10 @@ var _ = Describe("General testing for all Azure regions", func() {
 		func(cfg *config.AZStorageConfig) { integration.AssertPutHonorsCustomTimeout(cliPath, cfg) },
 		configurations,
 	)
+	DescribeTable("Assert Put HTTP Request Timeout Fires",
+		func(cfg *config.AZStorageConfig) { integration.AssertPutHTTPRequestTimeoutFires(cliPath, cfg) },
+		configurations,
+	)
 	DescribeTable("Assert Put Times Out",
 		func(cfg *config.AZStorageConfig) { integration.AssertPutTimesOut(cliPath, cfg) },
 		configurations,
