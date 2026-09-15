@@ -3,7 +3,7 @@ module github.com/cloudfoundry/storage-cli
 go 1.26.0
 
 require (
-	cloud.google.com/go/storage v1.67.0
+	cloud.google.com/go/storage v1.67.1
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.8.0
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
