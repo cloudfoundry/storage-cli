@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -21,6 +23,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	azContainer "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
+
+	"golang.org/x/net/http2"
 
 	"github.com/cloudfoundry/storage-cli/azurebs/config"
 )
@@ -145,8 +149,37 @@ func buildClientOptions(storageConfig config.AZStorageConfig) (*azcore.ClientOpt
 		return nil, nil
 	}
 
-	// preserve the default transport settings from the azure-sdk-for-go runtime package
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	// Mirror the default transport built by azcore's runtime package
+	// (runtime/transport_default_http_client.go). Its defaultHTTPClient and the
+	// underlying transport are unexported and cannot be reused directly, so we
+	// replicate the settings here to preserve the SDK's tuned defaults while
+	// applying our custom timeouts. Keep this in sync with the pinned SDK
+	// version: github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1.
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig: &tls.Config{
+			MinVersion:    tls.VersionTLS12,
+			Renegotiation: tls.RenegotiateFreelyAsClient,
+		},
+	}
+	// TODO: evaluate removing this once https://github.com/golang/go/issues/59690 has been fixed
+	if http2Transport, err := http2.ConfigureTransports(transport); err == nil {
+		// if the connection has been idle for 10 seconds, send a ping frame for a health check
+		http2Transport.ReadIdleTimeout = 10 * time.Second
+		// if there's no response to the ping within the timeout, the connection will be closed
+		http2Transport.PingTimeout = 5 * time.Second
+	}
+
 	if responseHeaderTimeout > 0 {
 		transport.ResponseHeaderTimeout = responseHeaderTimeout
 	}
