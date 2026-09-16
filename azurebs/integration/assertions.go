@@ -129,7 +129,7 @@ func AssertPutHTTPRequestTimeoutFires(cliPath string, cfg *config.AZStorageConfi
 	defer os.Remove(configPath) //nolint:errcheck
 
 	const mb = 1024 * 1024
-	big := bytes.Repeat([]byte("x"), 1000*mb)
+	big := bytes.Repeat([]byte("x"), 100*mb)
 	content := MakeContentFile(string(big))
 	defer os.Remove(content) //nolint:errcheck
 	blob := GenerateRandomString()
