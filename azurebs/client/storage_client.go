@@ -173,11 +173,11 @@ func buildClientOptions(storageConfig config.AZStorageConfig) (*azcore.ClientOpt
 		},
 	}
 	// TODO: evaluate removing this once https://github.com/golang/go/issues/59690 has been fixed
-	if http2Transport, err := http2.ConfigureTransports(transport); err == nil {
+	if http2Transport, err := http2.ConfigureTransports(transport); err == nil { //nolint:staticcheck
 		// if the connection has been idle for 10 seconds, send a ping frame for a health check
-		http2Transport.ReadIdleTimeout = 10 * time.Second
+		http2Transport.ReadIdleTimeout = 10 * time.Second //nolint:staticcheck
 		// if there's no response to the ping within the timeout, the connection will be closed
-		http2Transport.PingTimeout = 5 * time.Second
+		http2Transport.PingTimeout = 5 * time.Second //nolint:staticcheck
 	}
 
 	if responseHeaderTimeout > 0 {
