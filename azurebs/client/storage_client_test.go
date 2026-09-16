@@ -62,7 +62,7 @@ var _ = Describe("NewStorageClient", func() {
 // version, update buildClientOptions in storage_client.go to reflect any
 // changes, then update pinnedHash (and pinnedVersion for clarity) below.
 var _ = Describe("azcore transport defaults drift detection", func() {
-	FIt("transport_default_http_client.go has not changed since it was last reviewed", func() {
+	It("transport_default_http_client.go has not changed since it was last reviewed", func() {
 		const pinnedVersion = "v1.23.1"
 		const pinnedHash = "e60db6ff9e71a7f778503c3628c8cda73c5fd555436b470696a0c491fb6db20d"
 
