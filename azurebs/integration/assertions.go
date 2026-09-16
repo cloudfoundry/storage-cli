@@ -122,6 +122,32 @@ func AssertNegativeTimeoutIsError(cliPath string, cfg *config.AZStorageConfig) {
 	Expect(sess.Err).Should(gbytes.Say(`"msg":"Invalid time, need at least 1 second"`))
 }
 
+func AssertPutHTTPRequestTimeoutFires(cliPath string, cfg *config.AZStorageConfig) {
+	cfg2 := *cfg
+	cfg2.HTTPRequestTimeout = "1ms" // far too short to complete a real upload
+	configPath := MakeConfigFile(&cfg2)
+	defer os.Remove(configPath) //nolint:errcheck
+
+	const mb = 1024 * 1024
+	big := bytes.Repeat([]byte("x"), 100*mb)
+	content := MakeContentFile(string(big))
+	defer os.Remove(content) //nolint:errcheck
+	blob := GenerateRandomString()
+
+	sess, err := RunCli(cliPath, configPath, storageType, "put", content, blob)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(sess.ExitCode()).ToNot(BeZero())
+	// The http.Client.Timeout trips at the transport layer, so the failure is
+	// the net/http client-timeout error rather than the operation-level
+	// "timeout of X reached while uploading" message.
+	consoleOutput := string(sess.Err.Contents())
+	Expect(consoleOutput).To(ContainSubstring("upload failure"))
+	Expect(consoleOutput).To(Or(
+		ContainSubstring("Client.Timeout"),
+		ContainSubstring("context deadline exceeded"),
+	))
+}
+
 func AssertSignedURLTimeouts(cliPath string, cfg *config.AZStorageConfig) {
 	configPath := MakeConfigFile(cfg)
 	defer os.Remove(configPath) //nolint:errcheck

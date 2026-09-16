@@ -12,12 +12,21 @@ The Azure client requires a JSON configuration file with the following structure
 
 ``` json
 {
-  "account_name":           "<string> (required)",
-  "account_key":            "<string> (required)",
-  "container_name":         "<string> (required)",
-  "environment":            "<string> (optional, default: 'AzureCloud')"
+  "account_name":                 "<string> (required)",
+  "account_key":                  "<string> (required)",
+  "container_name":               "<string> (required)",
+  "environment":                  "<string> (optional, default: 'AzureCloud')",
+  "put_timeout_in_seconds":       "<string> (optional; put/upload operation timeout in whole seconds)",
+  "http_request_timeout":         "<string> (optional; Go duration, e.g. '30s', '2m')",
+  "http_response_header_timeout": "<string> (optional; Go duration, e.g. '10s', '1m')"
 }
 ```
+
+### Timeout Configuration
+
+- `put_timeout_in_seconds`: Applies to upload/put operations and is interpreted as seconds.
+- `http_request_timeout`: Sets the underlying HTTP client timeout for Azure SDK requests.
+- `http_response_header_timeout`: Sets how long to wait for response headers from the server.
 
 **Usage examples:**
 ``` bash

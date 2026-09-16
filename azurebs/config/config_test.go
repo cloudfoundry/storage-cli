@@ -3,6 +3,7 @@ package config_test
 import (
 	"bytes"
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -85,6 +86,69 @@ var _ = Describe("Config", func() {
 				Expect(config.Environment).To(Equal("AzureUSGovernment"))
 				Expect(config.StorageEndpoint()).To(Equal("blob.core.usgovcloudapi.net"))
 			})
+		})
+	})
+
+	Context("http timeouts", func() {
+		DescribeTable("HTTPRequestTimeoutValue",
+			func(value string, expected time.Duration, errSubstring string) {
+				c := config.AZStorageConfig{HTTPRequestTimeout: value}
+				result, err := c.HTTPRequestTimeoutValue()
+				if errSubstring == "" {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal(expected))
+				} else {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(errSubstring))
+				}
+			},
+			Entry("empty means unset", "", time.Duration(0), ""),
+			Entry("valid duration", "30s", 30*time.Second, ""),
+			Entry("valid minutes", "2m", 2*time.Minute, ""),
+			Entry("bare number is rejected", "30", time.Duration(0), "missing duration unit"),
+			Entry("garbage is rejected", "abc", time.Duration(0), "invalid http_request_timeout"),
+			Entry("zero is rejected", "0s", time.Duration(0), "must be greater than 0"),
+			Entry("negative is rejected", "-5s", time.Duration(0), "must be greater than 0"),
+		)
+
+		DescribeTable("HTTPResponseHeaderTimeoutValue",
+			func(value string, expected time.Duration, errSubstring string) {
+				c := config.AZStorageConfig{HTTPResponseHeaderTimeout: value}
+				result, err := c.HTTPResponseHeaderTimeoutValue()
+				if errSubstring == "" {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal(expected))
+				} else {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(errSubstring))
+				}
+			},
+			Entry("empty means unset", "", time.Duration(0), ""),
+			Entry("valid duration", "10s", 10*time.Second, ""),
+			Entry("bare number is rejected", "10", time.Duration(0), "missing duration unit"),
+			Entry("garbage is rejected", "abc", time.Duration(0), "invalid http_response_header_timeout"),
+			Entry("zero is rejected", "0s", time.Duration(0), "must be greater than 0"),
+			Entry("negative is rejected", "-5s", time.Duration(0), "must be greater than 0"),
+		)
+
+		It("NewFromReader accepts valid timeout strings", func() {
+			configJson := []byte(`{"http_request_timeout": "30s", "http_response_header_timeout": "10s"}`)
+			c, err := config.NewFromReader(bytes.NewReader(configJson))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(c.HTTPRequestTimeout).To(Equal("30s"))
+			Expect(c.HTTPResponseHeaderTimeout).To(Equal("10s"))
+		})
+
+		It("NewFromReader rejects an invalid http_request_timeout", func() {
+			configJson := []byte(`{"http_request_timeout": "30"}`)
+			_, err := config.NewFromReader(bytes.NewReader(configJson))
+			Expect(err).To(MatchError(ContainSubstring("missing duration unit")))
+		})
+
+		It("NewFromReader rejects an invalid http_response_header_timeout", func() {
+			configJson := []byte(`{"http_response_header_timeout": "-1s"}`)
+			_, err := config.NewFromReader(bytes.NewReader(configJson))
+			Expect(err).To(MatchError(ContainSubstring("must be greater than 0")))
 		})
 	})
 })
