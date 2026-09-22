@@ -3,7 +3,7 @@ module github.com/cloudfoundry/storage-cli
 go 1.26.0
 
 require (
-	cloud.google.com/go/storage v1.67.1
+	cloud.google.com/go/storage v1.68.0
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.1
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.8.1
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
@@ -20,7 +20,7 @@ require (
 	github.com/onsi/gomega v1.43.0
 	golang.org/x/net v0.59.0
 	golang.org/x/oauth2 v0.37.0
-	google.golang.org/api v0.297.0
+	google.golang.org/api v0.298.0
 )
 
 require (
