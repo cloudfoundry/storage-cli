@@ -16,8 +16,8 @@ require (
 	github.com/aws/smithy-go v1.28.2
 	github.com/cloudfoundry/bosh-utils v0.0.650
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.13.0
-	github.com/onsi/ginkgo/v2 v2.32.2
-	github.com/onsi/gomega v1.43.0
+	github.com/onsi/ginkgo/v2 v2.33.0
+	github.com/onsi/gomega v1.43.1
 	golang.org/x/net v0.59.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.298.0
