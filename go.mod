@@ -15,7 +15,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.1
 	github.com/aws/smithy-go v1.28.2
 	github.com/cloudfoundry/bosh-utils v0.0.655
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.13.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.14.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 	golang.org/x/net v0.59.0
