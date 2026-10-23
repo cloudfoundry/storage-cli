@@ -39,9 +39,15 @@ func createOrUseProvided(logFile string) *os.File {
 		}
 	}
 
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatalf("failed to open file: %v", err)
+	}
+	if err := f.Chmod(0600); err != nil {
+		if closeErr := f.Close(); closeErr != nil {
+			log.Printf("failed to close log file: %v", closeErr)
+		}
+		log.Fatalf("failed to secure log file: %v", err)
 	}
 	return f
 }

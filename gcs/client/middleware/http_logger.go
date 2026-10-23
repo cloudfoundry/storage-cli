@@ -17,7 +17,6 @@ func NewLoggingTransport(base http.RoundTripper) http.RoundTripper {
 		slog.Debug("http request",
 			"method", req.Method,
 			"url", req.URL.String(),
-			"headers", req.Header,
 			"host", req.Host,
 			"content_lenght", req.ContentLength)
 
