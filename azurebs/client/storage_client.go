@@ -453,6 +453,17 @@ func (dsc DefaultStorageClient) SignedUrl(
 	expiration time.Duration,
 ) (string, error) {
 
+	var permissions sas.BlobPermissions
+	switch requestType {
+	case "GET":
+		permissions.Read = true
+	case "PUT":
+		permissions.Create = true
+		permissions.Write = true
+	default:
+		return "", fmt.Errorf("unsupported signed URL action: %s", requestType)
+	}
+
 	blobURL := fmt.Sprintf("%s/%s", dsc.serviceURL, dest)
 
 	slog.Info("Generating SAS URL for blob", "container", dsc.storageConfig.ContainerName, "blob", dest, "request_type", requestType, "expiration", expiration)
@@ -461,7 +472,7 @@ func (dsc DefaultStorageClient) SignedUrl(
 		return "", err
 	}
 
-	url, err := client.GetSASURL(sas.BlobPermissions{Read: true, Create: true}, time.Now().Add(expiration), nil)
+	url, err := client.GetSASURL(permissions, time.Now().Add(expiration), nil)
 	if err != nil {
 		return "", err
 	}
