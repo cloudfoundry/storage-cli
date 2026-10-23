@@ -93,7 +93,11 @@ https://{host}/signed/{directoryKey}/{objectID}?st={signature}&ts={timestamp}&e=
 
 The `directoryKey` is extracted from the endpoint path (e.g. `/admin/bbl-envs-drops-leia` → `bbl-envs-drops-leia`). nginx captures `{directoryKey}/{objectID}` as `$blob_path` and uses it for both the file alias and the HMAC message.
 
-HMAC input: `{VERB}{directoryKey}/{objectID}{unix_timestamp}{duration_seconds}`
+HMAC input: `{VERB}\n{directoryKey}/{objectID}\n{unix_timestamp}\n{duration_seconds}`
+
+The newline-delimited format requires the matching blobstore verifier update.
+Deploy the signer and verifier together; previously issued URLs must be reissued.
+The verifier must reject the previous delimiter-free format.
 
 ## Testing
 

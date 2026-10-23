@@ -21,8 +21,7 @@ var _ = Describe("Signer", func() {
 	Context("HMAC Signed URL", func() {
 		// URL path: /signed/cc-droplets/fake-object-id
 		// nginx $blob_path = cc-droplets/fake-object-id
-		// HMAC input: "GET" + "cc-droplets/fake-object-id" + "1566817860" + "900"
-		// => "GETcc-droplets/fake-object-id15668178609000"  => base64url(hmac-sha256)
+		// HMAC input separates method, blob path, timestamp and duration with newlines.
 		It("Generates a properly formed URL", func() {
 			actual, err := signer.GenerateSignedURL(endpointBase, directoryKey, objectID, verb, timeStamp, duration)
 			Expect(err).To(BeNil())

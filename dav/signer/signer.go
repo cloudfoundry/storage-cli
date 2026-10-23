@@ -29,7 +29,7 @@ func NewSigner(secret string) Signer {
 
 func (s *signer) generateSignature(prefixedBlobID, verb string, timeStamp time.Time, expires int) string {
 	verb = strings.ToUpper(verb)
-	signature := fmt.Sprintf("%s%s%d%d", verb, prefixedBlobID, timeStamp.Unix(), expires)
+	signature := fmt.Sprintf("%s\n%s\n%d\n%d", verb, prefixedBlobID, timeStamp.Unix(), expires)
 	hmac := hmac.New(sha256.New, []byte(s.secret))
 	hmac.Write([]byte(signature))
 	sigBytes := hmac.Sum(nil)
