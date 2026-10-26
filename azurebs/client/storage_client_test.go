@@ -57,16 +57,23 @@ var _ = Describe("NewStorageClient", func() {
 	})
 })
 
-// Pinned against github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1.
-// If this test fails: diff runtime/transport_default_http_client.go at the new
-// version, update buildClientOptions in storage_client.go to reflect any
-// changes, then update pinnedHash (and pinnedVersion for clarity) below.
+// Pinned against github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0.
+//
+// As of azcore v1.23.3 the default http.Client was moved out of azcore's
+// runtime package (runtime/transport_default_http_client.go) into the shared
+// sdk/internal module (transport/transport.go). buildClientOptions in
+// storage_client.go replicates those defaults, so this test fingerprints the
+// upstream source file to catch drift.
+//
+// If this test fails: diff transport/transport.go at the new version, update
+// buildClientOptions in storage_client.go to reflect any changes, then update
+// pinnedVersion and pinnedHash below.
 var _ = Describe("azcore transport defaults drift detection", func() {
-	It("transport_default_http_client.go has not changed since it was last reviewed", func() {
-		const pinnedVersion = "v1.23.1"
-		const pinnedHash = "e60db6ff9e71a7f778503c3628c8cda73c5fd555436b470696a0c491fb6db20d"
+	It("transport.go has not changed since it was last reviewed", func() {
+		const pinnedVersion = "v1.13.0"
+		const pinnedHash = "c9c688e0af848b51e71dc962539619700db280d0583f102cf8b2fbf772f8babd"
 
-		out, err := exec.Command("go", "list", "-m", "-json", "github.com/Azure/azure-sdk-for-go/sdk/azcore").Output()
+		out, err := exec.Command("go", "list", "-m", "-json", "github.com/Azure/azure-sdk-for-go/sdk/internal").Output()
 		Expect(err).NotTo(HaveOccurred(), "go list failed: %v", err)
 
 		var modInfo struct {
@@ -74,18 +81,18 @@ var _ = Describe("azcore transport defaults drift detection", func() {
 			Dir     string
 		}
 		Expect(json.Unmarshal(out, &modInfo)).To(Succeed())
-		Expect(modInfo.Dir).NotTo(BeEmpty(), "azcore module directory not found")
+		Expect(modInfo.Dir).NotTo(BeEmpty(), "sdk/internal module directory not found")
 
-		transportFile := filepath.Join(modInfo.Dir, "runtime", "transport_default_http_client.go")
+		transportFile := filepath.Join(modInfo.Dir, "transport", "transport.go")
 		content, err := os.ReadFile(transportFile)
 		Expect(err).NotTo(HaveOccurred(),
-			"could not read azcore transport file at %s", transportFile)
+			"could not read transport file at %s", transportFile)
 
 		actualHash := fmt.Sprintf("%x", sha256.Sum256(content))
 		Expect(actualHash).To(Equal(pinnedHash),
-			"azcore transport defaults changed in %s (last reviewed at %s).\n"+
-				"Diff runtime/transport_default_http_client.go, update buildClientOptions "+
-				"in storage_client.go if needed, then update pinnedVersion and pinnedHash in this test.",
+			"azcore transport defaults changed in transport/transport.go (%s, last reviewed at %s).\n"+
+				"Diff the file, update buildClientOptions in storage_client.go if needed, "+
+				"then update pinnedVersion and pinnedHash in this test.",
 			modInfo.Version, pinnedVersion,
 		)
 	})

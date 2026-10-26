@@ -149,12 +149,13 @@ func buildClientOptions(storageConfig config.AZStorageConfig) (*azcore.ClientOpt
 		return nil, nil
 	}
 
-	// Mirror the default transport built by azcore's runtime package
-	// (runtime/transport_default_http_client.go). Its defaultHTTPClient and the
-	// underlying transport are unexported and cannot be reused directly, so we
-	// replicate the settings here to preserve the SDK's tuned defaults while
-	// applying our custom timeouts. Keep this in sync with the pinned SDK
-	// version: github.com/Azure/azure-sdk-for-go/sdk/azcore@v1.23.1.
+	// Mirror the default transport built by the Azure SDK's shared transport
+	// package (github.com/Azure/azure-sdk-for-go/sdk/internal transport.go).
+	// Its DefaultHTTPClient and the underlying transport cannot be reused
+	// directly while applying our custom timeouts, so we replicate the settings
+	// here to preserve the SDK's tuned defaults. Keep this in sync with the
+	// pinned version: github.com/Azure/azure-sdk-for-go/sdk/internal@v1.13.0
+	// (see the drift-detection test in storage_client_test.go).
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
