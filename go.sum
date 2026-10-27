@@ -100,8 +100,8 @@ github.com/bmatcuk/doublestar v1.3.4 h1:gPypJ5xD31uhX6Tf54sDPUOBXTqKH4c9aPY66CyQ
 github.com/bmatcuk/doublestar v1.3.4/go.mod h1:wiQtGV+rzVYxB7WIlirSN++5HPtPlXEo9MEoZQC/PmE=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cloudfoundry/bosh-utils v0.0.661 h1:OKjWFejO5VokvopIBSggTkWRQZUn7jkwIIafmb4j7uQ=
-github.com/cloudfoundry/bosh-utils v0.0.661/go.mod h1:LUxQVMTTRCAvgChbJjkey3DqimhQqf8/zrSkbtr19Go=
+github.com/cloudfoundry/bosh-utils v0.0.667 h1:Li6ETRGxj/lvReELhKqlsR021+Un7ewOUengVJeSzQI=
+github.com/cloudfoundry/bosh-utils v0.0.667/go.mod h1:LUxQVMTTRCAvgChbJjkey3DqimhQqf8/zrSkbtr19Go=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 h1:oy59UYcspoP44ggE8DM3kjxl1+sTFd802bbZlBBhBMk=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851/go.mod h1:72EEm1oq5oXqGfu9XGtaRPWEcAFYd/P10cMNln0QhA8=
 github.com/cloudfoundry/socks5-proxy v0.2.192 h1:dbO3Glowp7W7sPNpOLay5ser7CBDfISyw2Ez5PTjY/I=
