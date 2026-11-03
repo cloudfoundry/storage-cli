@@ -1,6 +1,6 @@
 module github.com/cloudfoundry/storage-cli
 
-go 1.26.0
+go 1.26.10
 
 require (
 	cloud.google.com/go/storage v1.70.0
@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.6
 	github.com/aws/smithy-go v1.28.7
-	github.com/cloudfoundry/bosh-utils v0.0.667
+	github.com/cloudfoundry/bosh-utils v0.0.670
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.14.0
 	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
@@ -54,7 +54,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.192 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.194 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
@@ -66,12 +66,12 @@ require (
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/flatbuffers v25.12.19+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20261016150608-1facf8f91b50 // indirect
+	github.com/google/pprof v0.0.0-20261026192309-dbd0ed30aa88 // indirect
 	github.com/google/s2a-go v0.1.11 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.24 // indirect
 	github.com/googleapis/gax-go/v2 v2.27.0 // indirect
-	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/jpillora/backoff v1.1.0 // indirect
 	github.com/klauspost/compress v1.19.2 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
