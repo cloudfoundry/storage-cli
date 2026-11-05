@@ -19,7 +19,7 @@ func main() {
 		profileFlag  = flag.String("profile", "quick", "benchmark profile: quick|full")
 		opTimeout    = flag.Duration("timeout", 10*time.Minute, "per-operation timeout (applied to each put and get)")
 		namespace    = flag.String("namespace", "benchmark", "object key namespace prefix; scope cleanup to owned keys only")
-		outputDir    = flag.String("output", ".", "directory in which to write results.json, results.csv, summary.md, report.html")
+		outputDir    = flag.String("output", ".", "directory in which to write results.json and summary.md")
 		runID        = flag.String("run-id", "", "unique run identifier; defaults to a nanosecond timestamp")
 	)
 	flag.Parse()
@@ -67,19 +67,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "benchmark: write results.json: %v\n", err)
 		os.Exit(1)
 	}
-	if err := WriteCSV(result, *outputDir); err != nil {
-		fmt.Fprintf(os.Stderr, "benchmark: write results.csv: %v\n", err)
-		os.Exit(1)
-	}
 
 	stats := ComputeRunStats(result)
 
 	if err := WriteSummary(stats, *outputDir); err != nil {
 		fmt.Fprintf(os.Stderr, "benchmark: write summary.md: %v\n", err)
-		os.Exit(1)
-	}
-	if err := WriteHTMLReport(stats, *outputDir); err != nil {
-		fmt.Fprintf(os.Stderr, "benchmark: write report.html: %v\n", err)
 		os.Exit(1)
 	}
 

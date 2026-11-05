@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -159,32 +158,6 @@ var _ = Describe("WriteJSON", func() {
 	})
 })
 
-var _ = Describe("WriteCSV", func() {
-	It("writes correct header and data rows", func() {
-		outDir := GinkgoT().TempDir()
-		r := fixtureResult(false)
-
-		Expect(WriteCSV(r, outDir)).To(Succeed())
-
-		f, err := os.Open(filepath.Join(outDir, "results.csv"))
-		Expect(err).NotTo(HaveOccurred())
-		defer f.Close() //nolint:errcheck
-
-		rows, err := csv.NewReader(f).ReadAll()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(rows).To(HaveLen(7), "header + 6 sample rows")
-
-		header := rows[0]
-		Expect(header[0]).To(Equal("run_id"))
-		Expect(header[1]).To(Equal("backend_label"))
-		Expect(header[2]).To(Equal("provider"))
-
-		for _, row := range rows[1:] {
-			Expect(row[0]).To(Equal(r.RunID))
-		}
-	})
-})
-
 var _ = Describe("WriteSummary", func() {
 	It("contains expected sections and labels", func() {
 		outDir := GinkgoT().TempDir()
@@ -199,33 +172,5 @@ var _ = Describe("WriteSummary", func() {
 		for _, want := range []string{rs.BackendLabel, rs.RunID, "Candidate", "Baseline", "1KiB"} {
 			Expect(content).To(ContainSubstring(want))
 		}
-	})
-})
-
-var _ = Describe("WriteHTMLReport", func() {
-	It("contains expected HTML structure and labels", func() {
-		outDir := GinkgoT().TempDir()
-		rs := ComputeRunStats(fixtureResult(true))
-
-		Expect(WriteHTMLReport(rs, outDir)).To(Succeed())
-
-		data, err := os.ReadFile(filepath.Join(outDir, "report.html"))
-		Expect(err).NotTo(HaveOccurred())
-		content := string(data)
-
-		for _, want := range []string{"<!DOCTYPE html>", rs.BackendLabel, rs.RunID, "<svg", "Candidate", "Baseline", "1KiB"} {
-			Expect(content).To(ContainSubstring(want))
-		}
-	})
-
-	It("omits baseline section when no baseline was run", func() {
-		outDir := GinkgoT().TempDir()
-		rs := ComputeRunStats(fixtureResult(false))
-
-		Expect(WriteHTMLReport(rs, outDir)).To(Succeed())
-
-		data, err := os.ReadFile(filepath.Join(outDir, "report.html"))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(data)).NotTo(ContainSubstring("Baseline SHA256"))
 	})
 })

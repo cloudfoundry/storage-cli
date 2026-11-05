@@ -56,9 +56,7 @@ go build -tags benchmark -o benchmarker ./benchmarks
 | File | Contents |
 |------|----------|
 | `results.json` | Raw per-sample timings, statuses, and metadata |
-| `results.csv` | Same data in tabular form, one row per operation sample |
 | `summary.md` | Markdown table with median latency and throughput; suitable for GitHub job summary |
-| `report.html` | HTML report with inline SVG bar charts |
 
 ## Configuration Files
 Provider configuration is read from the JSON file specified by `-config`. The format is the same as the file CC passes to the CLI (provider-specific).

@@ -187,13 +187,11 @@ var _ = Describe("RunBinary", func() {
 			result.HasFailures = hasAnyFailures(result)
 
 			Expect(WriteJSON(result, outputDir)).To(Succeed())
-			Expect(WriteCSV(result, outputDir)).To(Succeed())
 
 			stats := ComputeRunStats(result)
 			Expect(WriteSummary(stats, outputDir)).To(Succeed())
-			Expect(WriteHTMLReport(stats, outputDir)).To(Succeed())
 
-			for _, name := range []string{"results.json", "results.csv", "summary.md", "report.html"} {
+			for _, name := range []string{"results.json", "summary.md"} {
 				info, err := os.Stat(filepath.Join(outputDir, name))
 				Expect(err).NotTo(HaveOccurred(), "output file %s missing", name)
 				Expect(info.Size()).To(BeNumerically(">", 0), "output file %s is empty", name)
