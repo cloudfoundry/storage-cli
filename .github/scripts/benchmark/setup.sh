@@ -25,6 +25,10 @@ case "${provider}" in
     bash "${script_dir}/../s3/setup-aws-infrastructure.sh"
 
     # source utils to use get_stack_info functions
+    # re-export AWS vars since subprocess env does not propagate back
+    export AWS_ACCESS_KEY_ID="${aws_access_key_id}"
+    export AWS_SECRET_ACCESS_KEY="${aws_secret_access_key}"
+    export AWS_DEFAULT_REGION="${aws_region}"
     source "${script_dir}/../s3/utils.sh"
     stack_info=$(get_stack_info "${aws_stack_name}")
     bucket_name=$(get_stack_info_of "${stack_info}" "BucketName")
