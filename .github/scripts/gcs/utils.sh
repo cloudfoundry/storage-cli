@@ -70,3 +70,11 @@ function gcloud_login {
     gcloud auth activate-service-account --key-file="${keyfile}"
     gcloud config set project "${google_project:-}"
 }
+
+
+function read_bucket_name {
+    # mirrors TMP_DIR in .github/scripts/gcs/Makefile
+    local gcs_tmp_dir="/tmp/storage-cli-gcs-${GITHUB_RUN_ID:-${USER}}"
+    local storage_class="${1:?storage class required}"
+    cat "${gcs_tmp_dir}/${storage_class}.lock"
+}

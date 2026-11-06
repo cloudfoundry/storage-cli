@@ -1,0 +1,100 @@
+name: Benchmark Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Benchmark profile"
+        required: true
+        type: choice
+        default: quick
+        options:
+          - quick
+          - full
+      provider:
+        description: "Storage provider"
+        required: true
+        type: choice
+        default: s3
+        options:
+          - s3
+          - gcs
+          - azurebs
+          - alioss
+    
+jobs:
+  benchmarking:
+    name: Run Benchmarking
+    runs-on: [ubuntu-latest]
+    env:
+      BENCHMARK_CONFIG_FILE: /tmp/benchmark-config.json 
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v7
+
+      - name: Set up Go    
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      
+      - name: Build benchmarker
+        run: |
+              echo "Building Benchmarker."
+              GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags benchmark -o "benchmarker" ./benchmark/
+
+      - name: Build storage-cli
+        run: |
+              echo "Building Storage CLI."
+              GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" -o "storage-cli" .
+
+      - name: Setup The Environment
+        run: |
+              export aws_access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+              export aws_secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+              export google_json_key_data="$(cat /tmp/gcp-key.json)"
+              export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+              export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+              export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+              export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+              export provider="${{ inputs.provider }}"
+              export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
+              ./.github/scripts/benchmarks/setup.sh
+
+      - name: Run Benchmark
+        run: |
+              mkdir -p "${GITHUB_WORKSPACE}/benchmark-results"
+              ./benchmarker \
+                -candidate ./storage-cli \
+                -provider  "${{ inputs.provider }}" \
+                -config    "${{ env.BENCHMARK_CONFIG_FILE }}" \
+                -profile   "${{ inputs.profile }}" \
+                -output    "${GITHUB_WORKSPACE}/benchmark-results"
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ inputs.provider }}-${{ inputs.profile }}
+          path: ${{ github.workspace }}/benchmark-results/
+          retention-days: 90
+
+      - name: Append Summary
+        if: always()
+        run: |
+              cat "${GITHUB_WORKSPACE}/benchmark-results/summary.md" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Teardown The Environment
+        if: always()
+        run: |
+              export aws_access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+              export aws_secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+              export google_json_key_data="$(cat /tmp/gcp-key.json)"
+              export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+              export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+              export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+              export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+              export provider="${{ inputs.provider }}"
+              export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
+              ./.github/scripts/benchmarks/teardown.sh
