@@ -50,6 +50,10 @@ jobs:
               echo "Building Storage CLI."
               GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" -o "storage-cli" .
 
+      - name: Set up Aliyun CLI
+        # if: inputs.provider == 'alioss'
+        uses: aliyun/setup-aliyun-cli-action@v1
+
       - name: Setup The Environment
         run: |
               export aws_access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
