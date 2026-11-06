@@ -1,6 +1,9 @@
 name: Benchmark Manual
 
 on:
+  push:
+    branches:
+      - feature/benchmark
   workflow_dispatch:
     inputs:
       profile:
