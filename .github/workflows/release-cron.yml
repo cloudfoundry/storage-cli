@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: '27 5 * * 3'  # Every Wednesday at 05:27 UTC
   workflow_dispatch:
-  push:
-    branches:
-      - feature/benchmark
 
 permissions:
   contents: write
@@ -59,7 +56,7 @@ jobs:
   tests:
     name: Run Unit Tests
     needs: check
-    if: false # temporarily disabled for benchmark testing
+    if: needs.check.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Into Source Code
@@ -82,42 +79,42 @@ jobs:
   integration-s3:
     name: Integration Tests - S3
     needs: [check, tests]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/s3-integration.yml
     secrets: inherit
 
   integration-gcs:
     name: Integration Tests - GCS
     needs: [check, tests]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/gcs-integration.yml
     secrets: inherit
 
   integration-azurebs:
     name: Integration Tests - Azure Blob Storage
     needs: [check, tests]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/azurebs-integration.yml
     secrets: inherit
 
   integration-alioss:
     name: Integration Tests - Alibaba OSS
     needs: [check, tests]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/alioss-integration.yml
     secrets: inherit
 
   integration-dav:
     name: Integration Tests - DAV
     needs: [check, tests]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     uses: ./.github/workflows/dav-integration.yml
     secrets: inherit
 
   build-and-release:
     name: Build and Release
     needs: [check, tests, integration-s3, integration-gcs, integration-azurebs, integration-alioss, integration-dav]
-    if: false # temporarily disabled for benchmark testing
+    if: needs.tests.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       version_number: ${{ steps.version.outputs.VERSION_NUMBER }}
@@ -209,10 +206,8 @@ jobs:
 
   benchmark:
     name: Performance Benchmark - ${{ matrix.provider }}
-    # needs: [build-and-release]
-    # if: needs.build-and-release.result == 'success'
-    needs: [check]
-    if: always()
+    needs: [build-and-release]
+    if: needs.build-and-release.result == 'success'
     runs-on: ubuntu-latest
     env:
       BENCHMARK_CONFIG_FILE: /tmp/benchmark-config.json
@@ -266,7 +261,7 @@ jobs:
 
       - name: Upload Artifacts
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-results-${{ matrix.provider }}-full
           path: ${{ github.workspace }}/benchmark-results/
