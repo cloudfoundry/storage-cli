@@ -233,7 +233,7 @@ jobs:
 
       - name: Build storage-cli
         run: |
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" -o "storage-cli" .
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ needs.build-and-release.outputs.version_number }}" -o "storage-cli" .
 
       - name: Setup The Environment
         run: |
