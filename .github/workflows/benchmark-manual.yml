@@ -62,7 +62,7 @@ jobs:
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
               export provider="${{ inputs.provider }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
-              ./.github/scripts/benchmarks/setup.sh
+              ./.github/scripts/benchmark/setup.sh
 
       - name: Run Benchmark
         run: |
@@ -100,4 +100,4 @@ jobs:
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
               export provider="${{ inputs.provider }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
-              ./.github/scripts/benchmarks/teardown.sh
+              ./.github/scripts/benchmark/teardown.sh
