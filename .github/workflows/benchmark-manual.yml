@@ -1,9 +1,6 @@
 name: Benchmark Manual
 
 on:
-  push:
-    branches:
-      - feature/benchmark
   workflow_dispatch:
     inputs:
       profile:
@@ -51,7 +48,7 @@ jobs:
               GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=0.0.0" -o "storage-cli" .
 
       - name: Set up Aliyun CLI
-        # if: inputs.provider == 'alioss'
+        if: inputs.provider == 'alioss'
         uses: aliyun/setup-aliyun-cli-action@v1
 
       - name: Setup The Environment
@@ -64,7 +61,7 @@ jobs:
               export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
               export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-              export provider="${{ inputs.provider || 'alioss' }}"
+              export provider="${{ inputs.provider }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
               ./.github/scripts/benchmark/setup.sh
 
@@ -73,16 +70,16 @@ jobs:
               mkdir -p "${GITHUB_WORKSPACE}/benchmark-results"
               ./benchmarker \
                 -candidate ./storage-cli \
-                -provider  "${{ inputs.provider || 'alioss' }}" \
+                -provider  "${{ inputs.provider }}" \
                 -config    "${{ env.BENCHMARK_CONFIG_FILE }}" \
-                -profile   "${{ inputs.profile || 'quick' }}" \
+                -profile   "${{ inputs.profile }}" \
                 -output    "${GITHUB_WORKSPACE}/benchmark-results"
 
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: benchmark-results-${{ inputs.provider || 'alioss' }}-${{ inputs.profile || 'quick' }}
+          name: benchmark-results-${{ inputs.provider }}-${{ inputs.profile }}
           path: ${{ github.workspace }}/benchmark-results/
           retention-days: 90
 
@@ -102,6 +99,6 @@ jobs:
               export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
               export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-              export provider="${{ inputs.provider || 'alioss' }}"
+              export provider="${{ inputs.provider }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
               ./.github/scripts/benchmark/teardown.sh
