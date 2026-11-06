@@ -69,7 +69,7 @@ jobs:
               mkdir -p "${GITHUB_WORKSPACE}/benchmark-results"
               ./benchmarker \
                 -candidate ./storage-cli \
-                -provider  "${{ inputs.provider || 's3' }}" \
+                -provider  "${{ inputs.provider || 'gcs' }}" \
                 -config    "${{ env.BENCHMARK_CONFIG_FILE }}" \
                 -profile   "${{ inputs.profile || 'quick' }}" \
                 -output    "${GITHUB_WORKSPACE}/benchmark-results"
@@ -78,7 +78,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: benchmark-results-${{ inputs.provider || 's3' }}-${{ inputs.profile || 'quick' }}
+          name: benchmark-results-${{ inputs.provider || 'gcs' }}-${{ inputs.profile || 'quick' }}
           path: ${{ github.workspace }}/benchmark-results/
           retention-days: 90
 
