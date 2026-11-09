@@ -7,8 +7,8 @@ script_dir="$( cd "$(dirname "${0}")" && pwd )"
 : "${provider:?provider is required (s3|gcs|azurebs|alioss)}"
 CONFIG_FILE="${benchmark_config_file}"
 
-# always remove the config file even if teardown fails
-trap 'rm -f "${CONFIG_FILE}"' EXIT
+# always remove sensitive files even if teardown fails
+trap 'rm -f "${CONFIG_FILE}" "/tmp/gcp-key.json"' EXIT
 
 case "${provider}" in
 
