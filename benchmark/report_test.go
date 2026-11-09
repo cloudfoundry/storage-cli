@@ -116,8 +116,8 @@ var _ = Describe("ComputeRunStats", func() {
 
 		Expect(rs.Candidate.Sizes).To(HaveLen(1))
 		ss := rs.Candidate.Sizes[0]
-		Expect(ss.Put.Median).To(Equal(200.0))  // put durations: 100,200,300
-		Expect(ss.Get.Median).To(Equal(500.0))  // get durations: 400,500,600
+		Expect(ss.Put.Median).To(Equal(200.0)) // put durations: 100,200,300
+		Expect(ss.Get.Median).To(Equal(500.0)) // get durations: 400,500,600
 		Expect(ss.FailedCount).To(Equal(0))
 	})
 
