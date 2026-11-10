@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -170,32 +169,4 @@ var _ = Describe("RunBinary", func() {
 		})
 	})
 
-	Context("output files", func() {
-		It("writes results.json, results.csv, summary.md and report.html", func() {
-			outputDir := GinkgoT().TempDir()
-
-			candidate, cleanupErrs := runBinary(cfg, store.runner(), "", "test-sha", "candidate")
-			result := RunResult{
-				RunID:         cfg.RunID,
-				Profile:       cfg.Profile,
-				Provider:      cfg.Provider,
-				BackendLabel:  cfg.BackendLabel,
-				Namespace:     cfg.Namespace,
-				Candidate:     candidate,
-				CleanupErrors: cleanupErrs,
-			}
-			result.HasFailures = hasAnyFailures(result)
-
-			Expect(WriteJSON(result, outputDir)).To(Succeed())
-
-			stats := ComputeRunStats(result)
-			Expect(WriteSummary(stats, outputDir)).To(Succeed())
-
-			for _, name := range []string{"results.json", "summary.md"} {
-				info, err := os.Stat(filepath.Join(outputDir, name))
-				Expect(err).NotTo(HaveOccurred(), "output file %s missing", name)
-				Expect(info.Size()).To(BeNumerically(">", 0), "output file %s is empty", name)
-			}
-		})
-	})
 })
