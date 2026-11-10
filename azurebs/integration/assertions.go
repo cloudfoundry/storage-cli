@@ -308,12 +308,14 @@ func AssertOnSignedURLs(cliPath string, cfg *config.AZStorageConfig) {
 
 	getUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
 	Expect(getUrl).To(MatchRegexp(regex))
+	Expect(getUrl).To(MatchRegexp(`[?&]sp=r(&|$)`), "GET signed URL should grant read-only permission")
 
 	cliSession, err = RunCli(cliPath, configPath, storageType, "sign", "some-blob", "put", "60s")
 	Expect(err).ToNot(HaveOccurred())
 
 	putUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
 	Expect(putUrl).To(MatchRegexp(regex))
+	Expect(putUrl).To(MatchRegexp(`[?&]sp=cw(&|$)`), "PUT signed URL should grant create+write permission")
 }
 
 func AssertOnListDeleteLifecyle(cliPath string, cfg *config.AZStorageConfig) {
