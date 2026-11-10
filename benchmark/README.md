@@ -59,8 +59,9 @@ go build -tags benchmark -o benchmarker ./benchmarks
 | `summary.md` | Markdown table with median latency and throughput; suitable for GitHub job summary |
 
 ## Configuration Files
-Provider configuration is read from the JSON file specified by `-config`. The format is the same as the file CC passes to the CLI (provider-specific).
-Example structure (AWS S3 — exact field names match the `s3/config` package):
+Provider configuration is read from the JSON file specified by `-config`. For the different providers, check the provider's specific README.md, e.g. s3/README.md
+
+Example structure for S3:
 
 ```json
 {
