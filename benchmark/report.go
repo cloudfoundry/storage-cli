@@ -81,7 +81,8 @@ func computeBinaryStats(br BinaryResult) BinaryStats {
 
 		var putDurs, putThru, getDurs, getThru []float64
 		for _, s := range sr.Samples {
-			if s.Operation == Put {
+			switch s.Operation {
+			case Put:
 				switch s.Status {
 				case StatusFailed:
 					ss.Put.FailedCount++
@@ -91,7 +92,7 @@ func computeBinaryStats(br BinaryResult) BinaryStats {
 					putDurs = append(putDurs, s.DurationMs)
 					putThru = append(putThru, s.ThroughputMiBs)
 				}
-			} else if s.Operation == Get {
+			case Get:
 				switch s.Status {
 				case StatusFailed:
 					ss.Get.FailedCount++
