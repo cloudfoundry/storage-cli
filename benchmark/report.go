@@ -16,11 +16,13 @@ import (
 // Stats holds summary statistics over a set of float64 samples.
 // NoData is set when no samples are available (e.g. all failed).
 type Stats struct {
-	Count  int     `json:"count"`
-	Min    float64 `json:"min"`
-	Max    float64 `json:"max"`
-	Median float64 `json:"median"`
-	NoData bool    `json:"no_data"`
+	Count        int     `json:"count"`
+	Min          float64 `json:"min"`
+	Max          float64 `json:"max"`
+	Median       float64 `json:"median"`
+	NoData       bool    `json:"no_data"`
+	FailedCount  int     `json:"failed_count"`
+	TimeoutCount int     `json:"timeout_count"`
 }
 
 // SizeStats holds computed statistics for one object size within a BinaryResult.
@@ -31,8 +33,6 @@ type SizeStats struct {
 	Get           Stats  `json:"get"`
 	PutThroughput Stats  `json:"put_throughput"`
 	GetThroughput Stats  `json:"get_throughput"`
-	FailedCount   int    `json:"failed_count"`
-	TimeoutCount  int    `json:"timeout_count"`
 }
 
 // BinaryStats holds computed statistics for all sizes of one binary.
@@ -81,46 +81,50 @@ func computeBinaryStats(br BinaryResult) BinaryStats {
 
 		var putDurs, putThru, getDurs, getThru []float64
 		for _, s := range sr.Samples {
-			switch s.Status {
-			case StatusFailed:
-				ss.FailedCount++
-				continue
-			case StatusTimeout:
-				ss.TimeoutCount++
-				continue
-			}
-			switch s.Operation {
-			case Put:
-				putDurs = append(putDurs, s.DurationMs)
-				putThru = append(putThru, s.ThroughputMiBs)
-			case Get:
-				getDurs = append(getDurs, s.DurationMs)
-				getThru = append(getThru, s.ThroughputMiBs)
+			if s.Operation == Put {
+				switch s.Status {
+				case StatusFailed:
+					ss.Put.FailedCount++
+				case StatusTimeout:
+					ss.Put.TimeoutCount++
+				case StatusOK:
+					putDurs = append(putDurs, s.DurationMs)
+					putThru = append(putThru, s.ThroughputMiBs)
+				}
+			} else if s.Operation == Get {
+				switch s.Status {
+				case StatusFailed:
+					ss.Get.FailedCount++
+				case StatusTimeout:
+					ss.Get.TimeoutCount++
+				case StatusOK:
+					getDurs = append(getDurs, s.DurationMs)
+					getThru = append(getThru, s.ThroughputMiBs)
+				}
 			}
 		}
 
-		ss.Put = computeStats(putDurs)
-		ss.PutThroughput = computeStats(putThru)
-		ss.Get = computeStats(getDurs)
-		ss.GetThroughput = computeStats(getThru)
+		ss.Put.compute(putDurs)
+		ss.PutThroughput.compute(putThru)
+		ss.Get.compute(getDurs)
+		ss.GetThroughput.compute(getThru)
 		bs.Sizes = append(bs.Sizes, ss)
 	}
 	return bs
 }
 
-func computeStats(values []float64) Stats {
+func (s *Stats) compute(values []float64) {
 	if len(values) == 0 {
-		return Stats{NoData: true}
+		s.NoData = true
+		return
 	}
 	sorted := make([]float64, len(values))
 	copy(sorted, values)
 	sort.Float64s(sorted)
-	return Stats{
-		Count:  len(sorted),
-		Min:    sorted[0],
-		Max:    sorted[len(sorted)-1],
-		Median: medianSorted(sorted),
-	}
+	s.Count = len(sorted)
+	s.Min = sorted[0]
+	s.Max = sorted[len(sorted)-1]
+	s.Median = medianSorted(sorted)
 }
 
 func medianSorted(sorted []float64) float64 {
@@ -149,14 +153,13 @@ Run ID: {{ .RunID }}
 Profile: {{ .Profile }}  
 Provider: {{ .Provider }}  
 Generated: {{ formatTime .GeneratedAt }}  
-Failures: {{ .HasFailures }}  
 
 ## Candidate (SHA256: {{ truncate .Candidate.SHA256 16 }})
 
-| Size | PUT median ms | PUT MiB/s | GET median ms | GET MiB/s | Samples | Failures |
-|------|--------------|-----------|--------------|-----------|---------|----------|
+| Size | PUT median ms | PUT MiB/s | PUT ok | PUT fail | GET median ms | GET MiB/s | GET ok | GET fail |
+|------|--------------|-----------|--------|----------|--------------|-----------|--------|----------|
 {{ range .Candidate.Sizes -}}
-| {{ .SizeLabel }} | {{ fmtF .Put.Median }} | {{ fmtF .PutThroughput.Median }} | {{ fmtF .Get.Median }} | {{ fmtF .GetThroughput.Median }} | {{ .Put.Count }} | {{ add .FailedCount .TimeoutCount }} |
+| {{ .SizeLabel }} | {{ fmtF .Put.Median }} | {{ fmtF .PutThroughput.Median }} | {{ .Put.Count }} | {{ add .Put.FailedCount .Put.TimeoutCount }} | {{ fmtF .Get.Median }} | {{ fmtF .GetThroughput.Median }} | {{ .Get.Count }} | {{ add .Get.FailedCount .Get.TimeoutCount }} |
 {{ end }}
 {{ if .Baseline -}}
 ## Baseline (SHA256: {{ truncate .Baseline.SHA256 16 }})

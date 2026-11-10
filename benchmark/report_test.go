@@ -1,3 +1,5 @@
+//go:build benchmark
+
 package main
 
 import (
@@ -91,7 +93,8 @@ func fixtureResultWithFailure() RunResult {
 
 var _ = Describe("ComputeStats", func() {
 	It("computes median correctly for odd count", func() {
-		s := computeStats([]float64{300, 100, 200})
+		var s Stats
+		s.compute([]float64{300, 100, 200})
 		Expect(s.Median).To(Equal(200.0))
 		Expect(s.Min).To(Equal(100.0))
 		Expect(s.Max).To(Equal(300.0))
@@ -99,12 +102,14 @@ var _ = Describe("ComputeStats", func() {
 	})
 
 	It("computes median correctly for even count", func() {
-		s := computeStats([]float64{100, 200, 300, 400})
+		var s Stats
+		s.compute([]float64{100, 200, 300, 400})
 		Expect(s.Median).To(Equal(250.0))
 	})
 
 	It("returns NoData for empty input", func() {
-		s := computeStats(nil)
+		var s Stats
+		s.compute(nil)
 		Expect(s.NoData).To(BeTrue())
 		Expect(s.Count).To(Equal(0))
 	})
@@ -118,7 +123,7 @@ var _ = Describe("ComputeRunStats", func() {
 		ss := rs.Candidate.Sizes[0]
 		Expect(ss.Put.Median).To(Equal(200.0)) // put durations: 100,200,300
 		Expect(ss.Get.Median).To(Equal(500.0)) // get durations: 400,500,600
-		Expect(ss.FailedCount).To(Equal(0))
+		Expect(ss.Put.FailedCount).To(Equal(0))
 	})
 
 	It("excludes failed samples from statistics", func() {
@@ -126,7 +131,7 @@ var _ = Describe("ComputeRunStats", func() {
 		ss := rs.Candidate.Sizes[0]
 
 		Expect(ss.Put.Median).To(Equal(200.0), "failed sample should not skew median")
-		Expect(ss.FailedCount).To(Equal(1))
+		Expect(ss.Put.FailedCount).To(Equal(1))
 	})
 
 	It("produces nil baseline and no comparisons when no baseline was run", func() {

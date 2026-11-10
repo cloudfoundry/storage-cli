@@ -225,6 +225,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Set up Aliyun CLI
+        if: matrix.provider == 'alioss'
         uses: aliyun/setup-aliyun-cli-action@v1
 
       - name: Build benchmarker

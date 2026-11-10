@@ -15,7 +15,7 @@ Failed or timed-out samples are retained in the output and mark the run as faile
 ## Usage
 ```sh
 # Build the harness
-go build -tags benchmark -o benchmarker ./benchmarks
+go build -tags benchmark -o benchmarker ./benchmark
 
 # Quick run against AWS S3
 ./benchmarker \
