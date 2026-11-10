@@ -461,7 +461,8 @@ func (dsc DefaultStorageClient) SignedUrl(
 		return "", err
 	}
 
-	url, err := client.GetSASURL(sas.BlobPermissions{Read: true, Create: true}, time.Now().Add(expiration), nil)
+	permissions := sas.BlobPermissions{Read: requestType == "GET", Create: requestType == "PUT", Write: requestType == "PUT"}
+	url, err := client.GetSASURL(permissions, time.Now().Add(expiration), nil)
 	if err != nil {
 		return "", err
 	}
