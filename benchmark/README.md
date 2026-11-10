@@ -79,7 +79,7 @@ Example structure for S3:
 
 ## Running Unit Tests
 ```sh
-go test -tags benchmark ./benchmarks/
+go test -tags benchmark ./benchmark/...
 ```
 The tests build a fake CLI binary that stores objects locally and exercise invocation, integrity verification, failure modes, cleanup isolation, and all report formats without contacting any cloud provider.
 

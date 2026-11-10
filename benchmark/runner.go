@@ -323,9 +323,6 @@ func runBinary(cfg RunConfig, runner CLIRunner, binaryPath, binarySHA, label str
 					Error:       "skipped: preceding put did not succeed",
 				}
 				sr.Samples = append(sr.Samples, getSample)
-				if cerr := cleanup(runner, key); cerr != nil {
-					cleanupErrors = append(cleanupErrors, fmt.Sprintf("cleanup %s: %v", key, cerr))
-				}
 				continue
 			}
 
