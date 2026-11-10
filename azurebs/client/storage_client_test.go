@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,6 +55,52 @@ var _ = Describe("NewStorageClient", func() {
 
 		_, err := client.NewStorageClient(cfg)
 		Expect(err).To(MatchError(ContainSubstring("must be greater than 0")))
+	})
+})
+
+var _ = Describe("SignedUrl permissions", func() {
+	baseConfig := func() config.AZStorageConfig {
+		return config.AZStorageConfig{
+			AccountName:   "account",
+			AccountKey:    "Zm9vYmFy", // base64("foobar")
+			ContainerName: "container",
+		}
+	}
+
+	It("grants read-only permission for a GET request (sp=r)", func() {
+		c, err := client.NewStorageClient(baseConfig())
+		Expect(err).ToNot(HaveOccurred())
+
+		url, err := c.SignedUrl("GET", "some-blob", time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(url).To(MatchRegexp(`[?&]sp=r(&|$)`), "GET URL must grant read only, got: %s", url)
+	})
+
+	It("grants create+write permission for a PUT request (sp=cw)", func() {
+		c, err := client.NewStorageClient(baseConfig())
+		Expect(err).ToNot(HaveOccurred())
+
+		url, err := c.SignedUrl("PUT", "some-blob", time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(url).To(MatchRegexp(`[?&]sp=cw(&|$)`), "PUT URL must grant create+write, got: %s", url)
+	})
+
+	It("does not grant create or write permission for a GET request", func() {
+		c, err := client.NewStorageClient(baseConfig())
+		Expect(err).ToNot(HaveOccurred())
+
+		url, err := c.SignedUrl("GET", "some-blob", time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(url).ToNot(MatchRegexp(`[?&]sp=[^&]*[cw]`), "GET URL must not carry create/write, got: %s", url)
+	})
+
+	It("does not grant read permission for a PUT request", func() {
+		c, err := client.NewStorageClient(baseConfig())
+		Expect(err).ToNot(HaveOccurred())
+
+		url, err := c.SignedUrl("PUT", "some-blob", time.Minute)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(url).ToNot(MatchRegexp(`[?&]sp=[^&]*r`), "PUT URL must not carry read, got: %s", url)
 	})
 })
 
