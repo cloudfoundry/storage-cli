@@ -86,7 +86,11 @@ jobs:
       - name: Append Summary
         if: always()
         run: |
-              cat "${GITHUB_WORKSPACE}/benchmark-results/summary.md" >> "${GITHUB_STEP_SUMMARY}"
+              if [ -f "${GITHUB_WORKSPACE}/benchmark-results/summary.md" ]; then
+                cat "${GITHUB_WORKSPACE}/benchmark-results/summary.md" >> "${GITHUB_STEP_SUMMARY}"
+              else
+                echo "No summary.md produced (benchmark did not complete)." >> "${GITHUB_STEP_SUMMARY}"
+              fi
 
       - name: Teardown The Environment
         if: always()
