@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -171,4 +172,31 @@ var _ = Describe("RunBinary", func() {
 		})
 	})
 
+})
+
+var _ = Describe("newCLIRunner", func() {
+	It("includes stderr detail in the error when the CLI writes to stderr", func() {
+		bin, err := writeFakeCLI(GinkgoT().TempDir(), "echo 'bad credentials' >&2\nexit 1\n")
+		Expect(err).NotTo(HaveOccurred())
+
+		runner := newCLIRunner(bin, "config.json", "s3")
+		_, timedOut, runErr := runner(context.Background(), Put, "key", "file")
+
+		Expect(timedOut).To(BeFalse())
+		Expect(runErr).To(HaveOccurred())
+		Expect(runErr.Error()).To(ContainSubstring("exit status 1"))
+		Expect(runErr.Error()).To(ContainSubstring("bad credentials"))
+	})
+
+	It("falls back to the bare exit error when stderr is empty", func() {
+		bin, err := writeFakeCLI(GinkgoT().TempDir(), "exit 1\n")
+		Expect(err).NotTo(HaveOccurred())
+
+		runner := newCLIRunner(bin, "config.json", "s3")
+		_, timedOut, runErr := runner(context.Background(), Put, "key", "file")
+
+		Expect(timedOut).To(BeFalse())
+		Expect(runErr).To(HaveOccurred())
+		Expect(runErr.Error()).To(Equal("exit status 1"))
+	})
 })

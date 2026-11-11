@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -126,6 +128,8 @@ func newCLIRunner(binaryPath, configPath, provider string) CLIRunner {
 
 		cmdArgs := append([]string{"-c", configPath, "-s", provider}, args...)
 		cmd := exec.CommandContext(ctx, binaryPath, cmdArgs...)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
 		start := time.Now()
 		runErr := cmd.Run()
 		elapsed := time.Since(start)
@@ -133,6 +137,15 @@ func newCLIRunner(binaryPath, configPath, provider string) CLIRunner {
 		if ctx.Err() != nil {
 			return elapsed, true, fmt.Errorf("operation timed out")
 		}
+
+		if runErr != nil {
+			detail := strings.TrimSpace(stderr.String())
+			if detail != "" {
+				return elapsed, false, fmt.Errorf("%w: %s", runErr, detail)
+			}
+			return elapsed, false, runErr
+		}
+
 		return elapsed, false, runErr
 	}
 }

@@ -91,6 +91,18 @@ func timeoutRunner(store *mockStore, timeoutOp OperationType) CLIRunner {
 	}
 }
 
+// writeFakeCLI writes an executable shell script to dir that runs body, and
+// returns its path. Used to drive newCLIRunner against a real subprocess so
+// the stderr-capture behaviour can be exercised end-to-end.
+func writeFakeCLI(dir, body string) (string, error) {
+	path := filepath.Join(dir, "fake-cli.sh")
+	script := "#!/bin/sh\n" + body
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func copyFile(src, dst string) error {
 	sf, err := os.Open(src)
 	if err != nil {
