@@ -76,13 +76,13 @@ var _ = Describe("SignedUrl permissions", func() {
 		Expect(url).To(MatchRegexp(`[?&]sp=r(&|$)`), "GET URL must grant read only, got: %s", url)
 	})
 
-	It("grants create+write permission for a PUT request (sp=cw)", func() {
+	It("grants create-only permission for a PUT request (sp=c)", func() {
 		c, err := client.NewStorageClient(baseConfig())
 		Expect(err).ToNot(HaveOccurred())
 
 		url, err := c.SignedUrl("PUT", "some-blob", time.Minute)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(url).To(MatchRegexp(`[?&]sp=cw(&|$)`), "PUT URL must grant create+write, got: %s", url)
+		Expect(url).To(MatchRegexp(`[?&]sp=c(&|$)`), "PUT URL must grant create only, got: %s", url)
 	})
 
 	It("does not grant create or write permission for a GET request", func() {
