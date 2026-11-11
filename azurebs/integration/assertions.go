@@ -315,7 +315,7 @@ func AssertOnSignedURLs(cliPath string, cfg *config.AZStorageConfig) {
 
 	putUrl := bytes.NewBuffer(cliSession.Out.Contents()).String()
 	Expect(putUrl).To(MatchRegexp(regex))
-	Expect(putUrl).To(MatchRegexp(`[?&]sp=cw(&|$)`), "PUT signed URL should grant create+write permission")
+	Expect(putUrl).To(MatchRegexp(`[?&]sp=c(&|$)`), "PUT signed URL should grant create-only permission")
 }
 
 func AssertOnListDeleteLifecyle(cliPath string, cfg *config.AZStorageConfig) {
