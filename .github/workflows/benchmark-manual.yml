@@ -21,6 +21,9 @@ on:
           - gcs
           - azurebs
           - alioss
+  push:
+    branches:
+      - feature/benchmark
     
 jobs:
   benchmarking:
@@ -61,7 +64,7 @@ jobs:
               export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
               export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-              export provider="${{ inputs.provider }}"
+              export provider="${{ inputs.provider || 's3' }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
               ./.github/scripts/benchmark/setup.sh
 
@@ -70,16 +73,16 @@ jobs:
               mkdir -p "${GITHUB_WORKSPACE}/benchmark-results"
               ./benchmarker \
                 -candidate ./storage-cli \
-                -provider  "${{ inputs.provider }}" \
+                -provider  "${{ inputs.provider || 's3' }}" \
                 -config    "${{ env.BENCHMARK_CONFIG_FILE }}" \
-                -profile   "${{ inputs.profile }}" \
+                -profile   "${{ inputs.profile || 'quick' }}" \
                 -output    "${GITHUB_WORKSPACE}/benchmark-results"
 
       - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: benchmark-results-${{ inputs.provider }}-${{ inputs.profile }}
+          name: benchmark-results-${{ inputs.provider || 's3' }}-${{ inputs.profile || 'quick' }}
           path: ${{ github.workspace }}/benchmark-results/
           retention-days: 90
 
@@ -103,6 +106,6 @@ jobs:
               export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
               export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
               export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
-              export provider="${{ inputs.provider }}"
+              export provider="${{ inputs.provider || 's3' }}"
               export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
               ./.github/scripts/benchmark/teardown.sh

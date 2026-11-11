@@ -16,7 +16,7 @@ case "${provider}" in
     : "${aws_access_key_id:?}"
     : "${aws_secret_access_key:?}"
     : "${aws_region:=us-east-1}"
-    : "${aws_stack_name:=s3cli-benchmark}"
+    : "${aws_stack_name:=s3cli-benchmark-${GITHUB_RUN_ID:-local}}"
 
     # translate to names the s3 teardown script expects
     export access_key_id="${aws_access_key_id}"
