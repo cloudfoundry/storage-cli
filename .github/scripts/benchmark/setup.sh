@@ -14,7 +14,7 @@ case "${provider}" in
     : "${aws_access_key_id:?}"
     : "${aws_secret_access_key:?}"
     : "${aws_region:=us-east-1}"
-    : "${aws_stack_name:=s3cli-public-bucket}"
+    : "${aws_stack_name:=s3cli-benchmark}"
 
     # translate to names the s3 setup-aws-infrastructure.sh script expects
     export access_key_id="${aws_access_key_id}"
