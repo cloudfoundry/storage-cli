@@ -124,7 +124,7 @@ aws lambda invoke \
 
 echo "Lambda invocation response:"
 cat "${lambda_log}"
-
+echo
 echo "Lambda invocation completed."
 
 # Check the invocation response
