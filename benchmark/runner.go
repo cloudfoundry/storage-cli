@@ -370,6 +370,7 @@ func runBinary(cfg RunConfig, runner CLIRunner, binaryPath, binarySHA, label str
 				getSample.Error = getErr.Error()
 				getSample.DurationMs = durationMs(getDur)
 			} else {
+				getSample.DurationMs = durationMs(getDur)
 				// Verify integrity outside the timer.
 				dstHash, hashErr := fileSHA256(dstFile.Name())
 				if hashErr != nil {
@@ -380,7 +381,6 @@ func runBinary(cfg RunConfig, runner CLIRunner, binaryPath, binarySHA, label str
 					getSample.Error = fmt.Sprintf("integrity mismatch: got %s want %s", dstHash, srcHash)
 				} else {
 					getSample.Status = StatusOK
-					getSample.DurationMs = durationMs(getDur)
 					getSample.ThroughputMiBs = throughputMiBs(sz, getDur)
 				}
 			}

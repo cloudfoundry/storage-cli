@@ -39,7 +39,9 @@ case "${provider}" in
     bucket_name="$(read_bucket_name "regional")"
     : "${bucket_name:?failed to read bucket name from gcs lock file}"
 
-    gsutil rm -r "gs://${bucket_name}" || true
+    if ! error=$(gsutil rm -r "gs://${bucket_name}" 2>&1); then
+      echo "::warning::failed to delete gs://${bucket_name}: ${error}"
+    fi 
     ;;
 
   azurebs)

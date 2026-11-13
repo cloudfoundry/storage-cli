@@ -74,7 +74,7 @@ Example structure for S3:
 
 ## Infrastructure Requirements
 - Use a dedicated benchmark bucket or container, not a production or shared integration bucket. The harness deletes objects it creates, but lifecycle expiration should be configured as a backstop for interrupted runs.
-- The IAM/service-account used for benchmarking needs only object-level read/write/delete on the dedicated bucket; no bucket-management permissions are required.
+- The IAM/service-account used for benchmarking needs only object-level read/write/delete on the dedicated bucket; no bucket-management permissions are required. Except the GCS whic requires storage.buckets.get permission.
 - Object keys are namespaced as `<namespace>/<run-id>/<provider>/<label>/<size>/<sample>`. The harness never calls `delete-recursive` against shared prefixes.
 
 ## Running Unit Tests
