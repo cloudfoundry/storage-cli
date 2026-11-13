@@ -1,0 +1,48 @@
+name: S3 IAM Integration Test (Manual)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/benchmark
+
+jobs:
+  s3-iam-integration:
+    name: S3 IAM Integration Test
+    runs-on: ubuntu-latest
+    env:
+      REGION_NAME: us-east-1
+      STACK_NAME: s3cli-iam
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up test environment
+        uses: ./.github/actions/go-test-bootstrap
+
+      - name: Setup AWS infrastructure
+        uses: ./.github/actions/s3-integration-setup
+        with:
+          access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
+
+      - name: Test IAM Roles
+        uses: ./.github/actions/s3-integration-run
+        with:
+          access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
+          label_filter: 'aws && iam-role'
+          test_type: 'aws-iam'
+
+      - name: Teardown AWS infrastructure
+        if: always()
+        uses: ./.github/actions/s3-integration-teardown
+        with:
+          access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region_name: ${{ env.REGION_NAME }}
+          stack_name: ${{ env.STACK_NAME }}
