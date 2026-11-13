@@ -11,6 +11,7 @@ source "${script_dir}/utils.sh"
 : "${secret_access_key:?}"
 : "${region_name:?}"
 : "${stack_name:?}"
+: "${template_name:=${stack_name}}" # defaults to stack_name for backward compatibility with existing callers (e.g. integration tests)
 
 export AWS_ACCESS_KEY_ID=${access_key_id}
 export AWS_SECRET_ACCESS_KEY=${secret_access_key}
@@ -31,7 +32,7 @@ fi
 
 cmd="aws cloudformation create-stack \
     --stack-name    ${stack_name} \
-    --template-body file://${script_dir}/assets/cloudformation-${stack_name}.template.json \
+    --template-body file://${script_dir}/assets/cloudformation-${template_name}.template.json \
     --capabilities  CAPABILITY_IAM"
 echo "Running: ${cmd}"; ${cmd}
 
