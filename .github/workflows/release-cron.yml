@@ -116,6 +116,8 @@ jobs:
     needs: [check, tests, integration-s3, integration-gcs, integration-azurebs, integration-alioss, integration-dav]
     if: needs.tests.result == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      version_number: ${{ steps.version.outputs.VERSION_NUMBER }}
     steps:
       - name: Checkout Into Source Code
         uses: actions/checkout@v7
@@ -201,3 +203,91 @@ jobs:
           draft: false
           makeLatest: true
           generateReleaseNotes: true
+
+  benchmark:
+    name: Performance Benchmark - ${{ matrix.provider }}
+    needs: [build-and-release]
+    if: needs.build-and-release.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      BENCHMARK_CONFIG_FILE: /tmp/benchmark-config.json
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [s3, gcs, azurebs, alioss]
+    steps:
+      - name: Checkout Into Source Code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Aliyun CLI
+        if: matrix.provider == 'alioss'
+        uses: aliyun/setup-aliyun-cli-action@v1
+
+      - name: Build benchmarker
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags benchmark -o "benchmarker" ./benchmark/
+
+      - name: Build storage-cli
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-X main.version=${{ needs.build-and-release.outputs.version_number }}" -o "storage-cli" .
+
+      - name: Setup The Environment
+        run: |
+              export aws_access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+              export aws_secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+              export google_json_key_data="$(cat /tmp/gcp-key.json)"
+              export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+              export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+              export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+              export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+              export provider="${{ matrix.provider }}"
+              export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
+              ./.github/scripts/benchmark/setup.sh
+
+      - name: Run Benchmark
+        run: |
+              mkdir -p "${GITHUB_WORKSPACE}/benchmark-results"
+              ./benchmarker \
+                -candidate ./storage-cli \
+                -provider  "${{ matrix.provider }}" \
+                -config    "${BENCHMARK_CONFIG_FILE}" \
+                -profile   full \
+                -output    "${GITHUB_WORKSPACE}/benchmark-results"
+
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results-${{ matrix.provider }}-full
+          path: ${{ github.workspace }}/benchmark-results/
+          retention-days: 90
+
+      - name: Append Summary
+        if: always()
+        run: |
+              if [ -f "${GITHUB_WORKSPACE}/benchmark-results/summary.md" ]; then
+                cat "${GITHUB_WORKSPACE}/benchmark-results/summary.md" >> "${GITHUB_STEP_SUMMARY}"
+              else
+                echo "No summary.md produced (benchmark did not complete)." >> "${GITHUB_STEP_SUMMARY}"
+              fi
+              
+      - name: Teardown The Environment
+        if: always()
+        run: |
+              export aws_access_key_id="${{ secrets.AWS_ACCESS_KEY_ID }}"
+              export aws_secret_access_key="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+              export azure_storage_account="${{ secrets.AZURE_STORAGE_ACCOUNT }}"
+              export azure_storage_key="${{ secrets.AZURE_STORAGE_KEY }}"
+              export alioss_access_key_id="${{ secrets.ALI_ACCESS_KEY_ID }}"
+              export alioss_access_key_secret="${{ secrets.ALI_ACCESS_KEY_SECRET }}"
+              echo "${{ secrets.GCP_SERVICE_ACCOUNT_BASE64 }}" | base64 -d > /tmp/gcp-key.json
+              export google_json_key_data="$(cat /tmp/gcp-key.json)"
+              export provider="${{ matrix.provider }}"
+              export benchmark_config_file="${{ env.BENCHMARK_CONFIG_FILE }}"
+              ./.github/scripts/benchmark/teardown.sh

@@ -61,4 +61,10 @@ jobs:
                     export CGO_ENABLED=0
                     go version
                     go run github.com/onsi/ginkgo/v2/ginkgo ./common/...
+
+            - name: benchmark unit tests
+              run: |
+                    export CGO_ENABLED=0
+                    go version
+                    go run github.com/onsi/ginkgo/v2/ginkgo --tags benchmark ./benchmark/...
                     

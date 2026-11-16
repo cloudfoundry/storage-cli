@@ -19,6 +19,7 @@ def test_runner_handler(event, context):
             ['./integration.test', '-ginkgo.label-filter', label_filter],
             env=os.environ,
             stderr=subprocess.STDOUT,
+            text=True,
         )
         logger.debug("INTEGRATION TEST OUTPUT:")
         logger.debug(output)

@@ -37,8 +37,3 @@ while true; do
     exit 1
   fi
 done
-
-echo "Deleting lambda functions"
-aws lambda list-functions \
- | jq -r '.Functions[].FunctionName' \
- | xargs -n1 -I{} aws lambda delete-function --function-name {}
