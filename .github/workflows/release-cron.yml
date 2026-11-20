@@ -74,7 +74,8 @@ jobs:
         run: |
           export CGO_ENABLED=0
           go version
-          go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration ./...
+          go run github.com/onsi/ginkgo/v2/ginkgo --skip-package=integration,benchmark ./...
+          go run github.com/onsi/ginkgo/v2/ginkgo -tags benchmark ./benchmark/...
 
   integration-s3:
     name: Integration Tests - S3
