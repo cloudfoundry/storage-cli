@@ -120,12 +120,13 @@ jobs:
             s3_endpoint_host: https://s3.eu-central-1.amazonaws.com
             label_filter: 'aws && static && general && !requires-default-region'
             use_esc_credentials: false
-          - name: European Sovereign Cloud
-            region_name: eusc-de-east-1
-            stack_name: s3cli-private-bucket
-            s3_endpoint_host: https://s3.eusc-de-east-1.amazonaws.eu
-            label_filter: 'aws && esc'
-            use_esc_credentials: true
+          # European Sovereign Cloud (ESC) is temporarily disabled
+          # - name: European Sovereign Cloud
+          #   region_name: eusc-de-east-1
+          #   stack_name: s3cli-private-bucket
+          #   s3_endpoint_host: https://s3.eusc-de-east-1.amazonaws.eu
+          #   label_filter: 'aws && esc'
+          #   use_esc_credentials: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
